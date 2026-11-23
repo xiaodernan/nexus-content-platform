@@ -8,10 +8,18 @@ import { getLocale, type Locale } from '@/lib/i18n';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: '公开 API 凭据 · Public API tokens — NEXUS',
-  description: '给平台外的程序用：Authorization: Bearer。发得出、认得出、收得回。/ Programmatic credentials: issue, recognize, revoke.',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  return locale === 'zh'
+    ? {
+        title: '公开 API 凭据 — NEXUS',
+        description: '给平台外的程序用：Authorization: Bearer。发得出、认得出、收得回。',
+      }
+    : {
+        title: 'Public API Tokens — NEXUS',
+        description: 'Programmatic credentials for tools outside the platform: Authorization: Bearer. Issue them, recognize them, revoke them.',
+      };
+}
 
 /**
  * §188 M8（MCP / 外部 Agent / 公开 API）的账号侧入口：这一页只管一件事——

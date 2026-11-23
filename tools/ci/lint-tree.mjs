@@ -75,6 +75,14 @@ export const EXEMPT_AREAS = [
       "load under the root's eslint 10 (measured at the parent's bytes: exit 2 in 4.5 s, and no line of its " +
       'output names a file), so the root run may not descend into it.',
   },
+  {
+    dir: '.scratch',
+    reason:
+      'proof artifacts and whole-copy test files, not product source: the root ESLint config names ' +
+      '.scratch/** in ignores, so a child linting this area exits 2 with \'all files matching the glob are ' +
+      'ignored\' (measured: crash, 0 files graded). These files stay tracked as evidence, but no lint ' +
+      'verdict exists for them and none is claimed here.',
+  },
 ];
 
 /** One tracked file -> the area it is linted in: its package dir, its top-level dir, or `(root)`. */

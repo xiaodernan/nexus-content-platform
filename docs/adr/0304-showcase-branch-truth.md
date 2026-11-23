@@ -52,3 +52,15 @@ B. 两侧都改成读真值。采用。
 - `scripts/gen-latest.mts`、`docs/showcase/latest.json`
 - 个人主页 `index.html`、`assets/nexus-content/latest.json`
 - ADR-0291（main/master 无关历史）
+
+## 补记（2026-11-22 · 并轨之后）
+
+本文写的是并轨**之前**的状态：那时 `main` 与 `master` 是两条互不相干的历史，
+个人主页只能二选一。今天两条线已经合成一条：`origin/master` 的全部成果（E211–E215、
+第十四章、页边角落模块、canon-review、压测脚本）已并入 `main`，`master` 与 `main` 指向同一条历史。
+
+因此：
+- 「数据源从旧 main 切到 master」这一步不再需要——**只有一个数据源**；
+- `total_commits` 的「两条无关历史的真实差异」这个边界随之消失；
+- `NEXUS_FACT_REF` 仍保留（多分支时还能钉），但默认 HEAD 就是最新；
+- 并轨后正典真值：**14 章 · 217 回响 · 1311 锚句**（回响 211–215 整体后移两位并入）。

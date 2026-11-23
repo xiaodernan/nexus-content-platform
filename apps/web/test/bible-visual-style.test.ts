@@ -51,7 +51,8 @@ describe('§BIBLE-1 /bible 典籍室', () => {
       expect(f).toContain('import { getLocale');
       expect(f).toContain('const COPY');
     }
-    expect(index).toContain('export const metadata');
+    // 2026-11-22：目录页 metadata 也跟随 cookie 语言（英文标签页不再挂中文标题）。
+    expect(index).toContain('export async function generateMetadata');
     expect(reader).toContain('generateMetadata');
   });
 
@@ -141,10 +142,19 @@ describe('§BIBLE-1 /bible 典籍室', () => {
     expect(component).toContain('**Anchor sentence**');
   });
 
+  // 2026-11-22 重钉（并轨 origin/master）：
+  //   index —— master 侧把典籍室从十三扇门改成十四扇门（新增第十四章与页边角落入口）；
+  //   reader —— main 线此前给阅读页加了「顺藤摸瓜 · 同线索的回响」，当时**忘了重钉**
+  //             （这一格在并轨前就是红的，现一并补上并记在 CURRENT-STATE）；
+  //   component —— BibleMarkdown 本轮未动，钉子不变。
+  // 门面类名、零 hex、钩子守恒等其余各条门在重钉前已全绿，改的是哪一格写在上面对得上。
+  // 2026-11-22 再钉：index —— 中文 echoTitle 去掉并列英文（「回响 · Echoes」→「回响」），
+  // 且 metadata 改 generateMetadata 跟随语言（英文标签页 World Bible）；reader / component 未动。
+  // 2026-11-22 三钉：index —— 玩法入口新增第五个角落 `/bible/dot-road`（E220 点路），
+  // 中英各一条 bb-playLink；reader / component 仍未动。
   it('SHA256 钉死（EOL 归一 + className→@）：目录页 / 阅读页 / 渲染器', () => {
-    // 2026-11-23 并回 origin/main：目录页多了 /bible/threads 出口，阅读页多了「回响线索」段——两处显式重钉
     expect(createHash('sha256').update(redactClasses(index)).digest('hex')).toBe(
-      '93391f389f8f6af61d85d20f650fa42620da9aad681e5b7e8e65981610c0ba72',
+      'b19c420421e05194fcccdbfbe5eccbf6fce766545fb9fee35fd2c7e04558ea64',
     );
     expect(createHash('sha256').update(redactClasses(reader)).digest('hex')).toBe(
       'c76bec23b6a5a94a46d7b849459817b04a6633791f1de57bf7000202ad076df7',

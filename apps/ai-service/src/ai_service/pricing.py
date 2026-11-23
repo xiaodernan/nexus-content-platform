@@ -85,6 +85,10 @@ class PriceTable:
     def __bool__(self) -> bool:
         return bool(self._exact or self._prefix)
 
+    def __len__(self) -> int:
+        """条目数（精确名 + 前缀名）。价目表只读，这里只数键，不暴露键名。"""
+        return len(self._exact) + len(self._prefix)
+
     def price_for(self, model: str) -> Price | None:
         """
         最长前缀优先，其次精确名。

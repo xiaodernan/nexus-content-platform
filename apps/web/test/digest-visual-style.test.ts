@@ -123,8 +123,9 @@ describe('§FE-DG /world/<project>/digest 世界速览', () => {
   it('SHA256 钉死（本线字节）', () => {
     // 2026-11-21 §WORLD-NET：页脚加「万象脉络 →」入口（data-digest-open-network + 双语文案）。
     // 是真实的新导航元素，不是换皮，所以门该破——旧值 1cfae46a…。
+    // 2026-11-22 f5c5f02c 改了英文文案但漏钉本门（全量复跑才发现）；按当前字节补钉。
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      'cfb5e1af86bbf66f97c0df01636e8baac3f9205f2818d7b2b5adfcec6b224559',
+      '1d3b1e5db780e6e1e5e7b0a1247fdebf6b4d429fa50093c3e0f0124b84ae8cd0',
     );
   });
 });

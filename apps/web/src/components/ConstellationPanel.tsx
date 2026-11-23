@@ -34,7 +34,7 @@ const COPY = {
   },
   en: {
     emptyTitle: 'The map has no stars yet',
-    emptyCopy: (name: string) => `「${name}」 has no character profiles yet — the map reads the relationships between character profiles. Build a few characters in Studio and your world grows its own star-links.`,
+    emptyCopy: (name: string) => `“${name}” has no character profiles yet — the map reads the relationships between character profiles. Build a few characters in Studio and your world grows its own star-links.`,
     emptyCta: 'Go to the character panel in Studio →',
     unnamed: '(unnamed)',
     svgLabel: (n: number) => `${n} characters’ relationship map`,

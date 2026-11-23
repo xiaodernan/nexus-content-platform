@@ -32,7 +32,8 @@ describe('§MAP-2 /map 世界全图', () => {
   it('RSC + force-dynamic + metadata + locale', () => {
     expect(page.slice(0, 60)).not.toContain('use client');
     expect(page).toContain('export const dynamic');
-    expect(page).toContain('export const metadata');
+    // 2026-11-22：metadata 跟随 cookie 语言（英文标签页不再挂中文标题）。
+    expect(page).toContain('export async function generateMetadata');
     expect(page).toContain('getLocale');
   });
 

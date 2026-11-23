@@ -584,6 +584,21 @@ const LOOKALIKE = [{"f":"docs/decisions/0016-agent-runtime-hermetic-demo-loop.md
 {"f":"docs/evidence/sim-2026-11-18-behavior.md","d":"cf615da939136997","i":[36335],"w":"REJECTED flanks cjk|punct"},
 {"f":"docs/evidence/simulated-user-behavior-2026-11-19.md","d":"b466d03cae24ce35","i":[36335],"w":"REJECTED flanks cjk|cjk"},
 {"f":"docs/world-bible/echoes/E81-\u6f6e\u5019\u9662\u91cc\u8001\u77f3\u78e8\u76d8-\u5b83\u78e8\u4e0d\u52a8\u4efb\u4f55\u4e1c\u897f.md","d":"ed2004e3db34892b","i":[36335],"w":"REJECTED flanks cjk|edge"},
+   // -- amendment (2026-11-23, local-clone/main consolidation): ten rescued island rows brought in by the
+   // -- parallel line's merge -- the DotRoad page + its behavior test, the canon-review route test, five
+   // -- stress harness logs (the same short redis PONG probe line), and two evidence docs. Each is a
+   // -- deliberately short bilingual line (a heading or a Chinese-flanked label) that the derivation cannot
+   // -- witness; all are person-written content, not damage. Named here so the island stays rostered.
+   {"f":".scratch/s34-arm-C1.txt","d":"7563521ea7990239","i":[36335],"w":"REJECTED flanks cjk|punct"},
+   {"f":".scratch/s34-two-process-green.txt","d":"7563521ea7990239","i":[36335],"w":"REJECTED flanks cjk|punct"},
+   {"f":".scratch/s36-arm-C2.txt","d":"7563521ea7990239","i":[36335],"w":"REJECTED flanks cjk|punct"},
+   {"f":".scratch/s36-arm-C3.txt","d":"7563521ea7990239","i":[36335],"w":"REJECTED flanks cjk|punct"},
+   {"f":".scratch/s36-drill-final.txt","d":"7563521ea7990239","i":[36335],"w":"REJECTED flanks cjk|punct"},
+   {"f":"apps/web/src/components/DotRoad.tsx","d":"550c21466f40b93b","i":[36335],"w":"REJECTED flanks cjk|punct"},
+   {"f":"apps/web/test/canon-review-route.test.ts","d":"1d68e5bf2be01e98","i":[36335],"w":"REJECTED flanks alpha|cjk"},
+   {"f":"apps/web/test/dot-road-behavior.test.ts","d":"b491cfee97b2c2ba","i":[36335],"w":"REJECTED flanks alpha|cjk"},
+   {"f":"docs/evidence/echo-210-live-2026-11-22.md","d":"fee609a12aa1eca3","i":[36335],"w":"REJECTED flanks cjk|edge"},
+   {"f":"docs/evidence/simulated-user-behavior-2026-11-21.md","d":"2be507c03c414e06","i":[36335],"w":"REJECTED flanks cjk|cjk"},
 
 ];
 const laKey = (e) => `${e.f}\u0000${e.d}`;

@@ -94,9 +94,10 @@ describe('──OBSERVER-DEEPREAD /admin/observe "AI 深读"', () => {
     }
   });
 
+  // 2026-11-22 重钉：中文 kicker 去掉并列英文与模型名（「AI 深读 · gpt-6.2-sol」→「AI 深读」）。
   it('SHA256 钉死（EOL 归一 + className→@）：组件', () => {
     expect(createHash('sha256').update(redactClasses(card)).digest('hex')).toBe(
-      '448e472a945410862886213f35395284d57204d9eba3fe62703ea553373c06e6',
+      '624023e54daa053b4a179523b2037fe45a64810e781998e4fd88037f16a84846',
     );
   });
 });

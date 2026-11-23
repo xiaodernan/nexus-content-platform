@@ -38,7 +38,7 @@ const COPY: Record<Locale, {
   echoLabel: (order: number) => string;
 }> = {
   zh: {
-    kicker: '§ECHO-THREAD · 线索',
+    kicker: '线索',
     title: '回响线索索引',
     lede: (objects, places, scanned) =>
       `二百零九篇回响不是二百零九个孤岛。这里把「同一件东西被多篇写到」的现象串成 ` +
@@ -78,11 +78,18 @@ const COPY: Record<Locale, {
   },
 };
 
-export const metadata: Metadata = {
-  title: '回响线索索引 · Echo threads — NEXUS',
-  description:
-    '把二百零九篇回响按同一件东西串成线：潮印、盐账、夜钥匙、不写名的灯……每条线只列逐字锚句作证据。',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  return locale === 'zh'
+    ? {
+        title: '回响线索索引 — NEXUS',
+        description: '把全部回响按同一件东西串成线：潮印、盐账、夜钥匙、不写名的灯……每条线只列逐字锚句作证据。',
+      }
+    : {
+        title: 'Echo Threads — NEXUS',
+        description: 'Every echo threaded by the same object: tide seals, salt ledgers, night keys, the lamp that never writes a name… each thread cites only verbatim anchor lines as evidence.',
+      };
+}
 
 
 export default async function EchoThreadsPage() {

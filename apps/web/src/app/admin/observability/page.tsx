@@ -160,6 +160,12 @@ export default async function AdminObservabilityPage() {
         <p className="adm-capNote">
           {c.aiReadinessNote}
         </p>
+        <div
+          className="tl-tableScroll"
+          role="region"
+          aria-label={c.aiReadinessTitle}
+          tabIndex={0}
+        >
         <table className="am-tableNarrow">
           <thead className="tl-thRow">
             <tr>
@@ -233,6 +239,7 @@ export default async function AdminObservabilityPage() {
             </tr>
           </tbody>
         </table>
+        </div>
       </section>
 
       <section className="am-audit">

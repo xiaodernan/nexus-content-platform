@@ -15,11 +15,18 @@ import {
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: '今日潮声 · The Tide Wire — NEXUS',
-  description:
-    '全平台 aggregate 的潮耳朵：真实计数、真实模型、两口潮的言语。真实数据 · 每天更新 · 零个人信息。 The tide listening to the whole platform: real counts, real model, two sentences. Real data, updated hourly, no personal information.',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  return locale === 'zh'
+    ? {
+        title: '今日潮声 — NEXUS',
+        description: '全平台的潮耳朵：真实计数、真实模型、两句潮的言语。真实数据 · 持续更新 · 零个人信息。',
+      }
+    : {
+        title: 'The Tide Wire — NEXUS',
+        description: 'The tide listening to the whole platform: real counts, a real model, two sentences. Real data, continuously updated, no personal information.',
+      };
+}
 
 const COPY: Record<Locale, {
   kicker: string;
@@ -43,7 +50,7 @@ const COPY: Record<Locale, {
   bibleLink: string;
 }> = {
   zh: {
-    kicker: '今日潮声 · THE TIDE WIRE',
+    kicker: '今日潮声',
     title: '潮听见了整个平台',
     lede: '真实计数、真实模型、没有人名、没有项目名。潮只说两句——这一刻的潮。门槛是公开平台的聚合，不是任何人的日常。',
     statOpens7d: '近 7 天有效打开',
@@ -64,7 +71,7 @@ const COPY: Record<Locale, {
     bibleLink: '世界大典',
   },
   en: {
-    kicker: 'THE TIDE WIRE · 今日潮声',
+    kicker: 'THE TIDE WIRE · TODAY’S TIDE',
     title: 'The tide hears the whole platform',
     lede: 'Real counts, a real model, no names, no project titles. The tide says two sentences — of this very hour. The threshold is the public aggregate of the platform, not anyone’s private day.',
     statOpens7d: 'Effective opens, last 7d',

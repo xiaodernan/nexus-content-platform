@@ -55,3 +55,92 @@
 - nexus-postgres 数据零丢失（恢复到 "ready"）
 - 任何撞这段时间窗的请求会得到 500，恢复后全部恢复正常
 - 结论：容器级崩溃构成约 10 分钟的服务降级窗口，不构成永久灾难
+
+## 网关边缘压测（2026-11-22 · nexus-gateway · 本地 stub 上游）
+
+> 本文件此前只覆盖 Next.js SSR；Java 边缘（网关）没有可复现的压测数字。本片补上，并把工具留在
+> `scripts/stress-gateway.mjs`（零依赖、keep-alive workers、状态直方图、p50/p95/p99），任何人可复跑。
+
+**拓扑（真进程）**：Eureka 8771（已有）+ 两个网关实例 8097/8098 + 一个 Node stub 上游 8099。
+stub 通过 Eureka REST 以 `NEXUS-API` 身份注册（`durationInSecs=600`），这样不依赖 Postgres——
+本轮 Docker Desktop 未启动，`nexus-api` 因 `127.0.0.1:5433 refused` 在 JPA 初始化时退出，如实记录。
+目标路径 `/api/projects?limit=1`（经 `StripPrefix` 到 stub）。
+
+| 臂 | 配置 | 请求 | 状态 | rps | p50 | p95 | p99 | max |
+|---|---|---|---:|---|---:|---:|---:|---:|
+| A 限流开 | 50 workers · 10s · 100/s · burst 200 · memory | 32,354 | 200=1,190 / 429=31,164 | 3,235 | 11.3 ms | 34.2 ms | 88.0 ms | 448.8 ms |
+| B 限流关 | 50 workers · 10s · 无桶 | 42,857 | 200=2,200 / 503=40,657 | 4,285 | 10.2 ms | 21.3 ms | 40.7 ms | 212.1 ms |
+| C 限流关 | 20 workers · 10s · 无桶 | 28,790 | **200=28,775 / 503=15** | 2,878 | 6.15 ms | 13.15 ms | 20.59 ms | 41.5 ms |
+
+读法（只写数据能证明的）：
+
+- **A**：放行数 1,190 ≈ burst 200 + 100/s × 10s = 1,200。限流器的算术在真实流量里对上了；429 全部
+  带 `Retry-After: 1`，没有被转发到上游（stub 只收到 ~1,190 次）。
+- **B 的 503 不是网关崩溃**：50 个 worker 把单进程 Node stub 打饱和，连接失败/超时触发 Resilience4j
+  熔断（窗口 10 次、阈值 50%），随后整个 open 窗口（10s）都快速返回 503。这正是 SC-7 要的
+  fail-fast：后端病了，门不应该陪着一起慢。**单进程 stub 不能作为 50 worker 的容量基线**。
+- **C**：同一套网关、同一 stub，降到 20 worker 后 28,775/28,790 为 200（99.95%），p99 20.6 ms。
+  这是本机 localhost 条件下的边缘基线：每请求都经过路由、安全头、GET 重试判定、熔断器与
+  `NettyRoutingFilter`，不是直连 stub 的数字。
+
+诚实的边界：
+
+- 客户端与服务端同机，数字含 localhost 网络与客户端事件循环，是**回归基线**，不是真实硬件容量承诺。
+- stub 是单进程 Node；B 臂的 503 是它饱和后熔断器按设计动作，不是网关缺陷。
+- A 臂所有请求共用一个限流 key（127.0.0.1），正是单桶争用的场景；多 key 分布未测。
+- 真实 `nexus-api` + Postgres 的端到端压测仍未做（本轮 Docker 不可用）；这一格继续欠着，不冒充已测。
+
+## nexus-api + Postgres 端到端压测（2026-11-22 · 真 JPA → 真库）
+
+> 上一节欠的那一格补上了：Docker Desktop 已恢复，`nexus-platform-postgres`（127.0.0.1:5433）
+> 可读——`projects` 60 行 / `worlds` 30 行。本轮用**当前 HEAD 重新构建**的 fat jar 起真服务，
+> 不再用 stub。
+
+**拓扑（真进程）**：
+
+- `mvn -q -f services/nexus-api/pom.xml -DskipTests package` → `nexus-api-0.1.0-SNAPSHOT.jar`
+- `java -Xmx512m -jar … --server.port=8091 --eureka.client.enabled=false`（JVM 512MB 上限）
+- 数据源默认值命中 `jdbc:postgresql://127.0.0.1:5433/nexus_dev`（`nexus_app`）
+- 目标：`GET /projects?limit=5` —— `PublishController` → JPA/Hibernate → Postgres，
+  冷探针 200 `{"publications":[],"count":0,"limit":5}`（39 bytes）
+- 工具：`node scripts/stress-gateway.mjs --url http://127.0.0.1:8091/projects?limit=5`
+
+| 臂 | 配置 | 请求 | 状态 | rps | p50 | p95 | p99 | max |
+|---|---|---|---:|---|---:|---:|---:|---:|
+| A | 32 workers · 10s | 15,929 | 200=15,929 | 1,592 | 15.16 ms | 45.55 ms | 84.62 ms | 401.6 ms |
+| B | 100 workers · 10s | 26,990 | 200=26,990 | 2,690 | 34.76 ms | 62.77 ms | 90.15 ms | 165.2 ms |
+| C | 200 workers · 10s | 26,672 | 200=26,672 | 2,650 | 71.19 ms | 129.55 ms | 161.1 ms | 292.2 ms |
+
+读法（只写数据能证明的）：
+
+- **69,591 个请求，0 个非 200、0 个错误**：真实 JVM + 真实 Postgres + 真实 JPA 查询在
+  本机 200 worker 并发下没有 5xx、没有连接拒绝、没有熔断。
+- **拐点在 ~100 worker**：B 臂吞吐 2,690 rps，C 臂再翻倍并发只换来 2,650 rps（持平），
+  但 p50 从 34.8 ms 涨到 71.2 ms、p99 从 90 ms 涨到 161 ms——多出来的并发在排队，
+  不是失败。A→B 的吞吐提升来自 Tomcat/连接池尚未饱和。
+- 三臂的最大值都在 400 ms 内，没有出现秒级长尾。
+
+诚实的边界：
+
+- `publications` 表在本机是空的（`projects`/`worlds` 有数据，但 nexus-api 读的是自己的表），
+  所以每请求是真查询但**结果集为空**；大结果集序列化成本未测。
+- 客户端与服务端同机、单 JVM、`-Xmx512m`、Hikari 默认池；这些是回归基线，不是容量承诺。
+- `/projects` 不在网关限流之后，测的是服务本身；边缘限流数字见上一节。
+- AI/LLM 相关车道本轮未压（用户已说明供应商 API 关闭），不冒充已测。
+
+
+
+## web SSR burst 第二轮 · 本仓 HEAD 生产构建（2026-11-22 · §STRESS-WEB-2）
+
+- 构建：`next build`（HEAD `310e01a7`，含并行会话未提交文件）→ `next start -p 3100`；数据库在线。
+- 读数（`scripts/stress-web-burst.mts --n 100`，详见 `docs/evidence/stress/web-burst-2026-11-22.md` 第二节）：
+  steady `/` 100×200 p50 1.05s · `/guide` 100×200 p50 0.54s · `/bible` 100×200 p50 3.57s ·
+  `/about-nexus` 100×200 p50 0.48s · burst `/` 200×200 p50 2.28s；**0 个 5xx，0 个掉连接**。
+- 诚实登记：同一构建的冷进程上出现过**两次非确定性 native fail-fast**（`0xC0000409`，无 JS 堆栈、
+  无 dump，RSS 峰值仅 500MB），其后 160/200/240 并发（含唯一访客）与标准脚本均通过；
+  归因未定，缓解走多副本 + 网关分流，复现方法留在证据文档里。
+- 撞库复压（`scripts/stress-auth-brute-force.mts --n 14`）：注册 200；错误口令第 1–10 次均 401，
+  **第 11 次 429 + retry-after 900s**，之后不放行；第二个邮箱同 IP 不连坐（401）；p50 88ms。
+  顺带修掉脚本自己的 CSRF 缺陷（注册漏 `x-csrf-token`），见 `docs/evidence/stress/auth-brute-force-2026-11-22.md`。
+- 复跑前置：先 `npm run build` 于 `apps/web`，再 `npm run start`，空闲内存 ≥3GB；
+  跑完停服务释放内存。

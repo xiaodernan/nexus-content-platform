@@ -21,7 +21,7 @@ const COPY: Record<Locale, {
   tapAgain: string;
 }> = {
   zh: {
-    kicker: '大模型解读 · AGGREGATE-ONLY',
+    kicker: '大模型解读',
     hint: '按钮把 30 天聚合快照交给真实大模型（不出站个人字段），产出「现象 → 证据 → 动作」。provider 不通时下面会如实告诉你。',
     button: '让大模型看看这些数字',
     busy: '模型在读「观察坞」……',

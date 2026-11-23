@@ -39,7 +39,8 @@ describe('§BIBLE-4 /bible/ask 问典', () => {
   it('shell 是 server 组件 + force-dynamic + metadata + getLocale', () => {
     expect(page).not.toContain('use client');
     expect(page).toContain('export const dynamic');
-    expect(page).toContain('export const metadata');
+    // 2026-11-22：metadata 跟随 cookie 语言（英文标签页 The Tidal Inquiry）。
+    expect(page).toContain('export async function generateMetadata');
     expect(page).toContain('import { getLocale');
     expect(page).toContain('BibleAsk');
   });
@@ -90,12 +91,14 @@ describe('§BIBLE-4 /bible/ask 问典', () => {
     for (const token of usedTokens) expect(tokens, `tokens.css 没有声明 ${token}`).toContain(token);
   });
 
+  // 2026-11-22 重钉：component —— 中文 kicker 去掉并列英文（「问典 · The Tidal Inquiry」→「问典」）；
+  // page —— metadata 改 generateMetadata 跟随语言，计数口径再改为不随每篇回响漂移的「全部回响」。
   it('SHA256 钉死（BOM/EOL 归一 + className→@）', () => {
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      '0c2840b801b04b2cede0cf47cd0e43a1fa6a71ed58d1ce52babcdaa1decd30b2',
+      'a5581e98fdd0f77a131eff2bdf4f2532a62f93e4483a228c1e9c9530ce726092',
     );
     expect(createHash('sha256').update(redactClasses(component)).digest('hex')).toBe(
-      'f6ea9fbf44cd0ec803b257ffd14d4e6c77c2c880a51f7bdba34021f02babd62c',
+      'bbf12ee4f9b59d6c7aba9678c9e93cf1934d523e143bb4adca134e3deb5e651f',
     );
   });
 });

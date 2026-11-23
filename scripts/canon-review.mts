@@ -100,7 +100,6 @@ F. 重复叙事：有没有哪一章已经在写同一件事（同一场景/同�
 const key = process.env.NEXUS_OPENAI_API_KEY ?? process.env.AI_SERVICE_KEY ?? '';
 const base = process.env.NEXUS_OPENAI_BASE_URL ?? 'https://api.aizzz.xyz/v1';
 const model = process.env.NEXUS_MODEL_REASONING ?? 'gpt-6.2-sol';
-const proxy = process.env.HTTPS_PROXY ?? process.env.https_proxy ?? process.env.HTTP_PROXY ?? '';
 // Node 24：NODE_USE_ENV_PROXY=1 让内置 fetch 尊重 HTTPS_PROXY（本机 Clash Verge 7897；不走代理网关按地域 403）。
 if (!key) {
   console.error('需要 NEXUS_OPENAI_API_KEY（本机 .env 里有；只读，不发往别处）');

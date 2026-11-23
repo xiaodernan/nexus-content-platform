@@ -130,7 +130,7 @@ export async function runCharacterChatGraph(
         ...(withCanonPrefix ? { withCanonPrefix: true } : {}),
         // state 是 Record<string, unknown>，这里显式收成 string——直接把 unknown 铺进
         // 契约形状，TS 会把整条调用判成类型不符（合并两个分支时踩到过）。
-        ...(s.cacheLane ? { cacheLane: String(s.cacheLane) } : {}),
+        ...(typeof s.cacheLane === 'string' && s.cacheLane ? { cacheLane: s.cacheLane } : {}),
       });
       const u = nextUsage(s, result);
       if (!result.ok) {
@@ -175,7 +175,7 @@ export async function runCharacterChatGraph(
         user,
         modelClass: 'balanced',
         ...(withCanonPrefix ? { withCanonPrefix: true } : {}),
-        ...(s.cacheLane ? { cacheLane: String(s.cacheLane) } : {}),
+        ...(typeof s.cacheLane === 'string' && s.cacheLane ? { cacheLane: s.cacheLane } : {}),
       });
       const u = nextUsage(s, result);
       if (!result.ok) {

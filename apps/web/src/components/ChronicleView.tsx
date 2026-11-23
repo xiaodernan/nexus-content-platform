@@ -36,7 +36,7 @@ const COPY = {
   },
   en: {
     emptyTitle: 'The chronicle is still blank',
-    emptyCopy: (name: string) => `「${name}」’s world document has no story / history entries yet. Write one line of history in the Studio world panel — even a single line — and the chronicle grows its first era.`,
+    emptyCopy: (name: string) => `“${name}”’s world document has no story / history entries yet. Write one line of history in the Studio world panel — even a single line — and the chronicle grows its first era.`,
     kicker: 'CHRONICLE',
     title: 'World chronicle',
     eraUnit: 'era(s)',

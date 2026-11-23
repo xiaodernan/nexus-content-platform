@@ -42,6 +42,7 @@
     "vitest.fe.config.ts",
     "e2e/forced-colors-probe.mjs",
     "scripts/build-showcase.mjs",
+    "scripts/stress-gateway.mjs",
     // 并行线留下的一次性 live-provider E2E 探针（如 analytics-ai-e2e.mts）：不在任何 package tsconfig 里
     // 未被 tsconfig.tools.json 认领 → 类型感知规则直接报"解析不了"。这些脚本就是为跑真实 provider 写的
     "apps/web/scripts/**/*.mts",

@@ -766,6 +766,318 @@ export const BIBLE_ANCHORS: readonly BibleAnchor[] = [
     "refEn": "Echo No. 10 · IV"
   },
   {
+    "zh": "死木到了门外，才有斤两。",
+    "en": "only when dead wood reaches the door does it weigh anything.",
+    "refZh": "回响（其100） · 一",
+    "refEn": "Echo No. 100 · I"
+  },
+  {
+    "zh": "结朝上，手便不必翻柴。",
+    "en": "the knot faces up, so no one has to turn the wood.",
+    "refZh": "回响（其100） · 二",
+    "refEn": "Echo No. 100 · II"
+  },
+  {
+    "zh": "门前无人应，柴仍算送到。",
+    "en": "no one answers at the door; the wood still counts as delivered.",
+    "refZh": "回响（其100） · 三",
+    "refEn": "Echo No. 100 · III"
+  },
+  {
+    "zh": "三日不动，才轮到灶火。",
+    "en": "three days still, and only then the stove fire.",
+    "refZh": "回响（其100） · 四",
+    "refEn": "Echo No. 100 · IV"
+  },
+  {
+    "zh": "火尽之后，灰仍占着一尺半。",
+    "en": "only after the fire dies does the ash keep its foot and a half.",
+    "refZh": "回响（其100） · 五",
+    "refEn": "Echo No. 100 · V"
+  },
+  {
+    "zh": "账有差额，柴才算完。",
+    "en": "only when the ledger shows a discrepancy is the wood truly accounted for.",
+    "refZh": "回响（其100） · 六",
+    "refEn": "Echo No. 100 · VI"
+  },
+  {
+    "zh": "旧账先于尺寸。",
+    "en": "the old ledger came before any measurement.",
+    "refZh": "回响（其101） · 一",
+    "refEn": "Echo No. 101 · I"
+  },
+  {
+    "zh": "第一镐落在雨里。",
+    "en": "the first pick fell in the rain.",
+    "refZh": "回响（其101） · 二",
+    "refEn": "Echo No. 101 · II"
+  },
+  {
+    "zh": "灰不出门。",
+    "en": "no ash leaves the house.",
+    "refZh": "回响（其101） · 三",
+    "refEn": "Echo No. 101 · III"
+  },
+  {
+    "zh": "坑底一年比一年近。",
+    "en": "the pit's floor draws closer every year.",
+    "refZh": "回响（其101） · 四",
+    "refEn": "Echo No. 101 · IV"
+  },
+  {
+    "zh": "口只留两块砖。",
+    "en": "the mouth keeps exactly two bricks.",
+    "refZh": "回响（其101） · 五",
+    "refEn": "Echo No. 101 · V"
+  },
+  {
+    "zh": "封口以后，仍记灰。",
+    "en": "after the sealing, the ash is still counted.",
+    "refZh": "回响（其101） · 六",
+    "refEn": "Echo No. 101 · VI"
+  },
+  {
+    "zh": "最后一栏，谁也没写。",
+    "en": "the last column, no one wrote.",
+    "refZh": "回响（其102） · 一",
+    "refEn": "Echo No. 102 · I"
+  },
+  {
+    "zh": "六口井都有落款，第七口没有。",
+    "en": "six wells bear a signature; the seventh does not.",
+    "refZh": "回响（其102） · 二",
+    "refEn": "Echo No. 102 · II"
+  },
+  {
+    "zh": "盐可以压纸，压不住疑问。",
+    "en": "salt can weigh paper; it cannot weigh a question down.",
+    "refZh": "回响（其102） · 三",
+    "refEn": "Echo No. 102 · III"
+  },
+  {
+    "zh": "孩子没有学会\"收口\"这两个字。",
+    "en": "the child never learned the two characters for \"closing the ledger\".",
+    "refZh": "回响（其102） · 四",
+    "refEn": "Echo No. 102 · IV"
+  },
+  {
+    "zh": "誊抄员把笔搁在灯下，不是为了拿它。",
+    "en": "the copyist set the pen beneath the lamp — not to pick it up.",
+    "refZh": "回响（其102） · 五",
+    "refEn": "Echo No. 102 · V"
+  },
+  {
+    "zh": "封了六口井，第七口没人敢封。",
+    "en": "six wells were sealed; no one dared seal the seventh.",
+    "refZh": "回响（其103） · 一",
+    "refEn": "Echo No. 103 · I"
+  },
+  {
+    "zh": "蜡没封住井，封住的是人。",
+    "en": "the wax did not seal the wells; it sealed the people.",
+    "refZh": "回响（其103） · 二",
+    "refEn": "Echo No. 103 · II"
+  },
+  {
+    "zh": "盐灯没有亮，天也没有亮。",
+    "en": "the salt lamp did not light; the sky did not light either.",
+    "refZh": "回响（其103） · 三",
+    "refEn": "Echo No. 103 · III"
+  },
+  {
+    "zh": "海把井数的那一天记住了。",
+    "en": "the sea remembered the day the count was made.",
+    "refZh": "回响（其103） · 四",
+    "refEn": "Echo No. 103 · IV"
+  },
+  {
+    "zh": "灰幕之前，没人再提第七口井。",
+    "en": "before the grey cover, no one mentioned the seventh well again.",
+    "refZh": "回响（其103） · 五",
+    "refEn": "Echo No. 103 · V"
+  },
+  {
+    "zh": "风停的时候，井都开着。",
+    "en": "when the wind stopped, the wells were all open.",
+    "refZh": "回响（其104） · 一",
+    "refEn": "Echo No. 104 · I"
+  },
+  {
+    "zh": "灯芯里的潮气比油多。",
+    "en": "the wick held more tide-damp than oil.",
+    "refZh": "回响（其104） · 二",
+    "refEn": "Echo No. 104 · II"
+  },
+  {
+    "zh": "海把井数的那一夜记住了。",
+    "en": "the sea remembered the night the count was made.",
+    "refZh": "回响（其104） · 三",
+    "refEn": "Echo No. 104 · III"
+  },
+  {
+    "zh": "晨起的时候，没有人报到。",
+    "en": "at dawn, no one answered the roll.",
+    "refZh": "回响（其104） · 四",
+    "refEn": "Echo No. 104 · IV"
+  },
+  {
+    "zh": "灰幕不是一夜天，灰是一夜灯。",
+    "en": "the grey was not a night’s sky; the grey was a night’s lamp.",
+    "refZh": "回响（其104） · 五",
+    "refEn": "Echo No. 104 · V"
+  },
+  {
+    "zh": "风该从西来，那天却从东边来。",
+    "en": "the wind was meant to come from the west; that day it came from the east.",
+    "refZh": "回响（其105） · 一",
+    "refEn": "Echo No. 105 · I"
+  },
+  {
+    "zh": "雨从东边来，先落的是门内的盐。",
+    "en": "the rain came from the east; what it fell on first was the salt inside the door.",
+    "refZh": "回响（其105） · 二",
+    "refEn": "Echo No. 105 · II"
+  },
+  {
+    "zh": "雨从东边来，笔先停了。",
+    "en": "the rain came from the east; it was the pen that stopped first.",
+    "refZh": "回响（其105） · 三",
+    "refEn": "Echo No. 105 · III"
+  },
+  {
+    "zh": "第七口井的井缘，第一次全湿了。",
+    "en": "for the first time, the rim of the seventh well was wet all the way round.",
+    "refZh": "回响（其105） · 四",
+    "refEn": "Echo No. 105 · IV"
+  },
+  {
+    "zh": "账上只记了六个字：东风，雨，灯未灭。",
+    "en": "the ledger recorded only six words: east wind, rain, the lamps were not out.",
+    "refZh": "回响（其105） · 五",
+    "refEn": "Echo No. 105 · V"
+  },
+  {
+    "zh": "灰后的第一天，报到簿还在原处。",
+    "en": "on the first day after the grey fell, the roll was still where it had always been.",
+    "refZh": "回响（其106） · 一",
+    "refEn": "Echo No. 106 · I"
+  },
+  {
+    "zh": "灰以前，名字用三种手迹写。",
+    "en": "before the grey, the names were written in three hands.",
+    "refZh": "回响（其106） · 二",
+    "refEn": "Echo No. 106 · II"
+  },
+  {
+    "zh": "那一行字不属于三种手迹中的任何一种。",
+    "en": "that one line was not in any of the three hands.",
+    "refZh": "回响（其106） · 三",
+    "refEn": "Echo No. 106 · III"
+  },
+  {
+    "zh": "第七口井记得雨后还有人走过。",
+    "en": "the seventh well remembers footsteps after the rain.",
+    "refZh": "回响（其106） · 四",
+    "refEn": "Echo No. 106 · IV"
+  },
+  {
+    "zh": "名字被写下的时候，报到簿还没有结束。",
+    "en": "by the time the name was written, the roll was not over.",
+    "refZh": "回响（其106） · 五",
+    "refEn": "Echo No. 106 · V"
+  },
+  {
+    "zh": "没人问灯为什么还点着。",
+    "en": "Why the lamp stayed lit was never asked.",
+    "refZh": "回响（其107） · 一",
+    "refEn": "Echo No. 107 · I"
+  },
+  {
+    "zh": "誊第九根灯芯的时候，誊账人漏了那一盏。",
+    "en": "at the ninth wick, the copyist missed one lamp.",
+    "refZh": "回响（其107） · 二",
+    "refEn": "Echo No. 107 · II"
+  },
+  {
+    "zh": "那张纸从不参与抄誊。",
+    "en": "That page never took part in the copying.",
+    "refZh": "回响（其107） · 三",
+    "refEn": "Echo No. 107 · III"
+  },
+  {
+    "zh": "问井只问井自己的事。",
+    "en": "A well answers only about the well.",
+    "refZh": "回响（其107） · 四",
+    "refEn": "Echo No. 107 · IV"
+  },
+  {
+    "zh": "没誊完的那一页还算数。",
+    "en": "The page left untranscribed still stands.",
+    "refZh": "回响（其107） · 五",
+    "refEn": "Echo No. 107 · V"
+  },
+  {
+    "zh": "半粒盐的断口，从封皮的凹槽里朝外看。",
+    "en": "The broken face of half a grain watched out through the groove of the cover.",
+    "refZh": "回响（其108） · 一",
+    "refEn": "Echo No. 108 · I"
+  },
+  {
+    "zh": "簿差半粒，他写在脊缝上，没给任何人解释。",
+    "en": "“Half a grain short” he wrote on the spine; he never explained it to anyone.",
+    "refZh": "回响（其108） · 二",
+    "refEn": "Echo No. 108 · II"
+  },
+  {
+    "zh": "卡住的东西，锄不出来，刮不出来，也不忍刮。",
+    "en": "What is caught cannot be picked out, nor scraped out, nor brought to be scraped.",
+    "refZh": "回响（其108） · 三",
+    "refEn": "Echo No. 108 · III"
+  },
+  {
+    "zh": "灯灭之后，缝里那粒盐还留着一点半透的白。",
+    "en": "After the lamp went out, the grain in the seam still held a little translucent white.",
+    "refZh": "回响（其108） · 四",
+    "refEn": "Echo No. 108 · IV"
+  },
+  {
+    "zh": "簿子记得比任何人都清楚，缺了哪一半。",
+    "en": "A thin ledger remembers better than any person which half it lost.",
+    "refZh": "回响（其108） · 五",
+    "refEn": "Echo No. 108 · V"
+  },
+  {
+    "zh": "第四十二次会没有散会的时刻，只有缺的那一格。",
+    "en": "No moment of adjournment exists for the forty-second Convocation; only the blank cell.",
+    "refZh": "回响（其109） · 一",
+    "refEn": "Echo No. 109 · I"
+  },
+  {
+    "zh": "签收本的最后一页只有日期和欠据，没有签名。",
+    "en": "The last page of the book of receipts holds a date and a debt — and no signature.",
+    "refZh": "回响（其109） · 二",
+    "refEn": "Echo No. 109 · II"
+  },
+  {
+    "zh": "每一个想结案的人，都站在这一格前面等着。",
+    "en": "Everyone who wanted a closed case stood before that cell, waiting.",
+    "refZh": "回响（其109） · 三",
+    "refEn": "Echo No. 109 · III"
+  },
+  {
+    "zh": "灯没有灭过，也没人告诉过它什么时候灭。",
+    "en": "The lamp never went out, and no one told it when it should.",
+    "refZh": "回响（其109） · 四",
+    "refEn": "Echo No. 109 · IV"
+  },
+  {
+    "zh": "第四十二次会只少一个签名，正好多一个不来。",
+    "en": "The forty-second Convocation is short one signature, and has one too many who never came.",
+    "refZh": "回响（其109） · 五",
+    "refEn": "Echo No. 109 · V"
+  },
+  {
     "zh": "祠殿堂的门从来不是为别人开的——它只是没有被关上。",
     "en": "the chapel door was never opened for anyone — it just was never closed.",
     "refZh": "回响（其十一） · 一",
@@ -794,6 +1106,336 @@ export const BIBLE_ANCHORS: readonly BibleAnchor[] = [
     "en": "the chapel door was never written into any rule — it simply stands open, the way the tide does.",
     "refZh": "回响（其十一） · 五",
     "refEn": "Echo No. 11 · V"
+  },
+  {
+    "zh": "灰封以后，账上只剩最后一行。",
+    "en": "After the grey binding, the ledger holds only the last line.",
+    "refZh": "回响（其110） · 一",
+    "refEn": "Echo No. 110 · I"
+  },
+  {
+    "zh": "封皮合上以后，没有再敲过任何地方。",
+    "en": "After the cover closed, not one knock fell again.",
+    "refZh": "回响（其110） · 二",
+    "refEn": "Echo No. 110 · II"
+  },
+  {
+    "zh": "守灯人没有对第四十二次会说什么，也没有对自己说什么。",
+    "en": "The lampkeeper said nothing to the forty-second Convocation, nor to himself.",
+    "refZh": "回响（其110） · 三",
+    "refEn": "Echo No. 110 · III"
+  },
+  {
+    "zh": "那半粒盐跟着封皮进去了，被留在里面，被留在册子里。",
+    "en": "The half-grain went into the binding, stayed inside, was left in the book.",
+    "refZh": "回响（其110） · 四",
+    "refEn": "Echo No. 110 · IV"
+  },
+  {
+    "zh": "封皮合上后，没人开本子了。",
+    "en": "After the binding closed, not one person opened the book.",
+    "refZh": "回响（其110） · 五",
+    "refEn": "Echo No. 110 · V"
+  },
+  {
+    "zh": "灰封过后，炉子居然是热的。",
+    "en": "After the grey binding, the hearth was still warm.",
+    "refZh": "回响（其111） · 一",
+    "refEn": "Echo No. 111 · I"
+  },
+  {
+    "zh": "别人没有碰它，他也没有碰它。",
+    "en": "If he never touched it, no one expected him to.",
+    "refZh": "回响（其111） · 二",
+    "refEn": "Echo No. 111 · II"
+  },
+  {
+    "zh": "灰纸没有出份，可灰总算被人翻过。",
+    "en": "The ash gave no report to anyone, but someone had turned it.",
+    "refZh": "回响（其111） · 三",
+    "refEn": "Echo No. 111 · III"
+  },
+  {
+    "zh": "守灰人不守，灰炉也不。",
+    "en": "The keeper did not keep; neither did the hearth.",
+    "refZh": "回响（其111） · 四",
+    "refEn": "Echo No. 111 · IV"
+  },
+  {
+    "zh": "灰炉再也没有亮过。",
+    "en": "The hearth never shone again.",
+    "refZh": "回响（其111） · 五",
+    "refEn": "Echo No. 111 · V"
+  },
+  {
+    "zh": "议程被钉回原处的那一天，没有人宣布任何事情。",
+    "en": "The day the agenda was nailed back where it belonged, no one announced a thing.",
+    "refZh": "回响（其112） · 一",
+    "refEn": "Echo No. 112 · I"
+  },
+  {
+    "zh": "第四十三次会开的那天没有议程，只有人到齐了。",
+    "en": "The day the forty-third Convocation opened had no agenda — only everyone turned up.",
+    "refZh": "回响（其112） · 二",
+    "refEn": "Echo No. 112 · II"
+  },
+  {
+    "zh": "有人把一支笔放进欠据，签名没有落下。",
+    "en": "Someone laid a pen into the debt-book; the signature never fell.",
+    "refZh": "回响（其112） · 三",
+    "refEn": "Echo No. 112 · III"
+  },
+  {
+    "zh": "盐线留在门槛上，没有人扫。",
+    "en": "The salt line stayed on the threshold, and nobody swept it.",
+    "refZh": "回响（其112） · 四",
+    "refEn": "Echo No. 112 · IV"
+  },
+  {
+    "zh": "潮水退了以后，馆里仍然没有散会。",
+    "en": "After the tide withdrew, the hall still had not adjourned.",
+    "refZh": "回响（其112） · 五",
+    "refEn": "Echo No. 112 · V"
+  },
+  {
+    "zh": "后墙上的横裂一百多年没修过——值更册里没有原因。",
+    "en": "the horizontal crack in the back wall has been left unrepaired for over a century — the watch-ledger holds no reason.",
+    "refZh": "回响（其113） · 一",
+    "refEn": "Echo No. 113 · I"
+  },
+  {
+    "zh": "后墙这件事不是维护，是纪念。",
+    "en": "the back wall is not upkeep — it is a memorial.",
+    "refZh": "回响（其113） · 二",
+    "refEn": "Echo No. 113 · II"
+  },
+  {
+    "zh": "雨水在裂口里收集——抄本本说盯裂缝的人会长一岁。",
+    "en": "the rain gathers inside the crack — the copyists say anyone who stares into it grows older by a year.",
+    "refZh": "回响（其113） · 三",
+    "refEn": "Echo No. 113 · III"
+  },
+  {
+    "zh": "后墙裂缝下移值更人没上报——明年再看。",
+    "en": "the shift in the crack has not yet been reported by the head of the watch — check the year after.",
+    "refZh": "回响（其113） · 四",
+    "refEn": "Echo No. 113 · IV"
+  },
+  {
+    "zh": "抄本师说裂缝不是墙坏了是墙在透气。",
+    "en": "the copyists say the crack is not the wall failing — the wall is breathing.",
+    "refZh": "回响（其113） · 五",
+    "refEn": "Echo No. 113 · V"
+  },
+  {
+    "zh": "值更人禁止填裂——填了，就什么都没了。",
+    "en": "the head of the watch forbids anyone from plastering the crack — fill it, and nothing remains.",
+    "refZh": "回响（其113） · 六",
+    "refEn": "Echo No. 113 · VI"
+  },
+  {
+    "zh": "桌上有一本黑皮账——永远停在第四十二页。",
+    "en": "on the desk lies a black-bound ledger — forever open to page forty-two.",
+    "refZh": "回响（其114） · 一",
+    "refEn": "Echo No. 114 · I"
+  },
+  {
+    "zh": "账师说他每次开账都会翻到第四十二页——不记得是自己翻过去的。",
+    "en": "the ledger-keeper says he opens the ledger to page forty-two each time — and cannot remember whether he turned there himself.",
+    "refZh": "回响（其114） · 二",
+    "refEn": "Echo No. 114 · II"
+  },
+  {
+    "zh": "值更人第一次进西厢看见灯亮着——不是被他点的。",
+    "en": "on his first entrance into the west annex, the head of the watch found the lamp already lit — not by him.",
+    "refZh": "回响（其114） · 三",
+    "refEn": "Echo No. 114 · III"
+  },
+  {
+    "zh": "值更册上说\"第四十二年的夜里，所有账师都会梦到那一页\"。",
+    "en": "the watch-ledger says: in the year forty-two, every ledger-keeper dreams of that page.",
+    "refZh": "回响（其114） · 四",
+    "refEn": "Echo No. 114 · IV"
+  },
+  {
+    "zh": "抄本师合账的最后一下被卡住——他不再试。",
+    "en": "the copyist's final motion in closing the ledger is always caught — and he no longer tries.",
+    "refZh": "回响（其114） · 五",
+    "refEn": "Echo No. 114 · V"
+  },
+  {
+    "zh": "值更人去问典问第四十二页——问典没有答复。",
+    "en": "the head of the watch went to the Inquiry asking about page forty-two — the Inquiry gave no answer.",
+    "refZh": "回响（其114） · 六",
+    "refEn": "Echo No. 114 · VI"
+  },
+  {
+    "zh": "北库最里头有一只铜熨斗——铜皮起绿，盖口不紧。",
+    "en": "in the innermost corner of the north storeroom stands an old copper iron — the green skin of it, the loose lid.",
+    "refZh": "回响（其115） · 一",
+    "refEn": "Echo No. 115 · I"
+  },
+  {
+    "zh": "北库这只铜熨斗永远比别的脏——但它不是用过的。",
+    "en": "this copper iron is always dirtier than the others — and yet it has never been used.",
+    "refZh": "回响（其115） · 二",
+    "refEn": "Echo No. 115 · II"
+  },
+  {
+    "zh": "北库角落熨斗底子上有微微水痕——再看时干了。",
+    "en": "at the bottom of the copper iron lay faint traces of water — by the time they were checked again, they were gone.",
+    "refZh": "回响（其115） · 三",
+    "refEn": "Echo No. 115 · III"
+  },
+  {
+    "zh": "抄本师私下说四十年前某抄本师把它带出北库——三天后送回。",
+    "en": "the copyists privately say: forty years ago a copyist took the iron out of the storeroom — and returned it three days later.",
+    "refZh": "回响（其115） · 四",
+    "refEn": "Echo No. 115 · IV"
+  },
+  {
+    "zh": "北库十二只熨斗一只没用过——传了五代。",
+    "en": "among the twelve irons in the storeroom, not one has ever been used — passed through five generations.",
+    "refZh": "回响（其115） · 五",
+    "refEn": "Echo No. 115 · V"
+  },
+  {
+    "zh": "抄本师把熨斗移到正中间——当年螺钉脱落。",
+    "en": "the copyists moved the iron to the center — that same year, a ceiling screw came loose.",
+    "refZh": "回响（其115） · 六",
+    "refEn": "Echo No. 115 · VI"
+  },
+  {
+    "zh": "北长廊值更人夜夜走一遍——灯三十盏，一盏不多，一盏不少。",
+    "en": "on the north colonnade the head of the watch passes nightly — thirty lamps, not one too many, not one too few.",
+    "refZh": "回响（其116） · 一",
+    "refEn": "Echo No. 116 · I"
+  },
+  {
+    "zh": "第四十一次大会散会之后——值更人第二晚数到第三十一盏灯。",
+    "en": "after the 41st Convocation dissolved — on the second night the head of the watch counted thirty-one lamps.",
+    "refZh": "回响（其116） · 二",
+    "refEn": "Echo No. 116 · II"
+  },
+  {
+    "zh": "第三十一盏灯油满、灯芯新、灯罩旧——没有一样是新的，只有灯芯是单独新的。",
+    "en": "the thirty-first lamp was full of oil, with a new wick in an old shade — nothing else was new except the wick.",
+    "refZh": "回响（其116） · 三",
+    "refEn": "Echo No. 116 · III"
+  },
+  {
+    "zh": "值更册记载：每次大会散会北长廊多一盏灯——至今是第七次。",
+    "en": "the watch-ledger records: a new lamp appears on the north colonnade after every Convocation dissolves — this was the seventh time.",
+    "refZh": "回响（其116） · 四",
+    "refEn": "Echo No. 116 · IV"
+  },
+  {
+    "zh": "抄本师定规矩：多出来的灯一律不卸——不许动——也不许补。",
+    "en": "the copyists set the rule: lamps that appear are never removed — never touched — never replaced.",
+    "refZh": "回响（其116） · 五",
+    "refEn": "Echo No. 116 · V"
+  },
+  {
+    "zh": "值更册最后一页写着\"第六十九年秋天北长廊会有第十盏\"——抄本师不许任何人念出声。",
+    "en": "the last page of the watch-ledger says: in the autumn of year sixty-nine the north colonnade will have its tenth lamp — and the copyists forbid anyone to speak it aloud.",
+    "refZh": "回响（其116） · 六",
+    "refEn": "Echo No. 116 · VI"
+  },
+  {
+    "zh": "雾港九张潮汐表——前八张有编年、题名、盖印——第九张没有一样。",
+    "en": "nine tide almanacs hang on the harbor wall — the first eight bear year, title and seal — the ninth bears none.",
+    "refZh": "回响（其117） · 一",
+    "refEn": "Echo No. 117 · I"
+  },
+  {
+    "zh": "第九张潮汐表最下边一行字：\"第四十一次大会散会的那天没有潮。\"",
+    "en": "the last line of the ninth almanac reads: on the day the Convocation dissolved, there was no tide.",
+    "refZh": "回响（其117） · 二",
+    "refEn": "Echo No. 117 · II"
+  },
+  {
+    "zh": "抄本师试过注\"有潮\"——墨缩成盐粒，掉进槽里。",
+    "en": "a copyist tried to annotate \"there was a tide\" — the ink drew back into a grain of salt and fell into the slot beneath the paperweight.",
+    "refZh": "回响（其117） · 三",
+    "refEn": "Echo No. 117 · III"
+  },
+  {
+    "zh": "第九张潮汐表从未被取走、盖住、挪动——值守人说\"它自己挂在那个位置\"。",
+    "en": "the ninth almanac has never been taken down, covered or moved — the keeper says: it hangs there by itself; we only know it does.",
+    "refZh": "回响（其117） · 四",
+    "refEn": "Echo No. 117 · IV"
+  },
+  {
+    "zh": "雾港档案里找不到第九张潮汐表的印单与挂上去的那天——值更册只写\"第九张自己挂好了\"——日期是空的。",
+    "en": "the harbor archives hold no record of the ninth almanac's printing or hanging — only a watch-ledger line: the ninth hung itself up — and the date is blank.",
+    "refZh": "回响（其117） · 五",
+    "refEn": "Echo No. 117 · V"
+  },
+  {
+    "zh": "抄本师定下规矩：前八张可修——第九张只记——不修、不注、不论。",
+    "en": "the copyists set the rule: the first eight may be revised — the ninth is only recorded — not revised, not annotated, not discussed.",
+    "refZh": "回响（其117） · 六",
+    "refEn": "Echo No. 117 · VI"
+  },
+  {
+    "zh": "守灯人摸了一下门槛上的盐，收回手。",
+    "en": "The lampkeeper touched the salt on the threshold, and drew his hand back.",
+    "refZh": "回响（其118） · 一",
+    "refEn": "Echo No. 118 · I"
+  },
+  {
+    "zh": "守灯人记下这一条，没记时间。",
+    "en": "The lampkeeper noted this one line, and did not note the time.",
+    "refZh": "回响（其118） · 二",
+    "refEn": "Echo No. 118 · II"
+  },
+  {
+    "zh": "有两把椅子的坐深比其余都深，他没有摆回去。",
+    "en": "Two chairs sat deeper than the others; he did not move them back.",
+    "refZh": "回响（其118） · 三",
+    "refEn": "Echo No. 118 · III"
+  },
+  {
+    "zh": "签名的位置是空的，守灯人没有写。",
+    "en": "The space for a signature stood open; the lampkeeper did not write it.",
+    "refZh": "回响（其118） · 四",
+    "refEn": "Echo No. 118 · IV"
+  },
+  {
+    "zh": "守灯人只做一件事：每天早上把盐抹掉。",
+    "en": "The lampkeeper did one thing: each morning, he wiped the salt.",
+    "refZh": "回响（其118） · 五",
+    "refEn": "Echo No. 118 · V"
+  },
+  {
+    "zh": "潮汐教团没有章了一百年了，这只是一只新倒的章。",
+    "en": "The Tide Conclave had not borne a seal in a hundred years; this one was newly cast.",
+    "refZh": "回响（其119） · 一",
+    "refEn": "Echo No. 119 · I"
+  },
+  {
+    "zh": "这一封信里没有字。",
+    "en": "This letter held no words.",
+    "refZh": "回响（其119） · 二",
+    "refEn": "Echo No. 119 · II"
+  },
+  {
+    "zh": "潮汐时刻表被人这样挂在门锥上。",
+    "en": "The timetable hung on the door pillar, pinned there without ceremony.",
+    "refZh": "回响（其119） · 三",
+    "refEn": "Echo No. 119 · III"
+  },
+  {
+    "zh": "潮汐教团一百年前没有的章，现在用上了。",
+    "en": "The seal the Conclave had lacked a hundred years ago was in use again.",
+    "refZh": "回响（其119） · 四",
+    "refEn": "Echo No. 119 · IV"
+  },
+  {
+    "zh": "盐又在门槛上——每个人都踩过去，没有人弯腰。",
+    "en": "The salt was back on the threshold; each person stepped over it, and no one bent down.",
+    "refZh": "回响（其119） · 五",
+    "refEn": "Echo No. 119 · V"
   },
   {
     "zh": "祠殿堂的回声只在潮落时造访——涨潮时，声音走的是别的路。",
@@ -826,6 +1468,330 @@ export const BIBLE_ANCHORS: readonly BibleAnchor[] = [
     "refEn": "Echo No. 12 · V"
   },
   {
+    "zh": "时刻表挂在门锥上——只有潮来潮去，没有别的。",
+    "en": "The timetable was pinned to the door pillar — tide in, tide out, nothing else.",
+    "refZh": "回响（其120） · 一",
+    "refEn": "Echo No. 120 · I"
+  },
+  {
+    "zh": "潮，怎么算，跟守灯人对上了。",
+    "en": "How the tide was measured — the lampkeeper fell in step with it.",
+    "refZh": "回响（其120） · 二",
+    "refEn": "Echo No. 120 · II"
+  },
+  {
+    "zh": "潮来了，不答——不解释，不邀请。",
+    "en": "When the tide came, it did not answer — it did not explain, it did not invite.",
+    "refZh": "回响（其120） · 三",
+    "refEn": "Echo No. 120 · III"
+  },
+  {
+    "zh": "坐在最靠门的椅子里的是谁？",
+    "en": "Who sat in the chair nearest the door?",
+    "refZh": "回响（其120） · 四",
+    "refEn": "Echo No. 120 · IV"
+  },
+  {
+    "zh": "潮汐教团没有散会。第四十四次会还在继续。",
+    "en": "The Conclave did not adjourn. The forty-fourth Convocation is still proceeding.",
+    "refZh": "回响（其120） · 五",
+    "refEn": "Echo No. 120 · V"
+  },
+  {
+    "zh": "他选中了最靠门的一把椅子，其他人都没有动过。",
+    "en": "He had chosen the chair nearest the door; no one else had moved.",
+    "refZh": "回响（其121） · 一",
+    "refEn": "Echo No. 121 · I"
+  },
+  {
+    "zh": "他记不清年轻人的脸。",
+    "en": "He could not recall the young man's face.",
+    "refZh": "回响（其121） · 二",
+    "refEn": "Echo No. 121 · II"
+  },
+  {
+    "zh": "两人都没有提议散会。",
+    "en": "Neither of them proposed adjournment.",
+    "refZh": "回响（其121） · 三",
+    "refEn": "Echo No. 121 · III"
+  },
+  {
+    "zh": "潮汐时刻表上又多了一笔纪录。",
+    "en": "One more entry was added to the tide timetable.",
+    "refZh": "回响（其121） · 四",
+    "refEn": "Echo No. 121 · IV"
+  },
+  {
+    "zh": "潮退的时候，守灯人也没有离开椅子。",
+    "en": "When the tide withdrew, the lampkeeper still had not left the chair.",
+    "refZh": "回响（其121） · 五",
+    "refEn": "Echo No. 121 · V"
+  },
+  {
+    "zh": "守灯人比以前更晚醒。",
+    "en": "The lampkeeper woke later than before.",
+    "refZh": "回响（其122） · 一",
+    "refEn": "Echo No. 122 · I"
+  },
+  {
+    "zh": "第四天以后，没有人知道是谁说了\"不要来\"。",
+    "en": "After the fourth day, no one knew who had said \"do not come.\"",
+    "refZh": "回响（其122） · 二",
+    "refEn": "Echo No. 122 · II"
+  },
+  {
+    "zh": "潮退一厘米，时刻表纸上多一道横线。",
+    "en": "Each centimeter the tide receded, the timetable on the door pillar gained a line.",
+    "refZh": "回响（其122） · 三",
+    "refEn": "Echo No. 122 · III"
+  },
+  {
+    "zh": "他不知道那一寸跟一厘有什么不一样。",
+    "en": "He did not know what the difference between an inch and a centimeter was.",
+    "refZh": "回响（其122） · 四",
+    "refEn": "Echo No. 122 · IV"
+  },
+  {
+    "zh": "潮还没有退，守灯人还没有回家。",
+    "en": "The tide had not receded; the lampkeeper had not gone home.",
+    "refZh": "回响（其122） · 五",
+    "refEn": "Echo No. 122 · V"
+  },
+  {
+    "zh": "潮汐起的时候总是先看见潮的名字。",
+    "en": "When the tide rose, it was the name that appeared first.",
+    "refZh": "回响（其123） · 一",
+    "refEn": "Echo No. 123 · I"
+  },
+  {
+    "zh": "他又往下看，发现是无字的——没有人问过潮为什么要有名字。",
+    "en": "He looked further down — no words; no one had asked why the tide should have a name.",
+    "refZh": "回响（其123） · 二",
+    "refEn": "Echo No. 123 · II"
+  },
+  {
+    "zh": "他只是在潮落下去的时候，把那一行字揉成了一团纸，扔进了潮纸篓。",
+    "en": "He folded that line of words into a ball and dropped it into the tide-wastebasket.",
+    "refZh": "回响（其123） · 三",
+    "refEn": "Echo No. 123 · III"
+  },
+  {
+    "zh": "潮纸篓里每一张纸都是一个潮字。",
+    "en": "Every piece of paper in the tide-wastebasket bore a single word: tide.",
+    "refZh": "回响（其123） · 四",
+    "refEn": "Echo No. 123 · IV"
+  },
+  {
+    "zh": "他没有发现纸篓里那一团纸被撕开。",
+    "en": "He did not find the paper in the wastebasket had been torn open.",
+    "refZh": "回响（其123） · 五",
+    "refEn": "Echo No. 123 · V"
+  },
+  {
+    "zh": "封面上的名字已经被海水泡得看不清了，只剩下每页都写着一行潮字。",
+    "en": "The cover had been washed illegible by the sea; each page still held the same tide-line: rising, falling, rising, falling.",
+    "refZh": "回响（其124） · 一",
+    "refEn": "Echo No. 124 · I"
+  },
+  {
+    "zh": "那本旧册子究竟谁打开过？没有人记得。",
+    "en": "Who had opened the ledger — no one remembered.",
+    "refZh": "回响（其124） · 二",
+    "refEn": "Echo No. 124 · II"
+  },
+  {
+    "zh": "每一页都没有告诉潮什么时候才真的退去。",
+    "en": "Every page refused to say when the tide would truly ebb.",
+    "refZh": "回响（其124） · 三",
+    "refEn": "Echo No. 124 · III"
+  },
+  {
+    "zh": "守灯人没有撕掉那一页。",
+    "en": "The lampkeeper did not tear that page out.",
+    "refZh": "回响（其124） · 四",
+    "refEn": "Echo No. 124 · IV"
+  },
+  {
+    "zh": "守灯人把旧册子放回了抽屉里。",
+    "en": "The lampkeeper returned the old ledger to the drawer.",
+    "refZh": "回响（其124） · 五",
+    "refEn": "Echo No. 124 · V"
+  },
+  {
+    "zh": "这些字迹每页只有一句，无一句重复，全潮一色。",
+    "en": "In the old book, each page bore a single line — none repeated, all tide.",
+    "refZh": "回响（其125） · 一",
+    "refEn": "Echo No. 125 · I"
+  },
+  {
+    "zh": "守灯人站在门锥前，没有添笔。",
+    "en": "The lampkeeper stood at the door pillar and added nothing to the line.",
+    "refZh": "回响（其125） · 二",
+    "refEn": "Echo No. 125 · II"
+  },
+  {
+    "zh": "第四十五次会要开了，谁也没敲他的门。",
+    "en": "The forty-fifth Convocation approached, and no one knocked.",
+    "refZh": "回响（其125） · 三",
+    "refEn": "Echo No. 125 · III"
+  },
+  {
+    "zh": "守灯人看了很久，还是没有把它添进册子。",
+    "en": "The lampkeeper looked at it for a long time, and still did not add it to the book.",
+    "refZh": "回响（其125） · 四",
+    "refEn": "Echo No. 125 · IV"
+  },
+  {
+    "zh": "守灯人不知道是谁量的。",
+    "en": "The lampkeeper did not know who measured it.",
+    "refZh": "回响（其125） · 五",
+    "refEn": "Echo No. 125 · V"
+  },
+  {
+    "zh": "潮候院后院有一棵海棠——枝是枝条——干是根干——从来没有一片叶子。",
+    "en": "in the Institute's back yard stands a crabapple — branches that are branches, a trunk that is a trunk — and never a single leaf.",
+    "refZh": "回响（其126） · 一",
+    "refEn": "Echo No. 126 · I"
+  },
+  {
+    "zh": "老园丁说这棵树等了一百年的春天——第几个一百年没人知道。",
+    "en": "the old gardener says this tree has waited a hundred years for its spring — and no one knows which hundredth will be its hundredth.",
+    "refZh": "回响（其126） · 二",
+    "refEn": "Echo No. 126 · II"
+  },
+  {
+    "zh": "值更人三年前想砍掉那棵海棠——翻开账本第一页——\"栽在回春月十七——该有花时便会有花\"。",
+    "en": "three years ago the head of the watch tried to cut the crabapple down — inside its trunk lay the first page: planted on the seventeenth of the returning-spring month; when its time comes, it will flower.",
+    "refZh": "回响（其126） · 三",
+    "refEn": "Echo No. 126 · III"
+  },
+  {
+    "zh": "抄本师某夜路过——她说在月光下——花苞如若雷鸣。",
+    "en": "a copyist once passing in the moonlight swore she heard the buds rumble like thunder.",
+    "refZh": "回响（其126） · 四",
+    "refEn": "Echo No. 126 · IV"
+  },
+  {
+    "zh": "每年春天——抄本师在树下坐一会——值更人也坐一会——彼此不说话——只是看那棵树。",
+    "en": "every year when spring comes, the copyists and the head of the watch sit beneath it in silence — and no one says it is a ritual, and no one denies it is a ritual.",
+    "refZh": "回响（其126） · 五",
+    "refEn": "Echo No. 126 · V"
+  },
+  {
+    "zh": "抄本师说——\"那天我们都还在——大家都知道那一天来了——树自己知道那一天来了。\"",
+    "en": "the copyists say: when that day comes, we will all still be here — and everyone will know it has come — the tree will know it before we do.",
+    "refZh": "回响（其126） · 六",
+    "refEn": "Echo No. 126 · VI"
+  },
+  {
+    "zh": "档案室三层——底层最深处藏着十一册海上通行证——每次清点都少一本第十二册。",
+    "en": "three levels to the archive — the deepest holds eleven volumes of sea transit credentials — and every count falls one short of the twelfth.",
+    "refZh": "回响（其127） · 一",
+    "refEn": "Echo No. 127 · I"
+  },
+  {
+    "zh": "值更册上只写过一行字\"它可能在最底层——但最底层也找不到\"。",
+    "en": "the watch-ledger records one line only: it is perhaps on the bottom level — and even the bottom level does not hold it.",
+    "refZh": "回响（其127） · 二",
+    "refEn": "Echo No. 127 · II"
+  },
+  {
+    "zh": "抄本师值夜灯下总能照出轮廓——像一本书——伸手的时候灯灭了。",
+    "en": "during night duty a copyist always sees a shape under the lamp — like a book at the far end of the bottom level — and when she reaches, the lamp dies.",
+    "refZh": "回响（其127） · 三",
+    "refEn": "Echo No. 127 · III"
+  },
+  {
+    "zh": "值更册里有一页写着\"第十二册是第十一册的背面\"——没有人敢把整本倒过来看。",
+    "en": "one page of the watch-ledger says: the twelfth volume is the back of the eleventh — and no one dares turn the whole book face-down.",
+    "refZh": "回响（其127） · 四",
+    "refEn": "Echo No. 127 · IV"
+  },
+  {
+    "zh": "值更册第 117 页：每少一本第十二册——下一代抄本师就会多写一本错册。",
+    "en": "the watch-ledger on page 117 says: for every missing twelfth volume — the next generation of copyists will write one more mistake.",
+    "refZh": "回响（其127） · 五",
+    "refEn": "Echo No. 127 · V"
+  },
+  {
+    "zh": "抄本师起草的誓言：若有谁真的找到了第十二册——他必是来潮候院的人。",
+    "en": "the copyists' oath reads: whoever truly finds the twelfth volume — he must be a man of the Institute.",
+    "refZh": "回响（其127） · 六",
+    "refEn": "Echo No. 127 · VI"
+  },
+  {
+    "zh": "走廊尽头有一只小鼓——鼓皮是旧的——鼓面上钉着一层灰——从不敲掉。",
+    "en": "at the far end of the corridor stands a little drum — the skin is old — the surface is layered with dust that never comes off.",
+    "refZh": "回响（其128） · 一",
+    "refEn": "Echo No. 128 · I"
+  },
+  {
+    "zh": "抄本师听见过——值更人听见过——没人说得清它在哪一刻开始响。",
+    "en": "copyists have heard it — the head of the watch has heard it — and no one can say the moment it first began.",
+    "refZh": "回响（其128） · 二",
+    "refEn": "Echo No. 128 · II"
+  },
+  {
+    "zh": "老抄本师说它响的时候——祠殿那边的灯先暗一下。",
+    "en": "the old copyist says: when the drum sounds — the lamp on the chapel's side of the corridor dims first.",
+    "refZh": "回响（其128） · 三",
+    "refEn": "Echo No. 128 · III"
+  },
+  {
+    "zh": "值更册记载——这只鼓每年只响三次——第三次没有周期。",
+    "en": "the watch-ledger records: this drum sounds only three times a year — the third has no cycle.",
+    "refZh": "回响（其128） · 四",
+    "refEn": "Echo No. 128 · IV"
+  },
+  {
+    "zh": "值更册的最后一页写\"它从不停\"——抄本师没有人解释这一句。",
+    "en": "the last page of the watch-ledger reads: it never stops — and no copyist explains the line.",
+    "refZh": "回响（其128） · 五",
+    "refEn": "Echo No. 128 · V"
+  },
+  {
+    "zh": "抄本师曾把耳朵贴到鼓皮上——她说\"它不是节奏——它是心\"。",
+    "en": "a copyist once pressed her ear to the drum skin — she said: it is not a rhythm — it is a heart.",
+    "refZh": "回响（其128） · 六",
+    "refEn": "Echo No. 128 · VI"
+  },
+  {
+    "zh": "祠殿檐下有一块木牌——牌上没有字——值更人说风再大它从不响不晃。",
+    "en": "under the chapel's eaves hangs a wooden plaque — no writing on it — the head of the watch says: whatever wind, it never sounds, never swings.",
+    "refZh": "回响（其129） · 一",
+    "refEn": "Echo No. 129 · I"
+  },
+  {
+    "zh": "抄本师从来不在院里提起那块木牌——连草稿都不留——年轻抄本师尝试抄它——那页纸后来深藏档案室最深处。",
+    "en": "the copyists never speak of the plaque inside the Institute — not even drafts are kept — once a young copyist tried to copy it, but that page is now sealed deep in the archive.",
+    "refZh": "回响（其129） · 二",
+    "refEn": "Echo No. 129 · II"
+  },
+  {
+    "zh": "某夜值更人提灯经过——木牌的影子在墙上——不是人影——是像一只扬起来的手。",
+    "en": "one night the head of the watch passed with a lantern — the plaque's shadow on the wall was no human figure — it was like a raised hand.",
+    "refZh": "回响（其129） · 三",
+    "refEn": "Echo No. 129 · III"
+  },
+  {
+    "zh": "秋潮月第九十六日——候更人听见它第一次发出了一声——是木牌自己选择的。",
+    "en": "on the ninety-sixth day of the autumn-tide month — the head of the watch heard it sound for the first time — the plaque chose to sound itself.",
+    "refZh": "回响（其129） · 四",
+    "refEn": "Echo No. 129 · IV"
+  },
+  {
+    "zh": "第二天——祠殿门前尘土里有一串行走的轮迹——没有车——抄本师不讨论它。",
+    "en": "the next day — the dust in front of the chapel held a track — no wheel had ever made such tracks here — the copyists do not discuss it.",
+    "refZh": "回响（其129） · 五",
+    "refEn": "Echo No. 129 · V"
+  },
+  {
+    "zh": "值更册最后一页\"等它自己决定——它会说\"——抄本师没人解释也没人问。",
+    "en": "the last page of the watch-ledger reads: when it decides — it will speak — the copyists do not explain it and do not ask.",
+    "refZh": "回响（其129） · 六",
+    "refEn": "Echo No. 129 · VI"
+  },
+  {
     "zh": "潮候院从那以后再也没有人叫过下一场大会——潮起潮落替它们把这一声叫了出去。",
     "en": "after that, no one at the Institute ever called the next Convocation — the tides called it in their place.",
     "refZh": "回响（其13） · 一",
@@ -854,6 +1820,360 @@ export const BIBLE_ANCHORS: readonly BibleAnchor[] = [
     "en": "the 51st Convocation was never missed — it is only a stretch of tide the Institute has not yet met.",
     "refZh": "回响（其13） · 五",
     "refEn": "Echo No. 13 · V"
+  },
+  {
+    "zh": "潮候院后院最深处有一棵老榕——干围三人合抱——根上垂十数条气生根。",
+    "en": "in the innermost corner of the Institute's back yard stands an old banyan — its trunk wider than three arms can encircle, its roots hanging from the canopy by the dozen.",
+    "refZh": "回响（其130） · 一",
+    "refEn": "Echo No. 130 · I"
+  },
+  {
+    "zh": "每年潮落之前三天——值更人走过后院能听见榕树低声说话。",
+    "en": "three days before every ebb — walking through the back yard the head of the watch hears the banyan talking under its breath.",
+    "refZh": "回响（其130） · 二",
+    "refEn": "Echo No. 130 · II"
+  },
+  {
+    "zh": "榕树从不讲潮落本身——它讲的是潮落的人——谁没等到退、谁还在等、谁在潮里、谁走得早了。",
+    "en": "the banyan never speaks of the ebb itself — it speaks of the people of the ebb — who never waited long enough to see it return; who is still waiting; who is already in the tide; who left too soon.",
+    "refZh": "回响（其130） · 三",
+    "refEn": "Echo No. 130 · III"
+  },
+  {
+    "zh": "抄本师听不懂这榕的方言——值更人事后问奶奶——奶奶说它讲的是几字珊瑚。",
+    "en": "the copyists cannot understand this banyan's tongue — later the head of the watch asked his grandmother — she said it speaks in the syllables of coral.",
+    "refZh": "回响（其130） · 四",
+    "refEn": "Echo No. 130 · IV"
+  },
+  {
+    "zh": "第四十一次大会散会那天——值更人没听见它说话——第二天早上它说话了。",
+    "en": "on the day the forty-first Convocation dissolved — the head of the watch did not hear it speak — the next morning it spoke.",
+    "refZh": "回响（其130） · 五",
+    "refEn": "Echo No. 130 · V"
+  },
+  {
+    "zh": "值更册最后一页写着\"它说话的人不听——它就一直讲——直到最贵的潮来——潮里就没有人了\"。",
+    "en": "the last page of the watch-ledger reads: the people who hear its voice do not listen — it keeps speaking — until the most expensive tide came — and there was no one left in the tide. End.",
+    "refZh": "回响（其130） · 六",
+    "refEn": "Echo No. 130 · VI"
+  },
+  {
+    "zh": "门开着，里面没有人。",
+    "en": "The door stood open; nobody was inside.",
+    "refZh": "回响（其131） · 一",
+    "refEn": "Echo No. 131 · I"
+  },
+  {
+    "zh": "椅子他数了三遍，每次都是四十五把。",
+    "en": "He counted the chairs three times; every time, forty-five.",
+    "refZh": "回响（其131） · 二",
+    "refEn": "Echo No. 131 · II"
+  },
+  {
+    "zh": "潮纸签在桌脚，不是风吹到的。",
+    "en": "The tide-paper tag lay at the table's foot; the wind had not carried it there.",
+    "refZh": "回响（其131） · 三",
+    "refEn": "Echo No. 131 · III"
+  },
+  {
+    "zh": "那行字没有写完，他没有替别人写完。",
+    "en": "The line was never finished, and he finished it for no one.",
+    "refZh": "回响（其131） · 四",
+    "refEn": "Echo No. 131 · IV"
+  },
+  {
+    "zh": "关门的时候，他留了一指宽。",
+    "en": "When he closed the door, he left it open a finger's width.",
+    "refZh": "回响（其131） · 五",
+    "refEn": "Echo No. 131 · V"
+  },
+  {
+    "zh": "西廊尽头挂着一件蓑衣——蓑草干了很久——风从东廊过去的时候它还会动一下。",
+    "en": "at the far end of the west corridor hangs a straw rain cape — the straw is dry for a long time — when the wind comes down the east corridor, it still moves — not like an old rain cape should.",
+    "refZh": "回响（其132） · 一",
+    "refEn": "Echo No. 132 · I"
+  },
+  {
+    "zh": "值更册说这件蓑衣是第四十一次大会散会那天挂上去的——挂的人没有人认得他。",
+    "en": "the watch-ledger says this rain cape was hung on the day the forty-first Convocation dissolved — and the person who hung it, no one recognized.",
+    "refZh": "回响（其132） · 二",
+    "refEn": "Echo No. 132 · II"
+  },
+  {
+    "zh": "值更人经过时听见蓑衣低声说了一句什么——他贴着墙听——好像在念一段\"我要回桑地了\"。",
+    "en": "one time the head of the watch heard the rain cape murmur something — he pressed against the wall to listen — it sounded like a line from recitation: \"I am going back to the mulberry fields.\"",
+    "refZh": "回响（其132） · 三",
+    "refEn": "Echo No. 132 · III"
+  },
+  {
+    "zh": "值更册最后一页\"它等的是谁——我们不知道——我们也没问过——可能它等的就是这一天\"。",
+    "en": "the last page of the watch-ledger reads: we do not know whom it waits for — we never asked — perhaps it has been waiting precisely for this day.",
+    "refZh": "回响（其132） · 四",
+    "refEn": "Echo No. 132 · IV"
+  },
+  {
+    "zh": "抄本师说蓑衣下面的地面今天被雨淋了一遍——但没有泥——只有盐。",
+    "en": "the copyists privately reported: this morning the ground below the rain cape was wet with rain — but there was no mud — only salt.",
+    "refZh": "回响（其132） · 五",
+    "refEn": "Echo No. 132 · V"
+  },
+  {
+    "zh": "某个傍晚值更人看见东廊顶上多了一片桑叶——他不敢碰——后来那片也不见了。",
+    "en": "one evening the head of the watch saw a mulberry leaf on the ceiling of the east corridor — he did not dare touch it — later it was gone.",
+    "refZh": "回响（其132） · 六",
+    "refEn": "Echo No. 132 · VI"
+  },
+  {
+    "zh": "东院有一棵沉香树——年纪不少——抄本师说它来自另一处——抄本师不愿问来自哪。",
+    "en": "in the east yard of the Institute stands an agarwood tree — very old — the copyists say it came from elsewhere, and they will not say where.",
+    "refZh": "回响（其133） · 一",
+    "refEn": "Echo No. 133 · I"
+  },
+  {
+    "zh": "值更册上写\"它不下果——它只是在那里\"——每一代人看过去——都是一样的。",
+    "en": "the watch-ledger records: it never bears fruit — it is simply there — every generation before and since sees the same.",
+    "refZh": "回响（其133） · 二",
+    "refEn": "Echo No. 133 · II"
+  },
+  {
+    "zh": "第四十一次大会散会那一天——抄本师经过东院——它枝头开了一朵花——只开了时辰。",
+    "en": "on the day the forty-first Convocation dissolved — a copyist crossing the east yard — it bore one bloom — one breath, and only one.",
+    "refZh": "回响（其133） · 三",
+    "refEn": "Echo No. 133 · III"
+  },
+  {
+    "zh": "抄本师说那朵花是暗红色——像潮候院墙上那一行字颜色一样。",
+    "en": "the copyist says the bloom was a dark red — the same color as the line of characters on the Institute's wall.",
+    "refZh": "回响（其133） · 四",
+    "refEn": "Echo No. 133 · IV"
+  },
+  {
+    "zh": "值更册最后一页\"它一生只开一次花——而那一次——是给散会的\"。",
+    "en": "the last page of the watch-ledger reads: it blooms once in a lifetime — and that time — was for the Dissolution.",
+    "refZh": "回响（其133） · 五",
+    "refEn": "Echo No. 133 · V"
+  },
+  {
+    "zh": "值更人经常在它旁边发现一段新枝——长出来——又收掉。",
+    "en": "the head of the watch often finds a new branch beside it — it grows — and retracts — as if the tree were trying something.",
+    "refZh": "回响（其133） · 六",
+    "refEn": "Echo No. 133 · VI"
+  },
+  {
+    "zh": "潮候院北厢房里有一只旧箱子——箱子里装着很多坏表——没有一只表对过——也没有一只走过一整夜。",
+    "en": "in the north chamber of the Institute sits an old box — the box is filled with broken watches — not one has ever been right — not one has lasted a full night.",
+    "refZh": "回响（其134） · 一",
+    "refEn": "Echo No. 134 · I"
+  },
+  {
+    "zh": "某个抄本师偷偷开看过——第二天她手腕上多了一块表——她不认得——也不知道怎么来的。",
+    "en": "a young copyist once peeked inside the box in secret — the next day on her wrist lay a watch she did not recognize — she does not know how it came to be there.",
+    "refZh": "回响（其134） · 二",
+    "refEn": "Echo No. 134 · II"
+  },
+  {
+    "zh": "箱子里的表每一只都停在第四十一次大会散会的那一刻——分秒不差——没有人知道为什么。",
+    "en": "every watch in the box is stopped at the exact second the forty-first Convocation dissolved — second by second — and no one knows why.",
+    "refZh": "回响（其134） · 三",
+    "refEn": "Echo No. 134 · III"
+  },
+  {
+    "zh": "抄本师试着修一只——修好了——后来又停了——停的时间就是其他表停止的时间。",
+    "en": "a copyist once tried to fix one watch — it worked — and then it stopped — at the hour the others had stopped.",
+    "refZh": "回响（其134） · 四",
+    "refEn": "Echo No. 134 · IV"
+  },
+  {
+    "zh": "值更册最后一页写着\"第四十一次大会散会那天——所有人都抬起了袖子——袖口里面——是这么一只表\"。",
+    "en": "the last page of the watch-ledger reads: on the day the Convocation dissolved — every soul raised a sleeve — inside every cuff — one of these very watches.",
+    "refZh": "回响（其134） · 五",
+    "refEn": "Echo No. 134 · V"
+  },
+  {
+    "zh": "散会那天傍晚值守对账——发现所有人的表——全都离对了——对的不是昼夜。",
+    "en": "in the evening of Dissolution the watch-ward checked the count — every watch was calibrated — not to day and night — but to something else.",
+    "refZh": "回响（其134） · 六",
+    "refEn": "Echo No. 134 · VI"
+  },
+  {
+    "zh": "祠殿顶上有一只废风向标——铸铁的——常年起锈——值更人说看它像看一个不肯低头的老人。",
+    "en": "atop the chapel stands a rusted wind vane — cast iron — permanently corroded — the head of the watch says it looks like an old man who refuses to bow his head.",
+    "refZh": "回响（其135） · 一",
+    "refEn": "Echo No. 135 · I"
+  },
+  {
+    "zh": "海风东北南吹——它不动——只有微风来的时候偏向祠殿里那张潮汐表的方向。",
+    "en": "east, north, south — the wind blows and it does not move; only a small breeze tilts it toward the tide table inside the chapel.",
+    "refZh": "回响（其135） · 二",
+    "refEn": "Echo No. 135 · II"
+  },
+  {
+    "zh": "抄本师登上去看过——它没有指北的针——只有一个粗略的小箭头对着祠殿内部。",
+    "en": "the copyists climbed up to look — the vane carries no pointer for north — only a rough little arrow aimed toward the inside of the chapel.",
+    "refZh": "回响（其135） · 三",
+    "refEn": "Echo No. 135 · III"
+  },
+  {
+    "zh": "第四十一次大会散会那一夜——风向标朝反方向猛转了半圈——第二天又回来了。",
+    "en": "on the night the Convocation dissolved, the vane spun half-way around to face the opposite direction — and by the next day it had returned.",
+    "refZh": "回响（其135） · 四",
+    "refEn": "Echo No. 135 · IV"
+  },
+  {
+    "zh": "值更人最后一次上报前说风向标有生之年唯一开过一次口——它说\"要走了\"。",
+    "en": "in his last report, the head of the watch wrote: the vane spoke only once in its life — it said: we are leaving.",
+    "refZh": "回响（其135） · 五",
+    "refEn": "Echo No. 135 · V"
+  },
+  {
+    "zh": "值更册最后一页\"散会以来它一直没有变方向——而是指着潮汐表\"。",
+    "en": "the last page of the watch-ledger reads: since the Dissolution it has never changed direction — it points at the tide table.",
+    "refZh": "回响（其135） · 六",
+    "refEn": "Echo No. 135 · VI"
+  },
+  {
+    "zh": "东厢那口青铜井——井口一块铜盖——中间一个小孔——值更人说它只听不说话。",
+    "en": "in the east wing sits a bronze well — a bronze cap on its mouth — a single small hole in the cap — the head of the watch says it listens but never speaks.",
+    "refZh": "回响（其136） · 一",
+    "refEn": "Echo No. 136 · I"
+  },
+  {
+    "zh": "潮退的时候——井里出了一个低音——只有一个音——值更册写得清清楚楚。",
+    "en": "when the tide goes out — a low note rises from the well — only one note — and the watch-ledger records it plainly.",
+    "refZh": "回响（其136） · 二",
+    "refEn": "Echo No. 136 · II"
+  },
+  {
+    "zh": "井口的小孔小到呼吸能过——其余过不去——一根羽毛平放上去——半个时辰不动。",
+    "en": "the hole in the cap is small enough for breath to pass through — nothing else — a feather laid across it stays still for half a watch.",
+    "refZh": "回响（其136） · 三",
+    "refEn": "Echo No. 136 · III"
+  },
+  {
+    "zh": "第四十一次大会散会那一夜——井里的低音响了两次——一次在九点——一次在所有灯同时灭掉的时候。",
+    "en": "on the night the Convocation dissolved — the low note from the well sounded twice — once at nine — and once the moment every lamp went out together.",
+    "refZh": "回响（其136） · 四",
+    "refEn": "Echo No. 136 · IV"
+  },
+  {
+    "zh": "没人往井里投过任何东西——井水的水位从来没变过。",
+    "en": "no one has ever thrown anything into the well — the water level has never changed — the copyists say it is an ear.",
+    "refZh": "回响（其136） · 五",
+    "refEn": "Echo No. 136 · V"
+  },
+  {
+    "zh": "值更册最后一页\"井一直在听——它听的是散会\"。",
+    "en": "the last page of the watch-ledger reads: the well has been listening all along — it was listening to the Dissolution.",
+    "refZh": "回响（其136） · 六",
+    "refEn": "Echo No. 136 · VI"
+  },
+  {
+    "zh": "祠殿正中有一把木椅——常年空着——值更人不说它为谁留的。",
+    "en": "in the very center of the chapel stands a wooden chair — always empty — and the head of the watch will not say for whom it is being kept.",
+    "refZh": "回响（其137） · 一",
+    "refEn": "Echo No. 137 · I"
+  },
+  {
+    "zh": "任何人都没坐过——连老抄本师也不说从前坐没坐过。",
+    "en": "no one sits in it — not even the oldest copyists will say whether anyone ever did.",
+    "refZh": "回响（其137） · 二",
+    "refEn": "Echo No. 137 · II"
+  },
+  {
+    "zh": "散会那一夜有人坐了这把椅子——值更册只写了一句'那晚坐椅子的人没有名字'。",
+    "en": "on the night of the Dissolution somebody sat in this chair — and the watch-ledger records only one line: the person who sat that night had no name.",
+    "refZh": "回响（其137） · 三",
+    "refEn": "Echo No. 137 · III"
+  },
+  {
+    "zh": "第二天早朝——椅子歪了一点——值更人没有扶正——他说'它散过了'。",
+    "en": "the next morning at first watch — the chair leaned slightly — and the head of the watch did not straighten it — he only said: it has already dissolved.",
+    "refZh": "回响（其137） · 四",
+    "refEn": "Echo No. 137 · IV"
+  },
+  {
+    "zh": "抄本师在椅子底下发现一粒深黑色的盐——不是供盐——也不是膳盐。",
+    "en": "beneath the chair the copyists found a single grain of salt — dark black — not the chapel's consecrated salt — and not the kitchen's.",
+    "refZh": "回响（其137） · 五",
+    "refEn": "Echo No. 137 · V"
+  },
+  {
+    "zh": "值更册最后一页'它没有名字——谁去坐都一样'。",
+    "en": "the last page of the watch-ledger reads: it has no name — it does not matter who sits in it.",
+    "refZh": "回响（其137） · 六",
+    "refEn": "Echo No. 137 · VI"
+  },
+  {
+    "zh": "祠殿外墙上有一行字——字很长——抄本师说是散会那天写上去的——没人敢念完。",
+    "en": "upon the outer wall of the chapel runs a long line of characters — the copyists say it was written on the day of the Dissolution — and no one dares read it to its end.",
+    "refZh": "回响（其138） · 一",
+    "refEn": "Echo No. 138 · I"
+  },
+  {
+    "zh": "抄本师夜里把这行字与残卷对照——发现第九个字写错了——只有一个。",
+    "en": "one night a copyist collated the wall against a broken manuscript — and found the ninth character is wrong — only one is.",
+    "refZh": "回响（其138） · 二",
+    "refEn": "Echo No. 138 · II"
+  },
+  {
+    "zh": "错在\"潮\"字的三点水少了一点——抄本师说\"潮缺一点，潮就没了\"。",
+    "en": "the error is in the character \"潮\" — one dot too few in its water radical — the copyists say: a tide missing one dot is no longer the tide.",
+    "refZh": "回响（其138） · 三",
+    "refEn": "Echo No. 138 · III"
+  },
+  {
+    "zh": "值更人说没人被授权改——值更册里写着\"它散过会——墙上就是这个\"。",
+    "en": "the head of the watch says no one is authorized to correct it — the watch-ledger records: it has already dissolved — the wall stands as written.",
+    "refZh": "回响（其138） · 四",
+    "refEn": "Echo No. 138 · IV"
+  },
+  {
+    "zh": "散会那一夜所有人都看见了这行字——没有人看见那个错。",
+    "en": "on the night of the Dissolution everyone saw the line of characters on the wall — and no one noticed the error.",
+    "refZh": "回响（其138） · 五",
+    "refEn": "Echo No. 138 · V"
+  },
+  {
+    "zh": "值更册最后一页\"墙上有一个字是错的——它一直是错的——它也将一直是错的\"。",
+    "en": "the last page of the watch-ledger reads: one character on the wall is wrong — it has always been wrong — and it will remain so.",
+    "refZh": "回响（其138） · 六",
+    "refEn": "Echo No. 138 · VI"
+  },
+  {
+    "zh": "天台上有一架望远镜——真鍮的——木头盒子没人盖过——抄本师说它从雾港带回来的。",
+    "en": "on the terrace stands a telescope — brass — its wooden box has never been closed — the copyists say it came from the fog harbor.",
+    "refZh": "回响（其139） · 一",
+    "refEn": "Echo No. 139 · I"
+  },
+  {
+    "zh": "值更人把它转向星空——第二天一定转回雾港——没有人记得谁转的。",
+    "en": "the head of the watch turned it toward the stars — the next day it was facing the fog harbor again — and no one remembers who turned it back.",
+    "refZh": "回响（其139） · 二",
+    "refEn": "Echo No. 139 · II"
+  },
+  {
+    "zh": "散会那一夜——值更人透过它看见雾港里有一艘船亮了灯——抄本师说雾港从没有灯船。",
+    "en": "on the night of the Dissolution — through the telescope the head of the watch saw a lit ship in the fog harbor — the copyists say the fog harbor has never held a lit ship.",
+    "refZh": "回响（其139） · 三",
+    "refEn": "Echo No. 139 · III"
+  },
+  {
+    "zh": "抄本师日复一日擦它——镜筒里总落下很细的银灰色盐。",
+    "en": "every day the copyists wipe it clean — and yet fine silver-grey salt always settles in the barrel.",
+    "refZh": "回响（其139） · 四",
+    "refEn": "Echo No. 139 · IV"
+  },
+  {
+    "zh": "值更册最后一页\"它一直看雾港——雾港一直是满的\"。",
+    "en": "the last page of the watch-ledger reads: it has always watched the fog harbor — and the fog harbor has always been full.",
+    "refZh": "回响（其139） · 五",
+    "refEn": "Echo No. 139 · V"
+  },
+  {
+    "zh": "下雨拿布盖住镜片——第二天天亮布是干的。",
+    "en": "when it rains the copyists cover the lens with cloth — and by morning the cloth is dry.",
+    "refZh": "回响（其139） · 六",
+    "refEn": "Echo No. 139 · VI"
   },
   {
     "zh": "潮候院抄的每一本潮汐表，封面上从来没有写过任何人的名。",
@@ -886,6 +2206,354 @@ export const BIBLE_ANCHORS: readonly BibleAnchor[] = [
     "refEn": "Echo No. 14 · V"
   },
   {
+    "zh": "抄本室最深处有一盏灯——它从来不灭。",
+    "en": "in the deepest corner of the copyists' room there is a lamp — and it never goes out.",
+    "refZh": "回响（其140） · 一",
+    "refEn": "Echo No. 140 · I"
+  },
+  {
+    "zh": "没人添过油——也没人问——值更册只有一句\"它自己亮着\"。",
+    "en": "no one has ever refilled the lamp — no one asks — and the watch-ledger records only one line: it lights itself.",
+    "refZh": "回响（其140） · 二",
+    "refEn": "Echo No. 140 · II"
+  },
+  {
+    "zh": "散会那一夜——灯先灭了一下又亮——值更册记：\"那一闪没有人问。\"",
+    "en": "on the night the Convocation dissolved — the lamp went out for a breath and came back — the watch-ledger notes: no one asked about that flicker.",
+    "refZh": "回响（其140） · 三",
+    "refEn": "Echo No. 140 · III"
+  },
+  {
+    "zh": "它的光不照桌面——只照字——抄本师说灯是写字的。",
+    "en": "its light does not fall on the tables — only on the characters — the copyists say the lamp is writing.",
+    "refZh": "回响（其140） · 四",
+    "refEn": "Echo No. 140 · IV"
+  },
+  {
+    "zh": "雾港的风来的时候——灯会晃——它从来没有灭过。",
+    "en": "when the wind comes from the fog harbor — the lamp sways — and it has never gone out.",
+    "refZh": "回响（其140） · 五",
+    "refEn": "Echo No. 140 · V"
+  },
+  {
+    "zh": "值更册最后一页：\"它只要家传声册里有人抄它的光——它就不会灭。\"",
+    "en": "the last page of the watch-ledger reads: as long as someone in the Institute copies the light it sheds — it will not go out.",
+    "refZh": "回响（其140） · 六",
+    "refEn": "Echo No. 140 · VI"
+  },
+  {
+    "zh": "潮候院门岗的值更人每天把访客的名单写进一本籍——书里没有一个人真正进入潮候院。",
+    "en": "every day the head of the watch at the gate enters the names of visitors into a book — and none of those names ever crossed the threshold.",
+    "refZh": "回响（其141） · 一",
+    "refEn": "Echo No. 141 · I"
+  },
+  {
+    "zh": "怎么写入籍——来了——问了——被告知此处不收访客——走了——值更册的最后一行只记两个字\"未入\"。",
+    "en": "the entry rule is: came, asked, was told visitors are not received, left — and the final line of the ledger records only two words: not admitted.",
+    "refZh": "回响（其141） · 二",
+    "refEn": "Echo No. 141 · II"
+  },
+  {
+    "zh": "四十年前有一个小孩来过——第二天籍上多了一句\"那个小孩头上不见影子\"。",
+    "en": "forty years ago a child came — and the next day the book gained one line: the child's head cast no shadow.",
+    "refZh": "回响（其141） · 三",
+    "refEn": "Echo No. 141 · III"
+  },
+  {
+    "zh": "散会那一夜——值更人把整本籍合上——第二天他翻开——值更册写着\"散会后它不再记\"。",
+    "en": "on the night the Convocation dissolved — the head of the watch closed the whole book — and when he opened it the next day the watch-ledger said: it no longer records, after the Dissolution.",
+    "refZh": "回响（其141） · 四",
+    "refEn": "Echo No. 141 · IV"
+  },
+  {
+    "zh": "没人问过那些名字里的人是什么样的人——连值更人也不问。",
+    "en": "no one has ever asked what manner of people those names belong to — not even the head of the watch.",
+    "refZh": "回响（其141） · 五",
+    "refEn": "Echo No. 141 · V"
+  },
+  {
+    "zh": "值更册最后一页：\"它只记未入——没记完的就是这一百四十一人。\"",
+    "en": "the last page of the watch-ledger reads: it records only the not-admitted — and the count it holds — one hundred forty-one — is unfinished.",
+    "refZh": "回响（其141） · 六",
+    "refEn": "Echo No. 141 · VI"
+  },
+  {
+    "zh": "祠殿最底层有一间房间——门上没有凹痕——没有人记得谁打开过它。",
+    "en": "at the very bottom of the chapel there is a room — its door bears no scratches — and no one remembers who ever opened it.",
+    "refZh": "回响（其142） · 一",
+    "refEn": "Echo No. 142 · I"
+  },
+  {
+    "zh": "门锁已经锈了——抄本师试过打不开——值更人说它不需要被打开。",
+    "en": "the lock has rusted through — the copyists have tried and cannot open it — the head of the watch says it does not need to be opened.",
+    "refZh": "回响（其142） · 二",
+    "refEn": "Echo No. 142 · II"
+  },
+  {
+    "zh": "散会那一夜所有人都看见这间房间开过——第二天早晨门是关着的。",
+    "en": "on the night the Convocation dissolved everyone saw this room open — and in the morning the door was already closed.",
+    "refZh": "回响（其142） · 三",
+    "refEn": "Echo No. 142 · III"
+  },
+  {
+    "zh": "抄本师说它里面只是一盏灯——灯从没亮过。",
+    "en": "the copyists say that inside there is only a lamp — and the lamp has never once been lit.",
+    "refZh": "回响（其142） · 四",
+    "refEn": "Echo No. 142 · IV"
+  },
+  {
+    "zh": "墙上有一行字——没人认识——值更册里也没有它。",
+    "en": "on the wall runs a line of characters — no one can read it — and the watch-ledger holds nothing about it.",
+    "refZh": "回响（其142） · 五",
+    "refEn": "Echo No. 142 · V"
+  },
+  {
+    "zh": "值更册最后一页：\"门下面没有东西——屋顶上面没有东西——东西不在屋里。\"",
+    "en": "the last page of the watch-ledger reads: there is nothing below the door — nothing above the roof — and nothing inside the room.",
+    "refZh": "回响（其142） · 六",
+    "refEn": "Echo No. 142 · VI"
+  },
+  {
+    "zh": "潮候院里有一个本子只记下雨的夜晚——记下没有人知道的事。",
+    "en": "in the Chapel of the Tide there is a book that only records the rainy nights — it records what nobody knows.",
+    "refZh": "回响（其143） · 一",
+    "refEn": "Echo No. 143 · I"
+  },
+  {
+    "zh": "卖椰壳的人只卖两个椰壳——一个给要雨的人，一个给还不知道要雨的人。",
+    "en": "the coconut-seller sells only two shells — one to those who wish for rain, one to those who don't yet know they wish for rain.",
+    "refZh": "回响（其143） · 二",
+    "refEn": "Echo No. 143 · II"
+  },
+  {
+    "zh": "潮落时有一把伞被海送上来——棚骨完好无损——却找不到主人。",
+    "en": "when the tide receded, an umbrella was delivered to the shore — the frame was intact — but the owner could not be found.",
+    "refZh": "回响（其143） · 三",
+    "refEn": "Echo No. 143 · III"
+  },
+  {
+    "zh": "守灯人的灯比别人的亮——不是因为灯油多，是因为没有别的灯可以凭。",
+    "en": "the lamp-keeper's lamp shines brighter than the rest — not because of the oil, but because there is nothing else to lean on.",
+    "refZh": "回响（其143） · 四",
+    "refEn": "Echo No. 143 · IV"
+  },
+  {
+    "zh": "雨书的最后一页上写的是「今夜无雨」四个字——但是谁也不敢翻过那一页。",
+    "en": "the last page of the rain-book reads \"no rain tonight\" — but nobody dares to turn the page.",
+    "refZh": "回响（其143） · 五",
+    "refEn": "Echo No. 143 · V"
+  },
+  {
+    "zh": "抄本室里有一册——没有题名——抄本师叫它\"未尽事册\"。",
+    "en": "deep in the copyists' room lives a volume — it carries no title — the copyists call it the Book of Unfinished Business.",
+    "refZh": "回响（其144） · 一",
+    "refEn": "Echo No. 144 · I"
+  },
+  {
+    "zh": "每一件记事都只写到一半——然后断了。",
+    "en": "every entry stops halfway through — and then it ends.",
+    "refZh": "回响（其144） · 二",
+    "refEn": "Echo No. 144 · II"
+  },
+  {
+    "zh": "值更人说从来没人读过它的结尾——抄本师说因为没有结尾。",
+    "en": "the head of the watch says no one has ever read the end of it — the copyists say there is no end to read.",
+    "refZh": "回响（其144） · 三",
+    "refEn": "Echo No. 144 · III"
+  },
+  {
+    "zh": "散会那一夜——没人添字——册子上多了十四行——十四行都是同一个字\"未\"。",
+    "en": "on the night the Convocation dissolved no one added anything to it — and yet the volume gained fourteen lines — fourteen lines of the same single character: not-yet.",
+    "refZh": "回响（其144） · 四",
+    "refEn": "Echo No. 144 · IV"
+  },
+  {
+    "zh": "抄本师说——如果哪一天它写完了——第四十一次大会才真正散完。",
+    "en": "the copyists joke — if one day it is finished — the forty-first Convocation will have truly dissolved.",
+    "refZh": "回响（其144） · 五",
+    "refEn": "Echo No. 144 · V"
+  },
+  {
+    "zh": "值更册最后一页：\"它只要保持未尽——它就是写完的。\"",
+    "en": "the last page of the watch-ledger reads: as long as it stays unfinished — it is already a finished work.",
+    "refZh": "回响（其144） · 六",
+    "refEn": "Echo No. 144 · VI"
+  },
+  {
+    "zh": "潮候院闭馆台上有一座水钟——材料不明——值更人说它朝门，不朝潮沙盘。",
+    "en": "on the Institute's closing platform there is a water clock — its material is unknown — and the head of the watch says it faces the door, not the tide-sand table.",
+    "refZh": "回响（其145） · 一",
+    "refEn": "Echo No. 145 · I"
+  },
+  {
+    "zh": "潮汐水钟测流速不量水位——指针从不归零。",
+    "en": "the tide-clock measures current — it does not measure depth — and its needle never returns to zero.",
+    "refZh": "回响（其145） · 二",
+    "refEn": "Echo No. 145 · II"
+  },
+  {
+    "zh": "它只显示两个字\"还剩\"。",
+    "en": "it shows only two words: what remains.",
+    "refZh": "回响（其145） · 三",
+    "refEn": "Echo No. 145 · III"
+  },
+  {
+    "zh": "散会那一夜水钟指到第十三圈——然后停住。",
+    "en": "on the night the Convocation dissolved, the water clock reached its thirteenth ring — and stopped.",
+    "refZh": "回响（其145） · 四",
+    "refEn": "Echo No. 145 · IV"
+  },
+  {
+    "zh": "没有人给水钟加过水——抄本师说它自己吃自己。",
+    "en": "no one has ever refilled the water clock — the copyists say it feeds on itself.",
+    "refZh": "回响（其145） · 五",
+    "refEn": "Echo No. 145 · V"
+  },
+  {
+    "zh": "值更册最后一页：\"它朝门看见的就是成为门的每个人。\"",
+    "en": "the last page of the watch-ledger reads: what it sees at the door is every person who became the door.",
+    "refZh": "回响（其145） · 六",
+    "refEn": "Echo No. 145 · VI"
+  },
+  {
+    "zh": "祠殿后墙外有一排盐盘——槽是木质的——抄本师清晨去收——它们从不被用过。",
+    "en": "along the chapel's back wall stands a row of salt trays — the trays are wooden — the copyists come at dawn to collect — and no one has ever taken anything from them.",
+    "refZh": "回响（其146） · 一",
+    "refEn": "Echo No. 146 · I"
+  },
+  {
+    "zh": "没人记得谁摆的——值更册不写——抄本师说散会时就摆了。",
+    "en": "no one remembers who set them out — the watch-ledger says nothing — the copyists say they were arranged on the day of the Dissolution.",
+    "refZh": "回响（其146） · 二",
+    "refEn": "Echo No. 146 · II"
+  },
+  {
+    "zh": "抄本师说盐盘里的盐每天多了一枚——没人添也没人拿。",
+    "en": "the copyists say the trays gain one grain of salt a day — no one refills them — and no one takes from them.",
+    "refZh": "回响（其146） · 三",
+    "refEn": "Echo No. 146 · III"
+  },
+  {
+    "zh": "散会那一夜——盐盘开始自己冒烟——抄本师没敢看——第二天盐全是温的。",
+    "en": "on the night the Convocation dissolved — the salt trays began to steam on their own — the copyists did not dare to look — and in the morning the salt was warm.",
+    "refZh": "回响（其146） · 四",
+    "refEn": "Echo No. 146 · IV"
+  },
+  {
+    "zh": "抄本师说它们不是给供盐的——也不给膳盐——没人拿它们。",
+    "en": "the copyists say these trays are not for the chapel's consecrated salt — nor for the kitchen — they are just there — and no one takes from them.",
+    "refZh": "回响（其146） · 五",
+    "refEn": "Echo No. 146 · V"
+  },
+  {
+    "zh": "值更册最后一页：\"它们在等某个人经过——它们还在等。\"",
+    "en": "the last page of the watch-ledger reads: they are waiting for someone to pass by — and they are still waiting.",
+    "refZh": "回响（其146） · 六",
+    "refEn": "Echo No. 146 · VI"
+  },
+  {
+    "zh": "潮候院外郊有一道老门——木头的——漆早褪了——它朝外开。",
+    "en": "outside the Institute stands an old gate — wood — its paint has long since faded — it opens outward only.",
+    "refZh": "回响（其147） · 一",
+    "refEn": "Echo No. 147 · I"
+  },
+  {
+    "zh": "值更人说它对谁也不开——包括值更人。",
+    "en": "the head of the watch says it opens for no one — not even for him.",
+    "refZh": "回响（其147） · 二",
+    "refEn": "Echo No. 147 · II"
+  },
+  {
+    "zh": "散会那一夜——门从里面打开过一次——第二天早晨它是关着的。",
+    "en": "on the night the Convocation dissolved — from inside the gate opened once — and in the morning it was closed.",
+    "refZh": "回响（其147） · 三",
+    "refEn": "Echo No. 147 · III"
+  },
+  {
+    "zh": "抄本师说那道门只为第十四位守灵人开——第一位到第十三位已经在了。",
+    "en": "the copyists say the gate opens only for the fourteenth vigil-keeper — the thirteen before him are already here.",
+    "refZh": "回响（其147） · 四",
+    "refEn": "Echo No. 147 · IV"
+  },
+  {
+    "zh": "没人上过锁——也没人看见谁去掉过锁——它自己决定什么时候开。",
+    "en": "no lock has ever been placed on it — no one has been seen removing one either — it alone decides when to open.",
+    "refZh": "回响（其147） · 五",
+    "refEn": "Echo No. 147 · V"
+  },
+  {
+    "zh": "值更册最后一页：\"谁在等？它在等——它在等某个人过这道门。\"",
+    "en": "the last page of the watch-ledger reads: who waits? It waits — it waits for someone to pass through this gate.",
+    "refZh": "回响（其147） · 六",
+    "refEn": "Echo No. 147 · VI"
+  },
+  {
+    "zh": "潮候院收到的那封信里只有一个字：「走」。",
+    "en": "the letter that arrived at the chapel held exactly one character — 走.",
+    "refZh": "回响（其148） · 一",
+    "refEn": "Echo No. 148 · I"
+  },
+  {
+    "zh": "没有人知道是谁寄的——字「走」也不是任何人的笔迹。",
+    "en": "nobody knew who sent it — the character 走 does not belong to anyone's hand.",
+    "refZh": "回响（其148） · 二",
+    "refEn": "Echo No. 148 · II"
+  },
+  {
+    "zh": "「走」字那个信谁都没认——大家只用沙把它压住，没有盖住。",
+    "en": "nobody claimed the letter — people only pressed it with sand, they did not cover it.",
+    "refZh": "回响（其148） · 三",
+    "refEn": "Echo No. 148 · III"
+  },
+  {
+    "zh": "「走」字那封信在门槛之前放了一夜，潮都起来了——字还在原处。",
+    "en": "the letter did not move overnight — the tide rose, and the character 走 remained where it was.",
+    "refZh": "回响（其148） · 四",
+    "refEn": "Echo No. 148 · IV"
+  },
+  {
+    "zh": "没有人打开那封信——大家只是说——有些话不是用来被读的。",
+    "en": "no one opened the letter — it was said that some things are not meant to be read.",
+    "refZh": "回响（其148） · 五",
+    "refEn": "Echo No. 148 · V"
+  },
+  {
+    "zh": "门槛下面有半只鞋——只有右半只——皮的颜色像老皮。",
+    "en": "beneath the threshold there is a half-shoe — only the right half — and its leather resembles old, worn skin.",
+    "refZh": "回响（其149） · 一",
+    "refEn": "Echo No. 149 · I"
+  },
+  {
+    "zh": "没人记得鞋什么时候落门槛下面——值更册没写。",
+    "en": "no one knows when the shoe came to rest beneath the threshold — the watch-ledger carries no entry.",
+    "refZh": "回响（其149） · 二",
+    "refEn": "Echo No. 149 · II"
+  },
+  {
+    "zh": "它只认过门的脚步——它只认门槛。",
+    "en": "it recognizes only the footsteps that cross the doorway — and it recognizes only the threshold.",
+    "refZh": "回响（其149） · 三",
+    "refEn": "Echo No. 149 · III"
+  },
+  {
+    "zh": "散会那一夜——门槛上方有人停了一下——鞋从门槛下冒出半只——然后又进了回去。",
+    "en": "on the night the Convocation dissolved — someone stopped at the threshold — the half-shoe rose from beneath it — and then it sank back out of sight.",
+    "refZh": "回响（其149） · 四",
+    "refEn": "Echo No. 149 · IV"
+  },
+  {
+    "zh": "被替它等的是还没进过这扇门的人——值更册不知道。",
+    "en": "it awaits someone who has not yet entered through this door — and the watch-ledger does not know.",
+    "refZh": "回响（其149） · 五",
+    "refEn": "Echo No. 149 · V"
+  },
+  {
+    "zh": "值更册最后一页：\"门槛下面有一只鞋——它在等一只脚。\"",
+    "en": "the last page of the watch-ledger reads: beneath the threshold there is a shoe — and it is waiting for one foot.",
+    "refZh": "回响（其149） · 六",
+    "refEn": "Echo No. 149 · VI"
+  },
+  {
     "zh": "巷子里的白灯从来没为谁亮过——它只是一直亮着。",
     "en": "the alley lamp was never lit for anyone — it simply stays on.",
     "refZh": "回响（其15） · 一",
@@ -914,6 +2582,354 @@ export const BIBLE_ANCHORS: readonly BibleAnchor[] = [
     "en": "an emptied jar is simply empty — the shop never fills an emptied jar with any pretend wine.",
     "refZh": "回响（其15） · 五",
     "refEn": "Echo No. 15 · V"
+  },
+  {
+    "zh": "祠殿墙上一条细线——从挂点到铃——没有任何东西可以碰到它——只有潮能碰到。",
+    "en": "across the chapel wall runs a fine line — from one hook to a bell — nothing can touch it — only the tide.",
+    "refZh": "回响（其150） · 一",
+    "refEn": "Echo No. 150 · I"
+  },
+  {
+    "zh": "值更人说风碰过——风碰过的铃一定响——那个线上没有铃。",
+    "en": "the head of the watch says the wind once touched it — yet a bell the wind touches must always ring — and on that line there is no bell.",
+    "refZh": "回响（其150） · 二",
+    "refEn": "Echo No. 150 · II"
+  },
+  {
+    "zh": "残卷上有一句——\"你想看这条线——你自己就是潮。\"",
+    "en": "the broken manuscript reads — if you wish to see this line — you yourself are the tide.",
+    "refZh": "回响（其150） · 三",
+    "refEn": "Echo No. 150 · III"
+  },
+  {
+    "zh": "散会那一夜——线像潮退一样往下移动了一次——第二天回到同一位置。",
+    "en": "on the night the Convocation dissolved — the line shifted as the tide recedes — and by morning it was back in the same place.",
+    "refZh": "回响（其150） · 四",
+    "refEn": "Echo No. 150 · IV"
+  },
+  {
+    "zh": "抄本师曾伸手碰过这条线——第二天她说不出这个字\"潮\"。",
+    "en": "a copyist once reached out and touched the line — and the next day she could no longer pronounce the character: tide.",
+    "refZh": "回响（其150） · 五",
+    "refEn": "Echo No. 150 · V"
+  },
+  {
+    "zh": "值更册最后一页：\"线不在墙上——线在读里。\"",
+    "en": "the last page of the watch-ledger reads: the line is not on the wall — the line is in the act of reading.",
+    "refZh": "回响（其150） · 六",
+    "refEn": "Echo No. 150 · VI"
+  },
+  {
+    "zh": "祠殿风方门边有一张圆桌——木头的——六把靠背——没有一把是铁做的。",
+    "en": "by the chapel door stands a round table — wood — six chairs — none of them iron.",
+    "refZh": "回响（其151） · 一",
+    "refEn": "Echo No. 151 · I"
+  },
+  {
+    "zh": "抄本师问风方门边那张桌为谁留的——抄本师的母亲说——\"给还没到的人留的\"。",
+    "en": "the copyists asked who the table by the door is for — the mother of one copyist answered — for those who have not yet arrived.",
+    "refZh": "回响（其151） · 二",
+    "refEn": "Echo No. 151 · II"
+  },
+  {
+    "zh": "木头桌面不扫就带盐——潮候院里只有风方门这个角落带盐。",
+    "en": "the table's top collects salt when no one sweeps it — salt appears in the chapel only by the door.",
+    "refZh": "回响（其151） · 三",
+    "refEn": "Echo No. 151 · III"
+  },
+  {
+    "zh": "抄本师数过这张桌坐过零个人——但是椅子总有一把会偏——好像刚刚有人坐过。",
+    "en": "the copyists have counted zero occupants of this table — yet one chair is always slightly turned — as though someone has just sat.",
+    "refZh": "回响（其151） · 四",
+    "refEn": "Echo No. 151 · IV"
+  },
+  {
+    "zh": "抄本师发现第六把椅子是新加的——风方门老爷子不知道它从哪里来。",
+    "en": "the copyists found that the sixth chair is new — the old man who guards the door does not know where it came from.",
+    "refZh": "回响（其151） · 五",
+    "refEn": "Echo No. 151 · V"
+  },
+  {
+    "zh": "值更册最后一页：\"它坐了六个人——也才留了一把椅子给你。\"",
+    "en": "the last page of the watch-ledger reads: it has held six souls — and it leaves one chair for you.",
+    "refZh": "回响（其151） · 六",
+    "refEn": "Echo No. 151 · VI"
+  },
+  {
+    "zh": "沉香巷里有一只石桥——桥下面是一条静水——桥不跨任何巷子。",
+    "en": "in the Sandalwood Lane there is a stone bridge — beneath the bridge a still stream — the bridge does not span anything.",
+    "refZh": "回响（其152） · 一",
+    "refEn": "Echo No. 152 · I"
+  },
+  {
+    "zh": "抄本师说桥底是它自己的脸——水里照着它——它每天只看水里的它。",
+    "en": "the copyists say beneath the bridge is its own face — reflected in the water — every morning only the face in the water is seen.",
+    "refZh": "回响（其152） · 二",
+    "refEn": "Echo No. 152 · II"
+  },
+  {
+    "zh": "过桥的人都在过桥——但是桥不去任何地方。",
+    "en": "every passer crosses the bridge — yet the bridge leads nowhere.",
+    "refZh": "回响（其152） · 三",
+    "refEn": "Echo No. 152 · III"
+  },
+  {
+    "zh": "散会那一夜——桥下倒影变了——它看见一个不是它自己的脸。",
+    "en": "on the night the Convocation dissolved — the reflection beneath the bridge changed — and it saw a face that was not its own.",
+    "refZh": "回响（其152） · 四",
+    "refEn": "Echo No. 152 · IV"
+  },
+  {
+    "zh": "值更册最后一页：\"它只认自己的脸——也只认那天它看过的那张。\"",
+    "en": "the last page of the watch-ledger reads: it knows only its own face — and also the one it saw that night.",
+    "refZh": "回响（其152） · 五",
+    "refEn": "Echo No. 152 · V"
+  },
+  {
+    "zh": "潮候院回廊尽头有一只谜箱——木头的——箱面上刻着谜面——从没有人见过它打开过。",
+    "en": "at the far end of the corridor stands a riddle-box — wood — on its face is carved a riddle — no one has ever seen it open.",
+    "refZh": "回响（其153） · 一",
+    "refEn": "Echo No. 153 · I"
+  },
+  {
+    "zh": "箱面上那条谜面用的字都在正典里——但是没有一句正是它。",
+    "en": "every character on the face of the riddle-box is in the canon — yet not one line of the canon is this riddle.",
+    "refZh": "回响（其153） · 二",
+    "refEn": "Echo No. 153 · II"
+  },
+  {
+    "zh": "值更人和抄本师都猜过——值更册从未记过任何一次猜中。",
+    "en": "the head of the watch and the copyists have both tried — and the watch-ledger has never recorded a single solved riddle.",
+    "refZh": "回响（其153） · 三",
+    "refEn": "Echo No. 153 · III"
+  },
+  {
+    "zh": "抄本师说谜面的答案就是「它是被谁猜中的」。",
+    "en": "the copyists say the answer to the riddle is — whoever solves it.",
+    "refZh": "回响（其153） · 四",
+    "refEn": "Echo No. 153 · IV"
+  },
+  {
+    "zh": "散会那一夜——箱面上的谜面变了一条——第二天恢复到原样。",
+    "en": "on the night the Convocation dissolved — the riddle on the box changed by one line — and in the morning it was back as it had been.",
+    "refZh": "回响（其153） · 五",
+    "refEn": "Echo No. 153 · V"
+  },
+  {
+    "zh": "值更册最后一页：\"没有人猜中——也从来没有人能猜中。\"",
+    "en": "the last page of the watch-ledger reads: no one solves it — and no one ever will.",
+    "refZh": "回响（其153） · 六",
+    "refEn": "Echo No. 153 · VI"
+  },
+  {
+    "zh": "祠殿西门门岗上有一位账房先生——抄本师叫他\"先生\"——没有人叫他别的。",
+    "en": "at the west gate of the chapel sits an accountant — the copyists call him \"Sir\" — and no one calls him anything else.",
+    "refZh": "回响（其154） · 一",
+    "refEn": "Echo No. 154 · I"
+  },
+  {
+    "zh": "他不认姓——没有脸——只有工位号。",
+    "en": "he does not know names — he has no face — he knows only desk numbers.",
+    "refZh": "回响（其154） · 二",
+    "refEn": "Echo No. 154 · II"
+  },
+  {
+    "zh": "这个门岗只看工位号——来了得是名单上的——值更册只写号、从不记日期。",
+    "en": "this gate looks only at desk numbers — those who arrive must be on the list — the watch-ledger records numbers only, never dates.",
+    "refZh": "回响（其154） · 三",
+    "refEn": "Echo No. 154 · III"
+  },
+  {
+    "zh": "散会那一夜——账房先生成功放行了一个人——然后替他补了最后一划。",
+    "en": "on the night the Convocation dissolved — the accountant let one person through — and then he made the final stroke in the ledger on their behalf.",
+    "refZh": "回响（其154） · 四",
+    "refEn": "Echo No. 154 · IV"
+  },
+  {
+    "zh": "工位号 143 的归属从未有出现过——账册最后一号空着。",
+    "en": "the owner of desk number 143 never appears — and the last line of the ledger stays empty.",
+    "refZh": "回响（其154） · 五",
+    "refEn": "Echo No. 154 · V"
+  },
+  {
+    "zh": "值更册最后一页：先生的账只是为记住谁在——不为记住谁在不在。",
+    "en": "the last page of the watch-ledger reads: the accountant's ledger records only who is here — never who is not.",
+    "refZh": "回响（其154） · 六",
+    "refEn": "Echo No. 154 · VI"
+  },
+  {
+    "zh": "潮候院钟楼最高处有一只沙漏——里面装的不是沙——是盐。",
+    "en": "at the very top of the Institute's bell tower stands an hourglass — inside it is not sand — it is salt.",
+    "refZh": "回响（其155） · 一",
+    "refEn": "Echo No. 155 · I"
+  },
+  {
+    "zh": "沙漏每次翻过身只数到九十九——然后停下——然后忘了自己在数什么。",
+    "en": "every time the hourglass is turned it counts only to ninety-nine — then it stops — then it forgets what it was counting.",
+    "refZh": "回响（其155） · 二",
+    "refEn": "Echo No. 155 · II"
+  },
+  {
+    "zh": "它选择相信第九十九个数——因为第九十九之后就是散会。",
+    "en": "it chooses to believe in the ninety-ninth number — because after the ninety-ninth comes the dissolution.",
+    "refZh": "回响（其155） · 三",
+    "refEn": "Echo No. 155 · III"
+  },
+  {
+    "zh": "那一夜钟敲了九十九下——敲到九十九下的时候它停了——没有人抬头。",
+    "en": "that night the bell struck ninety-nine times — at the ninety-ninth stroke it stopped — and no one looked up.",
+    "refZh": "回响（其155） · 四",
+    "refEn": "Echo No. 155 · IV"
+  },
+  {
+    "zh": "沙漏不在数东西——沙漏在想念顶端。",
+    "en": "the hourglass is not counting things — the hourglass is longing for the top.",
+    "refZh": "回响（其155） · 五",
+    "refEn": "Echo No. 155 · V"
+  },
+  {
+    "zh": "值更册最后一页：第九十九不是一个数——它是一处门槛——站上去可以听见潮。",
+    "en": "the last page of the watch-ledger reads: ninety-nine is not a number — it is a threshold — stand on it and you can hear the tide.",
+    "refZh": "回响（其155） · 六",
+    "refEn": "Echo No. 155 · VI"
+  },
+  {
+    "zh": "潮候院海岸外礁最高处有一只石魟——灰的——展开像一对双臂。",
+    "en": "on the highest rock of the outer reef stands a stone ray — grey — spread like a pair of open arms.",
+    "refZh": "回响（其156） · 一",
+    "refEn": "Echo No. 156 · I"
+  },
+  {
+    "zh": "涨潮时它一动不动——抄本师的脚踩在它身上也没抬头。",
+    "en": "at high tide it does not move — the copyists step on it and it does not lift its head.",
+    "refZh": "回响（其156） · 二",
+    "refEn": "Echo No. 156 · II"
+  },
+  {
+    "zh": "退潮露出它的时候——它才睁开眼——盯着正要被海收走的平。",
+    "en": "when the tide retreats it opens its eyes — watching the level of the sea being taken away.",
+    "refZh": "回响（其156） · 三",
+    "refEn": "Echo No. 156 · III"
+  },
+  {
+    "zh": "值更册画了它三次——每次都比第一次大——它在长。",
+    "en": "the watch-ledger drew it three times — each time larger than the first — it is growing.",
+    "refZh": "回响（其156） · 四",
+    "refEn": "Echo No. 156 · IV"
+  },
+  {
+    "zh": "第十四位守灵人离开祠殿那一夜——石魟整夜睁着眼——潮退了又涨。",
+    "en": "on the night the fourteenth keeper of the vigil left the chapel — the stone ray kept its eyes open all night — the tide went out and came in again.",
+    "refZh": "回响（其156） · 五",
+    "refEn": "Echo No. 156 · V"
+  },
+  {
+    "zh": "值更册最后一页：它只在退潮时睁眼——因为那是海正要拿走东西的时候。",
+    "en": "the last page of the watch-ledger reads: it opens its eyes only at low tide — because that is when the sea comes to take things away.",
+    "refZh": "回响（其156） · 六",
+    "refEn": "Echo No. 156 · VI"
+  },
+  {
+    "zh": "祠殿南廊尽头有一本盐帐——封皮是黑的——页边全被盐花啃了。",
+    "en": "at the end of the south cloister there is a salt ledger — its cover is black — its page-edges are all gnawed by salt.",
+    "refZh": "回响（其157） · 一",
+    "refEn": "Echo No. 157 · I"
+  },
+  {
+    "zh": "每个月最后一天——抄本师把当月消耗的盐全抄进最后一页——最后那一行永远空着。",
+    "en": "on the last day of every month — the copyists copy all the salt consumed into the last page — the last line is always left blank.",
+    "refZh": "回响（其157） · 二",
+    "refEn": "Echo No. 157 · II"
+  },
+  {
+    "zh": "盐账的页数不够用了就再换一本——但每一本的最后一格都不写。",
+    "en": "when a ledger runs out of pages it is replaced with another — but the last entry of every ledger is never written.",
+    "refZh": "回响（其157） · 三",
+    "refEn": "Echo No. 157 · III"
+  },
+  {
+    "zh": "那一年只有一个人补了最后一格——抄本师的母亲——后来那页被盐吃掉了。",
+    "en": "that year only one person filled in the last entry — the mother of the copyists — later that page was eaten by salt.",
+    "refZh": "回响（其157） · 四",
+    "refEn": "Echo No. 157 · IV"
+  },
+  {
+    "zh": "值更册最后一页：最后那一格不是漏写的——它是留给下一任的。",
+    "en": "the last page of the watch-ledger reads: the last entry was not forgotten — it is left for the next one.",
+    "refZh": "回响（其157） · 五",
+    "refEn": "Echo No. 157 · V"
+  },
+  {
+    "zh": "祠殿屋脊正中的瓦沟里坐一位抄本师——他不抄典——他只抄雷。",
+    "en": "in the gutter at the very ridge of the chapel sits a copyist — he does not copy the canon — he only copies thunder.",
+    "refZh": "回响（其158） · 一",
+    "refEn": "Echo No. 158 · I"
+  },
+  {
+    "zh": "每一声雷——他记方向、记字数、记值更人说响了几下。",
+    "en": "every thunderclap — he records the direction, the length, and how many times the watch said it sounded.",
+    "refZh": "回响（其158） · 二",
+    "refEn": "Echo No. 158 · II"
+  },
+  {
+    "zh": "他抄了十二年——一共满了一页——每一笔都盖上手印。",
+    "en": "he has copied for twelve years — in all a page is filled — and every entry is stamped with his handprint.",
+    "refZh": "回响（其158） · 三",
+    "refEn": "Echo No. 158 · III"
+  },
+  {
+    "zh": "抄本师的母亲说雷不是债——是盐——会自己堆成山。",
+    "en": "the copyist's mother says thunder is not a debt — it is salt — it will pile itself into a mountain.",
+    "refZh": "回响（其158） · 四",
+    "refEn": "Echo No. 158 · IV"
+  },
+  {
+    "zh": "散会那一夜——天上一声接一声的雷——他把最后一页的最后一格空着。",
+    "en": "on the night of the dissolution — thunder came one after another from the sky — and in the last page he left the last space empty.",
+    "refZh": "回响（其158） · 五",
+    "refEn": "Echo No. 158 · V"
+  },
+  {
+    "zh": "值更册最后一页：雷不收据——但雷会收走没被记账的字。",
+    "en": "the last page of the watch-ledger reads: thunder does not collect receipts — but thunder will take away any word that was not written down.",
+    "refZh": "回响（其158） · 六",
+    "refEn": "Echo No. 158 · VI"
+  },
+  {
+    "zh": "潮候院北坡的杂草里半埋着一块河碑——碑上的字全被苔藓盖了——只剩一处能读。",
+    "en": "half-buried in the weeds on the north slope of the Institute lies a river stele — the characters are all swallowed by moss — only one place remains legible.",
+    "refZh": "回响（其159） · 一",
+    "refEn": "Echo No. 159 · I"
+  },
+  {
+    "zh": "只有北坡上落石的时候它才滚动——往坡下滚——滚到坡脚停住。",
+    "en": "it rolls only when stones fall on the north slope — rolling downhill — it stops at the foot of the slope.",
+    "refZh": "回响（其159） · 二",
+    "refEn": "Echo No. 159 · II"
+  },
+  {
+    "zh": "河碑不入院——它停在门槛以外——不越过院墙一步。",
+    "en": "the river stele does not enter the Institute — it stops beyond the threshold — it does not cross the wall by a single step.",
+    "refZh": "回响（其159） · 三",
+    "refEn": "Echo No. 159 · III"
+  },
+  {
+    "zh": "苔藓下面那处字读作「先到」——值更册从来不写谁先到。",
+    "en": "the one legible place beneath the moss reads: the one who arrives first — and the watch-ledger has never written who that is.",
+    "refZh": "回响（其159） · 四",
+    "refEn": "Echo No. 159 · IV"
+  },
+  {
+    "zh": "散会那一夜北坡落石——河碑一口气滚到坡脚——第二天苔藓全掉光。",
+    "en": "on the night of the dissolution stones fell on the north slope — the stele rolled to the foot in a single motion — by morning the moss had all fallen away.",
+    "refZh": "回响（其159） · 五",
+    "refEn": "Echo No. 159 · V"
+  },
+  {
+    "zh": "值更册最后一页：下一个来的人——读完这一处字——就知道自己先到了——或者晚了。",
+    "en": "the last page of the watch-ledger reads: the next to arrive — upon reading this line — will know whether they came first — or too late.",
+    "refZh": "回响（其159） · 六",
+    "refEn": "Echo No. 159 · VI"
   },
   {
     "zh": "潮沙盘上那四只小贝壳从来没有被潮沙推动过一毫毫。",
@@ -946,6 +2962,360 @@ export const BIBLE_ANCHORS: readonly BibleAnchor[] = [
     "refEn": "Echo No. 16 · V"
   },
   {
+    "zh": "值更室的墙上挂着一张挂历——一年十二个月——每月只印半张——半上弦半下弦。",
+    "en": "on the wall of the watch chamber hangs a calendar — twelve months to a year — each month prints only half — half waxing, half waning.",
+    "refZh": "回响（其160） · 一",
+    "refEn": "Echo No. 160 · I"
+  },
+  {
+    "zh": "上弦月的值更人在那半月的格子上抄一笔——抄盐账——抄潮汐。",
+    "en": "on the waxing half the head of the watch copies one stroke into the half-moon's cell — copying the salt account — copying the tide.",
+    "refZh": "回响（其160） · 二",
+    "refEn": "Echo No. 160 · II"
+  },
+  {
+    "zh": "下弦月的抄本师的母亲在同一格里另写一笔——她写的值更人看不懂——原样抄下来。",
+    "en": "on the waning half the mother of the copyists writes another stroke in the same cell — the stroke the head of the watch cannot read — copied as-is into the ledger.",
+    "refZh": "回响（其160） · 三",
+    "refEn": "Echo No. 160 · III"
+  },
+  {
+    "zh": "第一百二十六日那一格——上半年写着「潮」——下半年空着——抄本师的母亲没有写。",
+    "en": "on the one hundred and twenty-sixth day — the waxing half reads \"tide\" — the waning half is empty — the mother of the copyists did not write.",
+    "refZh": "回响（其160） · 四",
+    "refEn": "Echo No. 160 · IV"
+  },
+  {
+    "zh": "挂历上那空的一格就是盐账最后那一格——那格是等下一个散会来填的。",
+    "en": "the empty cell on the calendar is the same as the last empty entry in the salt ledger — that cell is waiting for the next dissolution to fill it.",
+    "refZh": "回响（其160） · 五",
+    "refEn": "Echo No. 160 · V"
+  },
+  {
+    "zh": "值更册最后一页：挂历只印半个潮——因为潮的另一半从来没有人看过。",
+    "en": "the last page of the watch-ledger reads: the calendar prints only half the tide — because no one has ever seen the other half of the tide.",
+    "refZh": "回响（其160） · 六",
+    "refEn": "Echo No. 160 · VI"
+  },
+  {
+    "zh": "潮候院前院的角落有一棵信树——不高——树皮刻满信封一样的刻痕。",
+    "en": "in the corner of the forecourt of the Institute stands a letter-tree — not tall — its bark is carved all over with envelope-shaped marks.",
+    "refZh": "回响（其161） · 一",
+    "refEn": "Echo No. 161 · I"
+  },
+  {
+    "zh": "每一片叶子落下来——值更人就把它收进信封——封皮上写好收信人的名字。",
+    "en": "whenever a leaf falls — the head of the watch puts it into an envelope — with the recipient's name written on the face.",
+    "refZh": "回响（其161） · 二",
+    "refEn": "Echo No. 161 · II"
+  },
+  {
+    "zh": "最后一封信是寄给散会夜的——寄信人一栏是空的——只有寄地址——\"散会夜\"。",
+    "en": "the last letter is addressed to the Night of the Dissolution — the sender's line is empty — only the address: the Night of the Dissolution.",
+    "refZh": "回响（其161） · 三",
+    "refEn": "Echo No. 161 · III"
+  },
+  {
+    "zh": "抄本师的母亲说那棵树自己种自己——它自己是收件人——散会夜是它自己。",
+    "en": "the mother of the copyists says the tree plants itself — it is the recipient — the night of the dissolution is itself.",
+    "refZh": "回响（其161） · 四",
+    "refEn": "Echo No. 161 · IV"
+  },
+  {
+    "zh": "值更册最后一页：信树不读自己寄出的信——散会夜不开信——值更册记下了这一切。",
+    "en": "the last page of the watch-ledger reads: the letter-tree does not read the letters it sends — the night of the dissolution does not open letters — but the watch-ledger has recorded all of this.",
+    "refZh": "回响（其161） · 五",
+    "refEn": "Echo No. 161 · V"
+  },
+  {
+    "zh": "散会那一夜——值更人把那封信放下去——信树枯叶全落了——第二天早晨只有一棵空的树。",
+    "en": "on the night of the dissolution — the head of the watch let that letter fall — the tree shed every leaf — in the morning there was only a bare tree.",
+    "refZh": "回响（其161） · 六",
+    "refEn": "Echo No. 161 · VI"
+  },
+  {
+    "zh": "潮候院那盏灯谁都没专门照料它——它晚上自己会亮。",
+    "en": "nobody tends the lamp at the chapel — it lights itself each evening.",
+    "refZh": "回响（其162） · 一",
+    "refEn": "Echo No. 162 · I"
+  },
+  {
+    "zh": "那盏灯不写名也不签字，所以谁也不敢拿它去承诺。",
+    "en": "the lamp carries no name, no seal — and so no one dares use it as a guarantee.",
+    "refZh": "回响（其162） · 二",
+    "refEn": "Echo No. 162 · II"
+  },
+  {
+    "zh": "卷册进龛，那盏灯就亮一晚——从来没有人翻开过它。",
+    "en": "when the book goes into the niche, the lamp glows for one night — and no one has opened it.",
+    "refZh": "回响（其162） · 三",
+    "refEn": "Echo No. 162 · III"
+  },
+  {
+    "zh": "抄本房拒绝给它起名字：灯不是人，它不该被称作任何什么。",
+    "en": "the chancellery refused to name it — a light is not a person, it must not be called anything.",
+    "refZh": "回响（其162） · 四",
+    "refEn": "Echo No. 162 · IV"
+  },
+  {
+    "zh": "风吹熄了它，它自己又亮了——沉默不需要人维系。",
+    "en": "the wind put it out and it lit itself again — silence does not need a keeper.",
+    "refZh": "回响（其162） · 五",
+    "refEn": "Echo No. 162 · V"
+  },
+  {
+    "zh": "值更室墙边有一面铜镜——不大——黑的——上面没有人影——只有雨。",
+    "en": "against the wall of the watch chamber stands a brass mirror — not large — dark — no one's reflection on it — only rain.",
+    "refZh": "回响（其163） · 一",
+    "refEn": "Echo No. 163 · I"
+  },
+  {
+    "zh": "下雨时铜镜上有水线的纹路——雨停了纹路慢慢消失——晴天铜镜上什么都没有。",
+    "en": "when it rains the mirror shows water-line traces — when the rain stops the traces fade — on clear days the mirror shows nothing.",
+    "refZh": "回响（其163） · 二",
+    "refEn": "Echo No. 163 · II"
+  },
+  {
+    "zh": "抄本师的母亲把铜镜放进值更室——她说那是潮候院的眼睛——没人的时候镜子要自己看一看。",
+    "en": "the mother of the copyists placed the mirror in the watch chamber — she called it the Institute's eye — when no one is here the mirror must look for itself.",
+    "refZh": "回响（其163） · 三",
+    "refEn": "Echo No. 163 · III"
+  },
+  {
+    "zh": "散会后第一年的雨季——镜子不动了一整段——风方门的人觉得值更室里没有潮候院了。",
+    "en": "in the rainy season of the first year after the dissolution — the mirror stopped entirely — the people of the wind-gate felt the watch chamber no longer held the Institute.",
+    "refZh": "回响（其163） · 四",
+    "refEn": "Echo No. 163 · IV"
+  },
+  {
+    "zh": "每一次抄本师看镜——纹路都不一样——但雨停了谁都看不见。",
+    "en": "every time the copyist looks into the mirror — the traces are different — but when the rain stops no one can see them.",
+    "refZh": "回响（其163） · 五",
+    "refEn": "Echo No. 163 · V"
+  },
+  {
+    "zh": "值更册最后一页：镜子不是用来看人——它只看雨——值更册才替人看了——谁的手先摸过。",
+    "en": "the last page of the watch-ledger reads: the mirror is not for watching people — it watches rain — the watch-ledger, not the mirror, watched whoever's hand touched it first.",
+    "refZh": "回响（其163） · 六",
+    "refEn": "Echo No. 163 · VI"
+  },
+  {
+    "zh": "烽火台边有一块旧旌——一米多一截——上面原本刻的什么——早看不见了——潮候院的人叫它风碑。",
+    "en": "at the foot of the beacon stands an old plaque — a little over a meter — bronze-edged wood — what was originally engraved is illegible — the people of the Institute call it the wind-stele.",
+    "refZh": "回响（其164） · 一",
+    "refEn": "Echo No. 164 · I"
+  },
+  {
+    "zh": "风来的时候——旌上会有一道极淡的痕——第二天早上——守烽人发现昨天的痕被风变成一笔账目——被盖上封印。",
+    "en": "when the wind comes, a faint scratch appears on the plaque — the next morning the beacon-keeper finds the scratch has been turned by the wind into a ledger entry — sealed.",
+    "refZh": "回响（其164） · 二",
+    "refEn": "Echo No. 164 · II"
+  },
+  {
+    "zh": "守烽人在每笔风痕下面——用潮候院的账法补一行——记谁让这风来过——他记得三种：船队南下的风、军队退潮的风、抄本师对钥匙说过的那句风。",
+    "en": "beneath each wind-mark the keeper writes, in the Institute's ledger hand, one extra line — who called this wind — he records three kinds: the wind of the southern fleet, the wind of the withdrawing army, the wind the copyist whispered to the key.",
+    "refZh": "回响（其164） · 三",
+    "refEn": "Echo No. 164 · III"
+  },
+  {
+    "zh": "登记簿里只有大潮风和大退潮风——守烽人悄悄记了第三种——他叫那一笔\"不交账的风\"。",
+    "en": "the official register lists only the spring-tide wind and the neap-tide wind — the keeper wrote a third line quietly — he called it the wind that does not settle its accounts.",
+    "refZh": "回响（其164） · 四",
+    "refEn": "Echo No. 164 · IV"
+  },
+  {
+    "zh": "抄本师想查自己说过的风——守烽人说\"你说的风不归此处入册\"——他只留\"零\"字——其他的什么都没留。",
+    "en": "the copyist came looking up the wind he had spoken — the keeper said \"the wind you spoke does not register here\" — he left only a single character for zero — nothing else.",
+    "refZh": "回响（其164） · 五",
+    "refEn": "Echo No. 164 · V"
+  },
+  {
+    "zh": "审查牌被拆下——核账的人笑了——说这旌上没有几笔——可那面\"零\"字潮候院至今不敢动——据说旧时对副国王说话，必须以\"零\"唤人——只听——只记。",
+    "en": "the checking committee broke the plaque — the auditor laughed — said there are barely any entries — but the single character for zero the Institute will not touch — it is said that to address the vice-king one must call him with \"zero\" — only listen — only record.",
+    "refZh": "回响（其164） · 六",
+    "refEn": "Echo No. 164 · VI"
+  },
+  {
+    "zh": "汐塔白壳守了二十年，油从没沾过盐粒。",
+    "en": "the white shell of the Tidal Tower has held for twenty years; not a grain of salt has touched its oil.",
+    "refZh": "回响（其165） · 一",
+    "refEn": "Echo No. 165 · I"
+  },
+  {
+    "zh": "守塔人收到一封只有一个字的信——那字是\"等\"。",
+    "en": "the keeper received one letter containing one word — that word was \"wait\".",
+    "refZh": "回响（其165） · 二",
+    "refEn": "Echo No. 165 · II"
+  },
+  {
+    "zh": "藤蔓在三分之一处断了——信被风吹到了塔脚——守塔人念了一遍又一遍。",
+    "en": "the vine broke at a third of its height — the letter blew against the tower's skirt — the keeper read it once, and then again.",
+    "refZh": "回响（其165） · 三",
+    "refEn": "Echo No. 165 · III"
+  },
+  {
+    "zh": "守塔人投下一只小瓶——瓶里油是满的——他给下一任守塔人留了「灯油放着」。",
+    "en": "the keeper dropped a small bottle — it was full of oil — and left for the next keeper the four words \"the oil is here\".",
+    "refZh": "回响（其165） · 四",
+    "refEn": "Echo No. 165 · IV"
+  },
+  {
+    "zh": "守塔人的名字从来没有人记得——他去了哪儿，可能只有海知道——沙月的潮声特别长。",
+    "en": "no one has ever remembered the keeper's name — where he went, perhaps only the sea knows — the tide of the sand-month rang for a very long time.",
+    "refZh": "回响（其165） · 五",
+    "refEn": "Echo No. 165 · V"
+  },
+  {
+    "zh": "灯罩下的油是给汐塔下一位守塔人的——潮候院的信摊在窗口——信上只有一个字——来。",
+    "en": "the oil beneath the lamp is for the next keeper of the Tidal Tower — the Institute's letter lies on the sill — it contains a single character — come.",
+    "refZh": "回响（其165） · 六",
+    "refEn": "Echo No. 165 · VI"
+  },
+  {
+    "zh": "米盐石搁在潮候院廊下的墙根，度过了三个生肖季。",
+    "en": "the rice-and-salt stone has stood at the foot of the corridor wall in the Tidewatch Hall for three zodiac seasons.",
+    "refZh": "回响（其166） · 一",
+    "refEn": "Echo No. 166 · I"
+  },
+  {
+    "zh": "廊下的墙根没动，米盐石也没离开过那块影子。",
+    "en": "the foot of the wall did not move, and the stone did not leave that patch of shade.",
+    "refZh": "回响（其166） · 二",
+    "refEn": "Echo No. 166 · II"
+  },
+  {
+    "zh": "米盐石上的刻痕记录了潮声，没人记谁把它搁在那里。",
+    "en": "the inscription on the stone records the tide sound, but not who placed it there.",
+    "refZh": "回响（其166） · 三",
+    "refEn": "Echo No. 166 · III"
+  },
+  {
+    "zh": "每次潮声经过廊时，它都在墙根留下一道没完成的余音。",
+    "en": "each time the tide sound passes through the corridor, it leaves an incomplete echo at the foot of the wall.",
+    "refZh": "回响（其166） · 四",
+    "refEn": "Echo No. 166 · IV"
+  },
+  {
+    "zh": "三个生肖季过去了，廊下仍然通往外廊。",
+    "en": "after the third zodiac season passed, the corridor still led, as before, to the outer passage.",
+    "refZh": "回响（其166） · 五",
+    "refEn": "Echo No. 166 · V"
+  },
+  {
+    "zh": "米盐石守在墙根的理由，只有它自己的位置——潮声记的，只有它来过又走过。",
+    "en": "what keeps the stone at the wall's foot is only its place; what the tide sound records is only its coming and going.",
+    "refZh": "回响（其166） · 六",
+    "refEn": "Echo No. 166 · VI"
+  },
+  {
+    "zh": "潮候院过去了六十三个秋潮月，纸船过米埠也过了六十三次。",
+    "en": "sixty-three autumn-tide months long the Institute has weathered, sixty-three crossings the paper boat has made at the rice wharf.",
+    "refZh": "回响（其167） · 一",
+    "refEn": "Echo No. 167 · I"
+  },
+  {
+    "zh": "纸船里是封过的旧潮历——河潮自己替它推过对岸，潮候院不说哪一叠最早。",
+    "en": "the paper boat carried the sealed tide records of former years — the river tide pushed it across for itself — the Institute will not say which of them is the oldest.",
+    "refZh": "回响（其167） · 二",
+    "refEn": "Echo No. 167 · II"
+  },
+  {
+    "zh": "三位抄本师都来过——没人说自己是哪一位——但是每一位都读过那叠旧潮历。",
+    "en": "three copyists have each come in turn — none announced himself as any particular one — but each has read through the sealed innermost stack.",
+    "refZh": "回响（其167） · 三",
+    "refEn": "Echo No. 167 · III"
+  },
+  {
+    "zh": "它出过六十三次，没有一次提前，没有一次迟到——它不是船，它只是一张纸。",
+    "en": "it has crossed sixty-three times — not once early, not once late — it is not a boat; it is only a sheet of paper.",
+    "refZh": "回响（其167） · 四",
+    "refEn": "Echo No. 167 · IV"
+  },
+  {
+    "zh": "潮知道这只小纸船为什么六十三次都自己准时过河，没人记它为什么没沉。",
+    "en": "the tide knows why this little paper boat crossed on time sixty-three times without anyone recording why it did not sink.",
+    "refZh": "回响（其167） · 五",
+    "refEn": "Echo No. 167 · V"
+  },
+  {
+    "zh": "潮知道，最后一叠纸会在灯里出现——没人去写最后一页。",
+    "en": "the tide knows the final stack will come out from the lamp — no one will write the last page.",
+    "refZh": "回响（其167） · 六",
+    "refEn": "Echo No. 167 · VI"
+  },
+  {
+    "zh": "北巷尽头的铁门窄而高——没有匾——盐潮痕跟三十年前一样没改过。",
+    "en": "at the end of the North Lane, the iron door is narrow and tall — no plaque — its salt-tide markings have not changed in thirty years.",
+    "refZh": "回响（其168） · 一",
+    "refEn": "Echo No. 168 · I"
+  },
+  {
+    "zh": "北巷铁门平时从不开也从不关——却常被那些准备离开的人摸一下。",
+    "en": "the North-Lane iron door is neither opened nor closed at ceremonial times — but those who are about to leave always touch it once.",
+    "refZh": "回响（其168） · 二",
+    "refEn": "Echo No. 168 · II"
+  },
+  {
+    "zh": "抄本师看过北巷铁门的盐痕——三十年没褪过——门自己让它不生锈。",
+    "en": "the copyists have studied the salt-tide marks on the door — thirty years, unfaded — the door itself decrees that it will not rust.",
+    "refZh": "回响（其168） · 三",
+    "refEn": "Echo No. 168 · III"
+  },
+  {
+    "zh": "那抄本师离开时摁铁门——它发出一声极低的蜂鸣——没有人记起那是什么。",
+    "en": "the copyist, on leaving, pressed the iron door — it answered with a very low hum — no one has ever remembered what it meant.",
+    "refZh": "回响（其168） · 四",
+    "refEn": "Echo No. 168 · IV"
+  },
+  {
+    "zh": "北巷铁门从不开——第四十三次大会连日——抄本师最后坐在它边——盐潮痕收下他的指纹。",
+    "en": "the North-Lane iron door never opens — during the 43rd Convocation, on its final day — the copyist sits beside it — the salt-tide marks take his fingerprint.",
+    "refZh": "回响（其168） · 五",
+    "refEn": "Echo No. 168 · V"
+  },
+  {
+    "zh": "抄本师走后没人再敢开北巷铁门——潮候院也没给出原因——至今它没开过。",
+    "en": "no one has dared to open the North-Lane iron door since the copyist left — the Institute has never explained why — to this day, it has not been opened.",
+    "refZh": "回响（其168） · 六",
+    "refEn": "Echo No. 168 · VI"
+  },
+  {
+    "zh": "沙厅最里间的竖琴没人知道它的年份——沙尘厚得压住了它的声音。",
+    "en": "the harp at the back of the Sand Hall has an unknown age — the dust is so thick it has pressed its voice silent.",
+    "refZh": "回响（其169） · 一",
+    "refEn": "Echo No. 169 · I"
+  },
+  {
+    "zh": "竖琴的琴弦是鲸骨丝——博物师说鲸牙磨过它们——声音像水底下的回。",
+    "en": "the harp's strings are whalebone silk — the curator says whale-teeth had ground them once — its voice is more like an echo under water.",
+    "refZh": "回响（其169） · 二",
+    "refEn": "Echo No. 169 · II"
+  },
+  {
+    "zh": "调律人死在百年前的潮位错乱里——琴颈上的铜针锁了一生。",
+    "en": "the tuner died in a tide-phase collapse a hundred years ago — the copper pins along the neck have been locked ever since.",
+    "refZh": "回响（其169） · 三",
+    "refEn": "Echo No. 169 · III"
+  },
+  {
+    "zh": "抄本师说琴箱里有潮水撞礁的声音——弦松一次——石弧便把它送回一遍。",
+    "en": "the copyist says the soundbox holds the sea beating the reef — every time a string loosened, the stone vault would hand it back.",
+    "refZh": "回响（其169） · 四",
+    "refEn": "Echo No. 169 · IV"
+  },
+  {
+    "zh": "第四十三次大会散会的夜里——琴断了一根弦——没人动过断弦。",
+    "en": "on the night the 43rd Convocation ended — one of the harp strings snapped — no one touched the broken string.",
+    "refZh": "回响（其169） · 五",
+    "refEn": "Echo No. 169 · V"
+  },
+  {
+    "zh": "竖琴前没写过\"等\"字——每日巡检的人经过它时都会放慢脚步。",
+    "en": "no tablet before the harp says \"awaiting\" — yet the daily rounds always slow down when they pass it.",
+    "refZh": "回响（其169） · 六",
+    "refEn": "Echo No. 169 · VI"
+  },
+  {
     "zh": "祠殿后的浮木，谁也不知道它是从哪里来的——它只是一截从海里来的木头。",
     "en": "nobody knows where the driftwood behind the chapel came from — it is simply a log that arrived from the sea.",
     "refZh": "回响（其17） · 一",
@@ -974,6 +3344,366 @@ export const BIBLE_ANCHORS: readonly BibleAnchor[] = [
     "en": "the driftwood has never been hauled away by anyone — the Institute eventually decided to leave it where it is.",
     "refZh": "回响（其17） · 五",
     "refEn": "Echo No. 17 · V"
+  },
+  {
+    "zh": "潮候院北墙上有一排排极浅的横刻线——没有人对着它说过话——它们是最古老的档案。",
+    "en": "on the North Wall there are rows of very shallow scratches — no one has ever spoken to them — they are the oldest archive.",
+    "refZh": "回响（其170） · 一",
+    "refEn": "Echo No. 170 · I"
+  },
+  {
+    "zh": "刻痕是贝壳碎屑刻下来的——每格一个潮期——左右各一处日期——没有署名。",
+    "en": "the scratches were made with beach-shell shards — one cell per tide phase — two dates on either side — no signature.",
+    "refZh": "回响（其170） · 二",
+    "refEn": "Echo No. 170 · II"
+  },
+  {
+    "zh": "盐渗进墙缝——裂纹笔直得像刻痕本身——最上面几十格已经几乎看不见了。",
+    "en": "the salt seeps into the cracks — its seams are as straight as the scratches themselves — the topmost cells are already almost invisible.",
+    "refZh": "回响（其170） · 三",
+    "refEn": "Echo No. 170 · III"
+  },
+  {
+    "zh": "最下面一格是冬潮月第十六日——纸船归航那天刻下的——盐还没来得及把它磨淡。",
+    "en": "the lowest cell was cut on the sixteenth day of the winter-tide month — the day the paper boat returned — the salt has not yet had time to fade it.",
+    "refZh": "回响（其170） · 四",
+    "refEn": "Echo No. 170 · IV"
+  },
+  {
+    "zh": "大会散会的夜里——有人用新贝壳碎补了一格——巡检只记\"墙又添了一行\"。",
+    "en": "on the night the Convocation ended — someone filled in a cell with fresh shell shards — the rounds noted only: \"the wall gained another row.\"",
+    "refZh": "回响（其170） · 五",
+    "refEn": "Echo No. 170 · V"
+  },
+  {
+    "zh": "没人敢补上面的旧痕——它们不是记录是地层——不可以替地层补笔。",
+    "en": "no one dares touch the old rows — they are not records but strata — one may not retouch a stratum.",
+    "refZh": "回响（其170） · 六",
+    "refEn": "Echo No. 170 · VI"
+  },
+  {
+    "zh": "雾港旧信物库里没有灯——守库人进门都点蜡烛——库里每一格都有用。",
+    "en": "there is no lamp in the old relic room at Fog Harbor — the keeper lights a candle whenever he enters — every drawer has its use.",
+    "refZh": "回响（其171） · 一",
+    "refEn": "Echo No. 171 · I"
+  },
+  {
+    "zh": "最里铜屉里潮气是湿的——没人敢开——抄本师说里面的潮印只到一半。",
+    "en": "inside the last brass drawer the damp is wet — no one dares open it — the copyists say only half the tide-seals are inside it now.",
+    "refZh": "回响（其171） · 二",
+    "refEn": "Echo No. 171 · II"
+  },
+  {
+    "zh": "潮印是潮候院交予雾港旧信物库的印鉴——字样只有一个\"潮\"字——用于旧信的封口。",
+    "en": "the tide-seal is the seal the Institute gave the old relic room at Fog Harbor — it bears one character, \"tide\" — it is for the sealing of old letters.",
+    "refZh": "回响（其171） · 三",
+    "refEn": "Echo No. 171 · III"
+  },
+  {
+    "zh": "铜屉从没人开过——潮印没碰过海水——它自己选了绿——雾港的人不认为它违背约定。",
+    "en": "the drawer has never been opened — the tide-seal has never touched seawater — and yet it turned green by its own choice — the people of Fog Harbor do not think it broke the bargain.",
+    "refZh": "回响（其171） · 四",
+    "refEn": "Echo No. 171 · IV"
+  },
+  {
+    "zh": "第四十三次大会结束那夜守库人封存潮印——那枚没写名字——第二天他发现它又绿了一层。",
+    "en": "the night the 43rd Convocation closed, the keeper sealed every archived tide-seal — the one without a name lay in the drawer — the next morning it had turned greener still.",
+    "refZh": "回响（其171） · 五",
+    "refEn": "Echo No. 171 · V"
+  },
+  {
+    "zh": "抄本师说潮印是用来等的——守库人规定每只匣子都只打开一半。",
+    "en": "the copyists say the tide-seal exists to wait — the keeper has decreed that every box may only ever be opened halfway.",
+    "refZh": "回响（其171） · 六",
+    "refEn": "Echo No. 171 · VI"
+  },
+  {
+    "zh": "雾港旧信物库换更只用一把铜钥匙——没有备用——值更的人握着钥匙坐着。",
+    "en": "the old relic room at Fog Harbor changes shifts with one brass key — there is no spare — the night keeper holds the key while he sits.",
+    "refZh": "回响（其172） · 一",
+    "refEn": "Echo No. 172 · I"
+  },
+  {
+    "zh": "铜钥匙是潮候院交予雾港的两样东西之一——它的齿是反的——谁看它都皱眉。",
+    "en": "the brass key is one of the two things the Institute entrusted to Fog Harbor — its teeth are reversed — everyone frowns at it.",
+    "refZh": "回响（其172） · 二",
+    "refEn": "Echo No. 172 · II"
+  },
+  {
+    "zh": "雾港两个铜匠试过复制夜钥匙——第一个三次没响——第二个两次后断了齿。",
+    "en": "two brass-makers in Fog Harbor tried to copy the night key — the first made no sound on the third try — the second one's teeth snapped after two opens.",
+    "refZh": "回响（其172） · 三",
+    "refEn": "Echo No. 172 · III"
+  },
+  {
+    "zh": "守库人曾记得它是五个齿——某次只剩四个——没人锯过、锉过它。",
+    "en": "the keeper once counted five teeth — one morning there were four — no one had sawn or filed it.",
+    "refZh": "回响（其172） · 四",
+    "refEn": "Echo No. 172 · IV"
+  },
+  {
+    "zh": "值更记录只写\"铜钥匙仍在\"——没有人发现库里除铜屉外还有别的门。",
+    "en": "the rounds note only \"the brass key is still in place\" — no one has ever found another door in the room.",
+    "refZh": "回响（其172） · 五",
+    "refEn": "Echo No. 172 · V"
+  },
+  {
+    "zh": "抄本师说信物库只是一只箱子——潮印、夜钥匙都是同一件事的分身——他们开始数潮。",
+    "en": "the copyists say the relic room is just one box — the tide-seal, the night key — all split bodies of the same thing — they have started counting the tide.",
+    "refZh": "回响（其172） · 六",
+    "refEn": "Echo No. 172 · VI"
+  },
+  {
+    "zh": "潮汐历开在第七十一页——铃下那页是潮期——不是年份——潮候院没人能分清。",
+    "en": "the tide almanac lies open at page seventy-one — the page is a tide period, not a year — no one at the Institute can tell them apart.",
+    "refZh": "回响（其173） · 一",
+    "refEn": "Echo No. 173 · I"
+  },
+  {
+    "zh": "第七十一页只画过七十一次——\"今天\"的潮位却一直在画——页角盖着半枚指纹。",
+    "en": "page seventy-one was drawn only seventy-one times — yet \"today's\" tide is still being drawn — a half-fingerprint marks its corner.",
+    "refZh": "回响（其173） · 二",
+    "refEn": "Echo No. 173 · II"
+  },
+  {
+    "zh": "雾港潮汐历只有十二节气——第七十一页对不上今天——它在等一个过期的潮位。",
+    "en": "the tide almanac carries only twelve turn-points — page seventy-one never matches today — it waits for a tide that has already lapsed.",
+    "refZh": "回响（其173） · 三",
+    "refEn": "Echo No. 173 · III"
+  },
+  {
+    "zh": "抄本师不再抄写章节——他们开始数潮——他们钉了七十二根铜钉——第七十二根在缝隙上。",
+    "en": "the copyists stopped copying chapters — they started counting the tide — they struck seventy-two brass nails — the seventy-second one sits in the seam.",
+    "refZh": "回响（其173） · 四",
+    "refEn": "Echo No. 173 · IV"
+  },
+  {
+    "zh": "守库人想翻到七十二页——七十二页不见了——钥匙落了一齿——抄本师定下新规。",
+    "en": "the keeper tried to turn past page seventy-one — page seventy-two is gone — the key lost one tooth — the copyists set a new rule.",
+    "refZh": "回响（其173） · 五",
+    "refEn": "Echo No. 173 · V"
+  },
+  {
+    "zh": "抄本师不再让人翻潮汐历——他们把当天的潮位追加到墙缝铜钉上——一笔一钉。",
+    "en": "no one opens the tide almanac anymore — the copyists go on nailing each day's tide heights onto the seam — one line, one nail.",
+    "refZh": "回响（其173） · 六",
+    "refEn": "Echo No. 173 · VI"
+  },
+  {
+    "zh": "雾港旧信物库外墙是粗麻石——条痕一直在——抄本师第一次注意到它在大退潮之后。",
+    "en": "the outer wall of the old relic room at Fog Harbor is coarse shell-rock — the line has always been there — the copyists first noticed it after the great withdrawn.",
+    "refZh": "回响（其174） · 一",
+    "refEn": "Echo No. 174 · I"
+  },
+  {
+    "zh": "盐痕结晶、湿了变浅——潮脚线从不结晶——直角缝上它也有。",
+    "en": "salt marks crust — they fade when wet — the tide-line never crusts — and it lies in the right-angle seams too.",
+    "refZh": "回响（其174） · 二",
+    "refEn": "Echo No. 174 · II"
+  },
+  {
+    "zh": "潮脚线的宽度不一致——一指、半指、三指连成一条线——像被不准的尺量了很多次。",
+    "en": "the tide-line is not one width — one finger, half a finger, three fingers joined into one line — as if measured many times with an unsteady rule.",
+    "refZh": "回响（其174） · 三",
+    "refEn": "Echo No. 174 · III"
+  },
+  {
+    "zh": "潮脚线每年往上爬半指到一指——守库人把墙分十二格标了年份——今年线到他站立的高度。",
+    "en": "the tide-line creeps up half a finger to a finger each year — the keeper marked twelve cells on the wall — this year the line reaches the height of his standing chest.",
+    "refZh": "回响（其174） · 四",
+    "refEn": "Echo No. 174 · IV"
+  },
+  {
+    "zh": "潮脚线在那一夜被人检查——没有人记录它——海岛上预定了潮汐石板——没人说它为什么。",
+    "en": "the tide-line was inspected that night — no one logged it — the islands reserved tide-slabs — and no one said why.",
+    "refZh": "回响（其174） · 五",
+    "refEn": "Echo No. 174 · V"
+  },
+  {
+    "zh": "抄本师说潮脚线是潮的纪念——如果潮再来它会停——如果潮再也不退它就是最后一条。",
+    "en": "the copyists say the tide-line is the tide's monument — if the tide returns, it will stop — if the tide never returns, it is the last line of all.",
+    "refZh": "回响（其174） · 六",
+    "refEn": "Echo No. 174 · VI"
+  },
+  {
+    "zh": "雾港旧信物库后院只有一块石板——四周没有屏障——抄本师站在那里数潮。",
+    "en": "the backyard of the old relic room at Fog Harbor holds only one flagstone — no barrier — and the copyists stand on it to count the tide.",
+    "refZh": "回响（其175） · 一",
+    "refEn": "Echo No. 175 · I"
+  },
+  {
+    "zh": "后院的旧铜锚没有第三道链——锚的齿是新的、锈却不新——守库人说它落下天会塌。",
+    "en": "the old brass anchor has no third chain — its teeth are new, its rust is not — and the keeper says the sky will fall the moment it lands.",
+    "refZh": "回响（其175） · 二",
+    "refEn": "Echo No. 175 · II"
+  },
+  {
+    "zh": "铜锚轻得像潮沙——每人肩上它压的重量不一样——他们互相数呼吸。",
+    "en": "the brass anchor weighs no more than tide-sand — it presses different on every shoulder — they trade breaths and count together.",
+    "refZh": "回响（其175） · 三",
+    "refEn": "Echo No. 175 · III"
+  },
+  {
+    "zh": "抄本师试了几次落锚——第一次三寸——第二次石麻震了一下——后来他们开始用背替代肩。",
+    "en": "the copyists tried to lay the anchor down — the first time, three inches — the second time, the stone shuddered — afterwards they settled for their backs instead of their shoulders.",
+    "refZh": "回响（其175） · 四",
+    "refEn": "Echo No. 175 · IV"
+  },
+  {
+    "zh": "锚夜里哼了一下——那晚没有潮位——值更人写：\"锚是它在呼吸。\"",
+    "en": "the anchor hummed in the night — there was no tide that night — the rounds wrote: \"the anchor is breathing.\"",
+    "refZh": "回响（其175） · 五",
+    "refEn": "Echo No. 175 · V"
+  },
+  {
+    "zh": "抄本师说锚是潮候院留给\"北海\"的沉默——它自己长出来的——\"北海\"二字刻在后院石板当中。",
+    "en": "the copyists say the anchor was left by the Institute as the silence of the \"north sea\" — it grew by itself — \"north sea\" is carved in the middle of the flagstone.",
+    "refZh": "回响（其175） · 六",
+    "refEn": "Echo No. 175 · VI"
+  },
+  {
+    "zh": "大潮前夜雾港的海不退了——铜锚不重——灯自己熄了。",
+    "en": "the night before the great tide, the sea did not withdraw — the anchor felt no weight — the lanterns went out by themselves.",
+    "refZh": "回响（其176） · 一",
+    "refEn": "Echo No. 176 · I"
+  },
+  {
+    "zh": "铜锚它开口——它说了一个字——\"等\"——雾涌进后院——没有人回答。",
+    "en": "the anchor spoke — it said one word — \"wait\" — fog surged into the backyard — no one answered.",
+    "refZh": "回响（其176） · 二",
+    "refEn": "Echo No. 176 · II"
+  },
+  {
+    "zh": "铜锚的\"等\"不是命令也不是请求——它记的是潮前那岸——早已不存在的岸。",
+    "en": "the anchor's \"wait\" is not a command — it is not a request — it remembered the shore before the tide — a shore that no longer exists.",
+    "refZh": "回响（其176） · 三",
+    "refEn": "Echo No. 176 · III"
+  },
+  {
+    "zh": "抄本师今晚开始抄字——十七个\"等\"——字形都不一样——写给第七十一页。",
+    "en": "the copyists wrote tonight — seventeen \"wait\"s — none the same — they are for page seventy-one.",
+    "refZh": "回响（其176） · 四",
+    "refEn": "Echo No. 176 · IV"
+  },
+  {
+    "zh": "值更记录写——铜锚开了口——一个字——潮脚线断了——抄本师开始抄字。",
+    "en": "the rounds wrote — the anchor spoke — one word — the tide-line snapped — the copyists began to write again.",
+    "refZh": "回响（其176） · 五",
+    "refEn": "Echo No. 176 · V"
+  },
+  {
+    "zh": "它等潮再退——它等潮再来——如果潮再也不退——\"等\"是锚最后的念头。",
+    "en": "it waits for the tide to withdraw — it waits for the tide to return — if the tide never withdraws — \"wait\" is the anchor's last thought in this world.",
+    "refZh": "回响（其176） · 六",
+    "refEn": "Echo No. 176 · VI"
+  },
+  {
+    "zh": "大潮退去——石板上的潮痕灭了——守库人说：\"锚它落了。\"",
+    "en": "the great tide withdrew — the tide-marks on the flagstone vanished — the keeper said: \"the anchor has landed.\"",
+    "refZh": "回响（其177） · 一",
+    "refEn": "Echo No. 177 · I"
+  },
+  {
+    "zh": "铜锚落了一寸——用刻痕铜钎量的——抄本师屏着呼吸——没人点过这个词。",
+    "en": "the anchor dropped one inch — measured by the engraved brass rod — the copyists held their breath — no one had ever used that word before.",
+    "refZh": "回响（其177） · 二",
+    "refEn": "Echo No. 177 · II"
+  },
+  {
+    "zh": "页七十一被潮翻到——它是第七十二页——抄本师说那不是字——那是\"等\"站了起来。",
+    "en": "page seventy-one was turned by the tide — it is page seventy-two now — the copyists say it is not a character — the \"wait\" stood up.",
+    "refZh": "回响（其177） · 三",
+    "refEn": "Echo No. 177 · III"
+  },
+  {
+    "zh": "潮脚线再直——停在守库人胸口那格——抄本师第一笔平直——没有刻度。",
+    "en": "the tide-line is straight again — it stopped at the keeper's chest-height — the copyists drew their first straight line — no scale.",
+    "refZh": "回响（其177） · 四",
+    "refEn": "Echo No. 177 · IV"
+  },
+  {
+    "zh": "抄本师写下\"落\"字——二十七个——只有放在书架上时它才出现。",
+    "en": "the copyists wrote down the character \"landed\" — twenty-seven — it appears only when it rests on the shelf.",
+    "refZh": "回响（其177） · 五",
+    "refEn": "Echo No. 177 · V"
+  },
+  {
+    "zh": "大潮退去——锚落一寸——页七十一翻了——钥匙少了齿——潮候院醒了。",
+    "en": "the tide withdrew — the anchor dropped an inch — page seventy-one had turned — the key had lost its teeth — the Institute woke up.",
+    "refZh": "回响（其177） · 六",
+    "refEn": "Echo No. 177 · VI"
+  },
+  {
+    "zh": "大潮第二天——墙上浮出一个字——抄本师围过去没发出声——只有人看着墙。",
+    "en": "the second day after the great tide — a character emerged on the wall — no one made a sound — only people looking.",
+    "refZh": "回响（其178） · 一",
+    "refEn": "Echo No. 178 · I"
+  },
+  {
+    "zh": "那个字是\"潮\"——糙麻石自己生成——它不是刻——是流——是爬——是等。",
+    "en": "the character is \"tide\" — generated by the shell-rock itself — not cut — it is flow — it is crawl — it is wait.",
+    "refZh": "回响（其178） · 二",
+    "refEn": "Echo No. 178 · II"
+  },
+  {
+    "zh": "抄本师说它不消失——它出现的时间——有人说一直有——有人说断裂那天——有人说翻页那瞬。",
+    "en": "the copyists say it never disappears — it appeared — some say always — some say the day the line snapped — some say the instant the page turned.",
+    "refZh": "回响（其178） · 三",
+    "refEn": "Echo No. 178 · III"
+  },
+  {
+    "zh": "守库人十五年前就看到了——他不指它——他只是点一个灯——他值更点灯——他是保守的。",
+    "en": "the keeper saw it fifteen years ago — he never pointed at it — he only lit a lantern — that is how he keeps — that is his discipline.",
+    "refZh": "回响（其178） · 四",
+    "refEn": "Echo No. 178 · IV"
+  },
+  {
+    "zh": "抄本师念\"潮\"——墙发极低回响——它不是声——是判息——他们开始各自数。",
+    "en": "the copyists read \"tide\" aloud — the wall echoed very low — not a sound — it is a certain quake — they began counting the echoes separately.",
+    "refZh": "回响（其178） · 五",
+    "refEn": "Echo No. 178 · V"
+  },
+  {
+    "zh": "抄本师今天只写——墙上有一个字——守库人十五年前就看到了——第七十一页是空的。",
+    "en": "the copyists write only this — there is a character on the wall — the keeper saw it fifteen years ago — page seventy-one is empty.",
+    "refZh": "回响（其178） · 六",
+    "refEn": "Echo No. 178 · VI"
+  },
+  {
+    "zh": "屋脊是麻石屋面——灯不能亮——抄本师一直不靠近它。",
+    "en": "the roof is flagstone — the lamp cannot light — the copyists have never gone near it.",
+    "refZh": "回响（其179） · 一",
+    "refEn": "Echo No. 179 · I"
+  },
+  {
+    "zh": "它熄了六十七年——里面没有油——守库人不添油——它是一块石——灯不是灯。",
+    "en": "it has been dark for sixty-seven years — it holds no oil — no keeper added — it is only a stone — the lamp is not a lamp.",
+    "refZh": "回响（其179） · 二",
+    "refEn": "Echo No. 179 · II"
+  },
+  {
+    "zh": "潮退第一夜屋脊的石自己发出淡蓝光——不像火——不像电——像潮水从上往下淌。",
+    "en": "on the first night after the tide — the stone on the ridge glowed pale blue — not fire — not electricity — it is the tide flowing down.",
+    "refZh": "回响（其179） · 三",
+    "refEn": "Echo No. 179 · III"
+  },
+  {
+    "zh": "值更记录——屋脊之石已亮——我端了一杯水——抄本师抄了三字：「灯」「不」「水」。",
+    "en": "the rounds wrote — the ridge stone is lit — I set a cup of water — the copyists copied three characters: \"lamp\", \"not\", \"water\".",
+    "refZh": "回响（其179） · 四",
+    "refEn": "Echo No. 179 · IV"
+  },
+  {
+    "zh": "屋脊之石不为人亮——它为从未来的潮候院之人亮——它要的是潮退。",
+    "en": "the ridge stone does not light for people — it lights for those who have never come — what it wants is the withdrawal of the tide.",
+    "refZh": "回响（其179） · 五",
+    "refEn": "Echo No. 179 · V"
+  },
+  {
+    "zh": "抄本师写它点的几种可能——他们写下这些字——但没有谁写完。",
+    "en": "the copyists wrote what the light might mean — they wrote the words — none of them wrote the whole.",
+    "refZh": "回响（其179） · 六",
+    "refEn": "Echo No. 179 · VI"
   },
   {
     "zh": "祠殿堂的人从没叫它的名字——祠殿院没有哪一页上出现它的代称。",
@@ -1006,6 +3736,366 @@ export const BIBLE_ANCHORS: readonly BibleAnchor[] = [
     "refEn": "Echo No. 18 · V"
   },
   {
+    "zh": "第四十四次大会开了——十七旗插在门口——抄本师迟到——屋脊灯还亮着。",
+    "en": "the 44th Convocation opened — seventeen banners at the gate — the copyists were late — the ridge lamp never went out.",
+    "refZh": "回响（其180） · 一",
+    "refEn": "Echo No. 180 · I"
+  },
+  {
+    "zh": "十七张写有\"等\"的麻纸拢成一本书——结是麻线结——连成一本薄书。",
+    "en": "seventeen linen sheets bound with one word — tied with old grass string — a single thin book.",
+    "refZh": "回响（其180） · 二",
+    "refEn": "Echo No. 180 · II"
+  },
+  {
+    "zh": "封面写\"完\"——抄本师没见过——翻过来翻过去还是\"完\"——他确认他没拿错。",
+    "en": "the cover reads \"finished\" — the copyists had never seen it — turn it again — it is still \"finished\" — he checked he had it right.",
+    "refZh": "回响（其180） · 三",
+    "refEn": "Echo No. 180 · III"
+  },
+  {
+    "zh": "书只有十七页——每页一个\"等\"——压了张\"落\"字纸——抄本师说它是七十一页的壳。",
+    "en": "the book has seventeen pages — one \"wait\" per page — with one \"landed\" sheet pressed in — the copyists say it is the shell of page seventy-one.",
+    "refZh": "回响（其180） · 四",
+    "refEn": "Echo No. 180 · IV"
+  },
+  {
+    "zh": "抄本师站起来说——那本书放在屋脊下——它等到潮再来——会议没记这个插话。",
+    "en": "the copyists stood — set the book near the ridge — it waits for the tide to come again — the convocation did not note it.",
+    "refZh": "回响（其180） · 五",
+    "refEn": "Echo No. 180 · V"
+  },
+  {
+    "zh": "大会开到第二日屋脊灯没熄——抄本师不决定再写——他们只有一句话要讲——完。",
+    "en": "by the second day the lamp was still lit — the copyists made no extra note — they had only one word to speak — finished.",
+    "refZh": "回响（其180） · 六",
+    "refEn": "Echo No. 180 · VI"
+  },
+  {
+    "zh": "第二天清晨雾港的墙上是两个字——早晨的光落在上面是蓝的——守库人看见第一眼是\"潮汐\"。",
+    "en": "on the second morning — the wall bore two characters — the morning light on it was blue — the keeper's first sight was \"tide and ebbtide\".",
+    "refZh": "回响（其181） · 一",
+    "refEn": "Echo No. 181 · I"
+  },
+  {
+    "zh": "\"汐\"字不是人写的——是麻石自己说出来的——麻石里更深处的盐亮了它——没有人保证麻石会再生下一个字。",
+    "en": "the character \"ebbtide\" was not written — the stone itself said it — the light of the deeper salt — no one can promise another character will come.",
+    "refZh": "回响（其181） · 二",
+    "refEn": "Echo No. 181 · II"
+  },
+  {
+    "zh": "值更人记录——雾港墙上有两个字——我说我抄错——抄本师不要我记——\"汐\"字没人打扰。",
+    "en": "the rounds wrote — there are two characters on the wall — I said I copied wrong — the copyists don't want me to record — \"ebbtide\" is undisturbed.",
+    "refZh": "回响（其181） · 三",
+    "refEn": "Echo No. 181 · III"
+  },
+  {
+    "zh": "抄本师说麻石教了他们——\"潮\"是潮——\"汐\"是潮退——他们停了十三分钟——像第七十一页。",
+    "en": "the copyists say the stone taught them — \"tide\" is the tide — \"ebbtide\" is the withdrawal — they stopped thirteen minutes — like page seventy-one.",
+    "refZh": "回响（其181） · 四",
+    "refEn": "Echo No. 181 · IV"
+  },
+  {
+    "zh": "屋脊之石这一夜没亮——它把全部光都放进\"汐\"字——值更人只记一个字——早晨别的字没再来。",
+    "en": "the ridge stone did not light that night — its light went into \"ebbtide\" — the rounds recorded one word — no more came after.",
+    "refZh": "回响（其181） · 五",
+    "refEn": "Echo No. 181 · V"
+  },
+  {
+    "zh": "抄本师说雾港潮退之后没有雾港了——抄本师不再抄——接受麻石的字——雾港的下一章是\"汐\"。",
+    "en": "the copyists say Fog Harbor after the tide is not the same Fog Harbor — they stopped copying — they accept what the stone says — the next chapter is \"ebbtide\".",
+    "refZh": "回响（其181） · 六",
+    "refEn": "Echo No. 181 · VI"
+  },
+  {
+    "zh": "北雪线下有三间值更屋——第三间不通路——没人去看——抄本师默认它空了。",
+    "en": "there are three watch huts beneath the snow line — the third has no path — no one goes to see — the copyists assumed it empty.",
+    "refZh": "回响（其182） · 一",
+    "refEn": "Echo No. 182 · I"
+  },
+  {
+    "zh": "抄本师走出后门——朝雪线走——手里端空杯——雪线之上没有路——用刀切路。",
+    "en": "the copyists left the back gate — walked toward the snow line — carrying an empty cup — no road beyond the snow line — they cut one with knives.",
+    "refZh": "回响（其182） · 二",
+    "refEn": "Echo No. 182 · II"
+  },
+  {
+    "zh": "第三间值更屋还在——四周的雪没飘——抄本师没进去——它闻到的是潮气——它的门是活的。",
+    "en": "the third watch hut still stands — the snow never drifts — the copyists did not enter — they smelled tide — its door is alive.",
+    "refZh": "回响（其182） · 三",
+    "refEn": "Echo No. 182 · III"
+  },
+  {
+    "zh": "第三间值更屋有盏灯——它从来都亮着——没人说过它的位置——抄本师走近到三尺——灯照不清影。",
+    "en": "the third hut holds a lamp — it has never been out — no one has ever said where — the copyists stood three spans away — the light hid their shadows.",
+    "refZh": "回响（其182） · 四",
+    "refEn": "Echo No. 182 · IV"
+  },
+  {
+    "zh": "抄本师没进去——抄本师说第三间自己会有人照顾——潮数到哪时候他们停——它叫\"第三间\"。",
+    "en": "the copyists did not enter — the copyists say the third hut will take care of itself — they stopped counting at some point — it is called \"third\".",
+    "refZh": "回响（其182） · 五",
+    "refEn": "Echo No. 182 · V"
+  },
+  {
+    "zh": "抄本师写——第三间还在；灯还亮着；它的门不是开的——它是活的——潮候院从未进去——也永远不会。",
+    "en": "they wrote — the third hut stands; the light burns; its door is not open; it lives — the Institute has never entered — it never will.",
+    "refZh": "回响（其182） · 六",
+    "refEn": "Echo No. 182 · VI"
+  },
+  {
+    "zh": "北雪线下第三间值更屋下面——麻石拱顶——门给来的人半盏亮蓝——抄本师进去了——出来后没人问话。",
+    "en": "beneath the third watch hut under the snow line — a coarse shell-rock vault — the door gives half a blue light to those who come — the copyists went in — no one spoke when they came out.",
+    "refZh": "回响（其183） · 一",
+    "refEn": "Echo No. 183 · I"
+  },
+  {
+    "zh": "地窖里没有地面——是一层细沙——沙子是温的——抄本师没有鞋——冷要在上——它是盐。",
+    "en": "there is no floor — it is sand — warm sand — no shoes — cold wants to be on top — it is salt.",
+    "refZh": "回响（其183） · 二",
+    "refEn": "Echo No. 183 · II"
+  },
+  {
+    "zh": "沙子深处有一扇门——麻石——刻了一个字——是\"潮\"——抄本师没人碰它——它自己动了一下——它不是风。",
+    "en": "deep in the sand a door — coarse shell-rock — one carved word — \"tide\" — no one touched it — it moved by itself — not by wind.",
+    "refZh": "回响（其183） · 三",
+    "refEn": "Echo No. 183 · III"
+  },
+  {
+    "zh": "门打开后——抄本师看见的不是外面——是潮涌——北海不在外面——北海在门里。",
+    "en": "when the door opened — the copyists saw not the outside — it is the surge — the north sea is not beyond the door — the north sea is inside.",
+    "refZh": "回响（其183） · 四",
+    "refEn": "Echo No. 183 · IV"
+  },
+  {
+    "zh": "门没有威胁——它只是把潮端到脚边——第一个人踏进去——就像雾港第四十三次——没有人回来。",
+    "en": "the door did not threaten — it only brought the tide to their feet — the first one stepped in — like the 43rd — no one came back.",
+    "refZh": "回响（其183） · 五",
+    "refEn": "Echo No. 183 · V"
+  },
+  {
+    "zh": "第三间值更屋下面的地窖是不愿意看的北海——潮在里面等——它只是看——它就是北海——它没有名字。",
+    "en": "the cellar beneath the third hut holds the north sea no one will admit — the tide waits inside — it only watches — it is the north sea — it has no name.",
+    "refZh": "回响（其183） · 六",
+    "refEn": "Echo No. 183 · VI"
+  },
+  {
+    "zh": "潮候院北雪线上从来不曾有\"第零间值更屋\"——字册上没有——图册上没有——潮候院没有回答——它是从哪个方向打的——抄本师搞不定。",
+    "en": "there has never been a \"zeroth watch hut\" on the snow line north of the Institute — the characters said no — the map said no — the Institute did not answer — it did not explain where the hut went in — the copyists cannot trace it.",
+    "refZh": "回响（其184） · 一",
+    "refEn": "Echo No. 184 · I"
+  },
+  {
+    "zh": "抄本师沿雪线走到尽头——看见的不是屋子——是\"火\"——立在比第七十一页更宽的石板上——再过去一个人——他没回来。",
+    "en": "the copyists reached the end of the snow line — what they saw was not a hut — it is \"fire\" — standing on a slab broader than page seventy-one — one more person went on — he did not come back.",
+    "refZh": "回响（其184） · 二",
+    "refEn": "Echo No. 184 · II"
+  },
+  {
+    "zh": "石板下面不是地——北海下面是块更大的石碑——抄本师往下看——下面是北海——北海反着光——光不是从哪儿来。",
+    "en": "beneath the slab is not ground — beneath the north sea is an even larger stele — the copyists looked down — the north sea is below — the sea shines — the light comes from nowhere.",
+    "refZh": "回响（其184） · 三",
+    "refEn": "Echo No. 184 · III"
+  },
+  {
+    "zh": "火向抄本师走来——抄本师没有躲——火是温的——它没有灼——它说东——东——",
+    "en": "fire walked toward the copyists — they did not run — the fire is warm — it does not burn — it spoke: east — east.",
+    "refZh": "回响（其184） · 四",
+    "refEn": "Echo No. 184 · IV"
+  },
+  {
+    "zh": "抄本师的最后一行字是：\"第零间值更屋——灯会回——东字是它自己的——\"",
+    "en": "the last line the copyists wrote: \"the zeroth watch hut — the lamp will come back — the character east belongs to it —\"",
+    "refZh": "回响（其184） · 五",
+    "refEn": "Echo No. 184 · V"
+  },
+  {
+    "zh": "第零间是第七十一页潮候院的前面——潮候院没有手去过——潮起时就有一个他们没去过的地方——潮候院烙下的第零页——",
+    "en": "the zeroth hut is before the Institute's page seventy-one — no hand of the Institute has been there — even when the tide first rose there was a place unsealed — the zeroth page —",
+    "refZh": "回响（其184） · 六",
+    "refEn": "Echo No. 184 · VI"
+  },
+  {
+    "zh": "潮候院东门朝对岸开——潮候院没人记得它被开过一次——今天早上门开了一条缝——不是风——不是潮。",
+    "en": "the East Gate of the Institute opens toward the far shore — no one at the Institute remembers it ever being opened — this morning the gate stood ajar — not wind — not tide.",
+    "refZh": "回响（其185） · 一",
+    "refEn": "Echo No. 185 · I"
+  },
+  {
+    "zh": "潮候院东门那天——一个潮候院没人认得的人——他走到东门——他在门槛放下一枚贝壳——潮候院没人知道他的名字。",
+    "en": "the day at the East Gate — a person the Institute did not know — he walked to the gate — he set a shell on the threshold — no one at the Institute knew his name.",
+    "refZh": "回响（其185） · 二",
+    "refEn": "Echo No. 185 · II"
+  },
+  {
+    "zh": "门槛上的贝壳——抄本师捡起——贝壳似乎有潮水——贝壳不说话——他只是，把它放在那里。",
+    "en": "the shell on the threshold — a copyist picked it up — the shell seemed to carry tide — the shell did not speak — he only put it there.",
+    "refZh": "回响（其185） · 三",
+    "refEn": "Echo No. 185 · III"
+  },
+  {
+    "zh": "潮候院记录写——东门感应开了一条缝——有人把一枚贝壳放在门槛——他没有敲——潮候院没人问他为什么——他没有说——他走了。",
+    "en": "the Institute log wrote: on the seventy-sixth day — the gate felt a seam — someone laid a shell on the threshold — he did not knock — no one asked — he did not say — he left.",
+    "refZh": "回响（其185） · 四",
+    "refEn": "Echo No. 185 · IV"
+  },
+  {
+    "zh": "潮候院没人走出去追——抄本师只是看他走——他走了一会儿——东门合上——潮候院再没看见过他。",
+    "en": "no one followed — the copyists only watched him go — he walked a while — the gate closed — the Institute never saw him again.",
+    "refZh": "回响（其185） · 五",
+    "refEn": "Echo No. 185 · V"
+  },
+  {
+    "zh": "抄本师说贝壳不是潮候院的——它来自某个潮候院未见过的陆地——壳的侧面有字——潮候院没人认识。",
+    "en": "the copyists said the shell is not the Institute's — it came from a land the Institute has never seen — a character on its flank — none of them can read it.",
+    "refZh": "回响（其185） · 六",
+    "refEn": "Echo No. 185 · VI"
+  },
+  {
+    "zh": "潮候院灯桌在拱顶南端——贝壳被搁在灯桌上——它没有发声——抄本师第一次没敢推门。",
+    "en": "the lamp-bench stands at the south end of the vault — the shell was placed there — it has not made a sound — the copyists stood at the threshold for the first time.",
+    "refZh": "回响（其186） · 一",
+    "refEn": "Echo No. 186 · I"
+  },
+  {
+    "zh": "抄本师看了它四天——第一日没人碰它——第二日轮看——第三日说它有可能有人认领——第四日说没人认领。",
+    "en": "they watched it for four days — the first no one touched it — the second they took turns — the third they said someone might claim it — the fourth no one did.",
+    "refZh": "回响（其186） · 二",
+    "refEn": "Echo No. 186 · II"
+  },
+  {
+    "zh": "第四日抄本师走近三步——他们看见贝壳侧面有一个字——字的左边是\"丬\"——字的右边是\"匕\"——它是\"北\"。",
+    "en": "on the fourth day the copyists came three spans close — there is one word on the flank — left \"x\"-stroke — right \"dagger\" — it is \"north\".",
+    "refZh": "回响（其186） · 三",
+    "refEn": "Echo No. 186 · III"
+  },
+  {
+    "zh": "潮候院没有人说话——它不属于潮候院——它是从别处来的——潮候院没有人去过北——潮候院里没有北。",
+    "en": "no one spoke — it does not belong to the Institute — it came from elsewhere — no one here has ever been north — the Institute contains no north.",
+    "refZh": "回响（其186） · 四",
+    "refEn": "Echo No. 186 · IV"
+  },
+  {
+    "zh": "贝壳在灯桌上两天以后——它微微有温——抄本师反复说它不是潮——潮候院本来也没有北——",
+    "en": "two days after the shell sat on the bench — it faintly warmed — the copyists insisted again and again that it is not tide — the Institute had no north —",
+    "refZh": "回响（其186） · 五",
+    "refEn": "Echo No. 186 · V"
+  },
+  {
+    "zh": "贝壳问了潮候院一个字——它不是问潮——它只是问潮候院里有没有力、风、盐、北——潮候院没有北——",
+    "en": "the shell asked the Institute a word — not tide — it only asks whether the Institute holds strength, wind, salt, north — the Institute does not have north —",
+    "refZh": "回响（其186） · 六",
+    "refEn": "Echo No. 186 · VI"
+  },
+  {
+    "zh": "贝壳它自己微微转过来——它的\"北\"朝东——抄本师没碰——贝壳自己转——抄本师退了一步——灯自己亮——",
+    "en": "the shell turned itself slightly — its \"north\" faces east — no copyist touched it — the shell turned by itself — the copyists stepped back — the lantern grew brighter —",
+    "refZh": "回响（其187） · 一",
+    "refEn": "Echo No. 187 · I"
+  },
+  {
+    "zh": "潮候院第一次说\"北海\"——它说了\"海\"——潮候院里没有海——潮候院记录从来没有\"海\"。",
+    "en": "the Institute said \"north sea\" — it said \"sea\" — the Institute has no sea — the Institute has never known one.",
+    "refZh": "回响（其187） · 二",
+    "refEn": "Echo No. 187 · II"
+  },
+  {
+    "zh": "抄本师围在灯桌四周——贝壳只是放着——贝壳没有动——灯自己动了——抄本师退出——贝壳没有动——",
+    "en": "the copyists surrounded the bench — the shell only rested — it did not move — the lantern moved — they left — the shell did not move —",
+    "refZh": "回响（其187） · 三",
+    "refEn": "Echo No. 187 · III"
+  },
+  {
+    "zh": "抄本师说灯桌变了——它不是潮——桌面自己有温——麻——它是潮先一步到了——抄本师不放下——贝壳只是放在桌上——",
+    "en": "the copyists said the bench changed — it is not tide — the table surface faintly warmed — coarse shell-rock — it is the tide arriving a step early — the copyists did not set it down — the shell only rested —",
+    "refZh": "回响（其187） · 四",
+    "refEn": "Echo No. 187 · IV"
+  },
+  {
+    "zh": "抄本师说——潮候院没有第七十三次大会——它像潮候院写的——它一遍又一遍地问——潮候院还有——贝壳还有——",
+    "en": "the copyists said — the Institute has no seventy-third convocation — it is written like the Institute — it keeps asking again and again — the Institute still has — the shell still has —",
+    "refZh": "回响（其187） · 五",
+    "refEn": "Echo No. 187 · V"
+  },
+  {
+    "zh": "北海是潮候院第一次想到的字——从贝壳那里——抄本师说北海——潮候院没有北海——贝壳朝向那——抄本师停下来——",
+    "en": "north sea — the first word the Institute ever imagined — from the shell — the copyists wrote \"north sea\" — the Institute has no north sea — the shell faces it — the copyists stopped —",
+    "refZh": "回响（其187） · 六",
+    "refEn": "Echo No. 187 · VI"
+  },
+  {
+    "zh": "潮候院所有的灯同时灭了又亮了一秒——抄本师没人吹它们——灯自己灭了——抄本师走到自己的桌前——灯又亮了。",
+    "en": "every lantern in the Institute went out and back on — for one second — no one blew them out — the lanterns went out by themselves — the copyists reached their desks — the lanterns came back.",
+    "refZh": "回响（其188） · 一",
+    "refEn": "Echo No. 188 · I"
+  },
+  {
+    "zh": "抄本师先看了一眼——没有人问为什么——没有人跑——没有人想动——它是散会了吗——它是走了吗——它是什么意思——他们谁也没说——",
+    "en": "the copyists glanced — no one asked why — no one ran — no one moved — is the convocation over — is it gone — what does it mean — none of them said.",
+    "refZh": "回响（其188） · 二",
+    "refEn": "Echo No. 188 · II"
+  },
+  {
+    "zh": "灯桌上的那枚贝壳——它没有动——灯自己灭了又亮——它的\"北\"朝东——抄本师没人碰它——",
+    "en": "the shell on the lamp-bench — it did not move — the lanterns went out and back by themselves — its \"north\" faces east — no one touched it —",
+    "refZh": "回响（其188） · 三",
+    "refEn": "Echo No. 188 · III"
+  },
+  {
+    "zh": "抄本师说贝壳记下了这一秒——抄本师不猜——抄本师想写——抄本师没写——它只是放在桌上——桌上是麻的——抄本师没有写——",
+    "en": "the copyists said the shell recorded the second — the copyists did not guess — the copyists wanted to write — the copyists did not write — it rested on the bench — the bench is coarse — the copyists did not write —",
+    "refZh": "回响（其188） · 四",
+    "refEn": "Echo No. 188 · IV"
+  },
+  {
+    "zh": "抄本师说——它不是潮——它不是北——贝壳是从潮候院没人猜是哪一日——潮候院只是说——那是潮先一步到的那一天——",
+    "en": "the copyists said — it is not tide — it is not north — the shell came from a day no one has named — the Institute only says — it is the day the tide arrived one step early —",
+    "refZh": "回响（其188） · 五",
+    "refEn": "Echo No. 188 · V"
+  },
+  {
+    "zh": "抄本师都过来过去——抄本师互相看了一眼——贝壳还在灯桌上——贝壳它是被放在那里的——潮候院的灯都亮着——贝壳也亮着——",
+    "en": "the copyists moved about — they met each other's glances — the shell still on the lamp-bench — it has been placed there — the Institute's lanterns are lit — the shell is lit —",
+    "refZh": "回响（其188） · 六",
+    "refEn": "Echo No. 188 · VI"
+  },
+  {
+    "zh": "抄本师推门——抄本师说——他读出贝壳侧面的字——他念潮——贝壳动了。",
+    "en": "the copyists pushed the door — the copyists said — he read out the word on the shell's flank — he said tide — the shell moved.",
+    "refZh": "回响（其189） · 一",
+    "refEn": "Echo No. 189 · I"
+  },
+  {
+    "zh": "抄本师念潮——贝壳动了——贝壳动得很小——贝壳的侧面变成了朝抄本师——抄本师没人碰它——灯自己亮了一下——",
+    "en": "the copyists said tide — the shell moved — very slightly — the flank turned toward the copyists — no one touched it — the lantern brightened for an instant —",
+    "refZh": "回响（其189） · 二",
+    "refEn": "Echo No. 189 · II"
+  },
+  {
+    "zh": "抄本师听见了声音——贝壳发出一声——像盐自己在风里响——它是北海——",
+    "en": "the copyists heard a sound — the shell uttered one note — as salt in wind — it is north sea —",
+    "refZh": "回响（其189） · 三",
+    "refEn": "Echo No. 189 · III"
+  },
+  {
+    "zh": "贝壳还在灯桌上——贝壳朝抄本师——灯自己亮着——抄本师退出房间——贝壳还在桌上——",
+    "en": "the shell is still on the bench — facing the copyists — the lantern is burning — they withdrew — the shell is still on the bench —",
+    "refZh": "回响（其189） · 四",
+    "refEn": "Echo No. 189 · IV"
+  },
+  {
+    "zh": "潮候院第一次听到贝壳的声音——潮候院里没有海——潮候院没人能回答——它是北海——贝壳它就是——北海——",
+    "en": "the Institute heard the shell for the first time — the Institute holds no sea — no one could answer — it is north sea — the shell is north sea —",
+    "refZh": "回响（其189） · 五",
+    "refEn": "Echo No. 189 · V"
+  },
+  {
+    "zh": "潮候院是它的灯桌——贝壳放在灯桌上——北海就在这儿——潮候院只知道——潮候院听——",
+    "en": "the Institute is its lamp-bench — the shell on the lamp-bench — north sea is here — the Institute only knows — the Institute listens —",
+    "refZh": "回响（其189） · 六",
+    "refEn": "Echo No. 189 · VI"
+  },
+  {
     "zh": "里巷子的抄本员从来不在抄本上签名——抄本不是谁的作品，是潮汐本体的投影。",
     "en": "the copyists of the back alley never signed their own copy — the book is not any person's work; it is the projection of the tide itself.",
     "refZh": "回响（其19） · 一",
@@ -1034,6 +4124,366 @@ export const BIBLE_ANCHORS: readonly BibleAnchor[] = [
     "en": "the copyists of the back alley have no names and no graves — the Institute gives them no way to know they existed.",
     "refZh": "回响（其19） · 五",
     "refEn": "Echo No. 19 · V"
+  },
+  {
+    "zh": "潮候院第八十三日——抄本师想出去——潮候院没有走出去看过它——潮候院也没有北——",
+    "en": "the eighty-third day — the copyists wanted to go — the Institute never went out to see it — the Institute has no north —",
+    "refZh": "回响（其190） · 一",
+    "refEn": "Echo No. 190 · I"
+  },
+  {
+    "zh": "潮候院抄本师走出了潮候院——他朝东门走——他走到门槛——潮候院抄本师站在门口——",
+    "en": "a copyist walked out of the Institute — toward the East Gate — reached the threshold — a copyist stood at the threshold —",
+    "refZh": "回响（其190） · 二",
+    "refEn": "Echo No. 190 · II"
+  },
+  {
+    "zh": "潮候院抄本师站在门槛上——贝壳的\"北\"朝东——潮候院抄本师没回去看贝壳——潮候院里没有潮——也没有北——",
+    "en": "the copyist stood on the threshold — the shell's \"north\" faces east — he did not look back at the shell — the Institute is no tide — it is no north —",
+    "refZh": "回响（其190） · 三",
+    "refEn": "Echo No. 190 · III"
+  },
+  {
+    "zh": "潮候院抄本师站在东门上——他第一次看见潮候院外——他往东看——东边是从没见过的蓝光——潮候院没人见过这光——",
+    "en": "the copyist stood on the East Gate — he saw the outside for the first time — the east — a light he never saw — blue — the Institute never saw this light —",
+    "refZh": "回响（其190） · 四",
+    "refEn": "Echo No. 190 · IV"
+  },
+  {
+    "zh": "潮候院抄本师看见海——潮候院外面是海——海就在潮候院东门外——抄本师只是看——抄本师不说话——抄本师看着——",
+    "en": "the copyist saw the sea — the sea lies outside the Institute — it lies right outside the East Gate — he only looked — he did not speak — he only watched —",
+    "refZh": "回响（其190） · 五",
+    "refEn": "Echo No. 190 · V"
+  },
+  {
+    "zh": "潮候院抄本师回来了——他说潮候院东门外是海——潮候院以前没有海——潮候院今天有海——潮候院外是海——它在东门——",
+    "en": "the copyist returned — he said the sea lies outside the East Gate — the Institute had no sea — now it has one — the sea is outside — it lies at the East Gate —",
+    "refZh": "回响（其190） · 六",
+    "refEn": "Echo No. 190 · VI"
+  },
+  {
+    "zh": "潮候院东门之后第二天——没有人问海——潮候院没有北——潮候院没有海——",
+    "en": "the day after the East Gate — no one asked the sea — the Institute has no north — the Institute has no sea —",
+    "refZh": "回响（其191） · 一",
+    "refEn": "Echo No. 191 · I"
+  },
+  {
+    "zh": "潮候院第一次在门槛上立一块石板——石板从潮候院北边来——潮候院第一次立石板——抄本师没有被教——",
+    "en": "for the first time the Institute set a slab on the threshold — it came from the Institute's north — the first time — no one was taught —",
+    "refZh": "回响（其191） · 二",
+    "refEn": "Echo No. 191 · II"
+  },
+  {
+    "zh": "抄本师自己写了——他只写了一个字——是\"海\"——潮候院第一次写了\"海\"——",
+    "en": "a copyist wrote it himself — he wrote one word — \"sea\" — the Institute wrote \"sea\" for the first time —",
+    "refZh": "回响（其191） · 三",
+    "refEn": "Echo No. 191 · III"
+  },
+  {
+    "zh": "潮候院没有反对——抄本师都过来看——抄本师没人碰——抄本师都知道——潮候院第一次——",
+    "en": "no one objected — the copyists came to look — no one touched it — the copyists knew — the first time —",
+    "refZh": "回响（其191） · 四",
+    "refEn": "Echo No. 191 · IV"
+  },
+  {
+    "zh": "海是潮候院第一个想出来的字——潮候院没有别的——潮候院没有海——抄本师说——潮候院第一次有海——潮候院说海——",
+    "en": "\"sea\" is the first word the Institute imagined — the Institute had nothing else — the Institute had no sea — the copyists said — the Institute has one now — the Institute says \"sea\" —",
+    "refZh": "回响（其191） · 五",
+    "refEn": "Echo No. 191 · V"
+  },
+  {
+    "zh": "潮候院抄本师说海——潮候院现在拥海——潮候院以前不拥——潮候院没人以为这是什么——",
+    "en": "the copyists say — the Institute now has the sea — the Institute did not have it before — no one inside knows what it means —",
+    "refZh": "回响（其191） · 六",
+    "refEn": "Echo No. 191 · VI"
+  },
+  {
+    "zh": "潮候院东门之后第三日——抄本师没说他要去——潮候院抄本师把门再推开了——",
+    "en": "the third day after the East Gate — the copyists did not say where — a copyist pushed the gate again —",
+    "refZh": "回响（其192） · 一",
+    "refEn": "Echo No. 192 · I"
+  },
+  {
+    "zh": "潮候院抄本师走到潮候院东门外的海边——潮候院没人走到过那儿——抄本师不说话——他站在海边——",
+    "en": "a copyist walked out of the East Gate to the sea — no one in the Institute had ever stepped that far — the copyist did not speak — he stood on the shore —",
+    "refZh": "回响（其192） · 二",
+    "refEn": "Echo No. 192 · II"
+  },
+  {
+    "zh": "潮候院抄本师站在海边——他不说话——海就在那里——抄本师站了很久——海也没说话——",
+    "en": "a copyist of the Institute stood by the sea — he did not speak — the sea only lay there — he stood for a long time — the sea did not speak either —",
+    "refZh": "回响（其192） · 三",
+    "refEn": "Echo No. 192 · III"
+  },
+  {
+    "zh": "潮候院抄本师不知道什么时候离开——他从海边往回走——潮候院东门在他面前——石板在门槛上——",
+    "en": "a copyist of the Institute did not know when he left — he walked back from the sea — the East Gate stood in front of him — the slab lay on the threshold —",
+    "refZh": "回响（其192） · 四",
+    "refEn": "Echo No. 192 · IV"
+  },
+  {
+    "zh": "潮候院抄本师走到门槛——那里潮候院的\"海\"字石板湿了——潮候院抄本师用手指碰了一下——他的手指湿了——",
+    "en": "the copyist reached the threshold — the Institute's \"sea\" slab was wet — he touched it with a finger — his finger came away wet —",
+    "refZh": "回响（其192） · 五",
+    "refEn": "Echo No. 192 · V"
+  },
+  {
+    "zh": "潮候院抄本师把门关上——潮候院知道它湿了——潮候院知道海——潮候院抄本师没人说——",
+    "en": "the copyist closed the gate — the Institute knew it was wet — the Institute knew the sea — no one spoke —",
+    "refZh": "回响（其192） · 六",
+    "refEn": "Echo No. 192 · VI"
+  },
+  {
+    "zh": "抄本师第一次站海边——他们朝东看见潮候院从未听说过的那块陆地——它有光——不是火——不是电——也不是潮候院的光——",
+    "en": "for the first time the copyists stood on the shore — they saw a land the Institute had never heard of — it has light — not fire — not power — not the Institute's light —",
+    "refZh": "回响（其193） · 一",
+    "refEn": "Echo No. 193 · I"
+  },
+  {
+    "zh": "潮候院抄本师没人去过那儿——他们只是看——他们看见光——他们不知道那边是什么——",
+    "en": "no copyist of the Institute had been there — they only looked — they saw the light — they did not know what it was —",
+    "refZh": "回响（其193） · 二",
+    "refEn": "Echo No. 193 · II"
+  },
+  {
+    "zh": "抄本师问对岸是什么——潮候院没人能回答——抄本师问光是什么——潮候院没人能回答——对岸有光——潮候院里有光——",
+    "en": "the copyists asked what the land across is — no one could answer — the copyists asked what the light is — no one could answer — the other shore has light — the Institute holds light —",
+    "refZh": "回响（其193） · 三",
+    "refEn": "Echo No. 193 · III"
+  },
+  {
+    "zh": "抄本师说对岸的形状——抄本师没人看清——他们说对岸很大——它也有斑——它有它的线——",
+    "en": "the copyists spoke of its shape — no one saw it clearly — they said it is large — it has spots — it has its lines —",
+    "refZh": "回响（其193） · 四",
+    "refEn": "Echo No. 193 · IV"
+  },
+  {
+    "zh": "潮候院里每一盏灯都没有它对岸的光——潮候院没人见过对岸的光——",
+    "en": "no lantern of the Institute shines like the light across — no one in the Institute has seen it —",
+    "refZh": "回响（其193） · 五",
+    "refEn": "Echo No. 193 · V"
+  },
+  {
+    "zh": "抄本师回来了——他们没人写——潮候院抄本师都知道——那边有一块潮候院没人到过的陆地——它有光——",
+    "en": "the copyists came back — none of them wrote — they all know — there is a land across that the Institute never visited — it has light —",
+    "refZh": "回响（其193） · 六",
+    "refEn": "Echo No. 193 · VI"
+  },
+  {
+    "zh": "潮候院抄本师第一次试着给潮候院画地图——抄本师以前从来没画过——潮候院没有地图——",
+    "en": "a copyist of the Institute tried to draw its map for the first time — he had never drawn before — the Institute had no map —",
+    "refZh": "回响（其194） · 一",
+    "refEn": "Echo No. 194 · I"
+  },
+  {
+    "zh": "抄本师拿了一张麻纸——他画了院落——他画了东门——他画了屋脊——他只画到这儿——他停——",
+    "en": "he took a sheet of linen — he drew the courtyard — he drew the East Gate — he drew the ridge — he stopped here —",
+    "refZh": "回响（其194） · 二",
+    "refEn": "Echo No. 194 · II"
+  },
+  {
+    "zh": "抄本师停在\"海\"那一块——他说潮候院自己都不知道它是什么——他停在那一块——",
+    "en": "he stopped at the \"sea\" — he said the Institute itself did not know what it is — he stopped at that spot —",
+    "refZh": "回响（其194） · 三",
+    "refEn": "Echo No. 194 · III"
+  },
+  {
+    "zh": "抄本师画下海——中间是海——海是潮候院的中间——抄本师说潮候院中间——",
+    "en": "he drew the sea — the middle is the sea — the sea is the middle of the Institute — the copyists said — the middle —",
+    "refZh": "回响（其194） · 四",
+    "refEn": "Echo No. 194 · IV"
+  },
+  {
+    "zh": "抄本师画完——他把地图给了自己——潮候院没人想要它——抄本师说——他给了他自己——",
+    "en": "he finished it — he gave the map to himself — no one asked to see it — the copyists said — he gave it to himself —",
+    "refZh": "回响（其194） · 五",
+    "refEn": "Echo No. 194 · V"
+  },
+  {
+    "zh": "潮候院第一张地图——中间是海——潮候院自己才知道——",
+    "en": "the Institute's first map — the middle is the sea — the Institute itself knows now —",
+    "refZh": "回响（其194） · 六",
+    "refEn": "Echo No. 194 · VI"
+  },
+  {
+    "zh": "七十年后抄本师开抽屉——抄本师把画了的麻纸拿出来——抄本师从没打开过——潮候院没人知道——",
+    "en": "seventy years later a copyist opened the drawer — the drawn linen came out — he never opened it — no one knew —",
+    "refZh": "回响（其195） · 一",
+    "refEn": "Echo No. 195 · I"
+  },
+  {
+    "zh": "抄本师把麻纸摆上潮候院的长桌——潮候院抄本师他们都在——他们这是第一次看这一张——",
+    "en": "a copyist laid the linen on the long table — the copyists of the Institute were all there — this is the first time they saw it —",
+    "refZh": "回响（其195） · 二",
+    "refEn": "Echo No. 195 · II"
+  },
+  {
+    "zh": "抄本师他们都停在那一张长桌上——它中间是海——潮候院抄本师停在那里——",
+    "en": "the copyists they all stopped at the long table — the middle is the sea — the copyists stopped there —",
+    "refZh": "回响（其195） · 三",
+    "refEn": "Echo No. 195 · III"
+  },
+  {
+    "zh": "抄本师说潮候院第一次看见潮候院是海——抄本师说潮候院海——",
+    "en": "the copyists said the Institute saw for the first time that it was sea — the copyists said sea —",
+    "refZh": "回响（其195） · 四",
+    "refEn": "Echo No. 195 · IV"
+  },
+  {
+    "zh": "抄本师都看了——潮候院抄本师没人说话——潮候院抄本师都已经知道它是海了——",
+    "en": "they all saw — no one spoke — the copyists already knew it was the sea —",
+    "refZh": "回响（其195） · 五",
+    "refEn": "Echo No. 195 · V"
+  },
+  {
+    "zh": "潮候院抄本师把麻纸挂在潮候院的长廊上——潮候院抄本师他们挂了——",
+    "en": "the copyists hung the linen on the long corridor — they hung it —",
+    "refZh": "回响（其195） · 六",
+    "refEn": "Echo No. 195 · VI"
+  },
+  {
+    "zh": "潮候院七十年后——最大的一次大潮——潮候院抄本师都醒了——潮候院抄本师他们都在——",
+    "en": "seventy years after the 44th Convocation — the greatest tide the Institute has ever seen — the copyists were awake — they were all there —",
+    "refZh": "回响（其196） · 一",
+    "refEn": "Echo No. 196 · I"
+  },
+  {
+    "zh": "潮候院东门的门槛——\"海\"字石碗——潮候院七十年从没人碰过它——潮候院七十年湿过碗只有这一次——",
+    "en": "the threshold of the East Gate — the \"sea\" bowl — no one had touched it for seventy years — this is the only time the bowl has been wet in seventy years —",
+    "refZh": "回响（其196） · 二",
+    "refEn": "Echo No. 196 · II"
+  },
+  {
+    "zh": "潮候院抄本师看见——\"海\"字石碗湿了——\"海\"字满碗是咸——抄本师他们沾了潮湿——潮候院抄本师第一次闻到\"海\"的咸——",
+    "en": "the copyists saw — the \"sea\" bowl was wet — the \"sea\" bowl smelled of salt — they touched it — the salt on their fingers — the copyists smelled the sea for the first time —",
+    "refZh": "回响（其196） · 三",
+    "refEn": "Echo No. 196 · III"
+  },
+  {
+    "zh": "潮候院抄本师没人哭——潮候院抄本师他们知道潮候院是潮候院——潮候院抄本师他们打开院门——潮候院抄本师他们看着海——",
+    "en": "no copyist cried — the copyists knew the Institute is the Institute — they opened the gate — they looked at the sea —",
+    "refZh": "回响（其196） · 四",
+    "refEn": "Echo No. 196 · IV"
+  },
+  {
+    "zh": "潮候院抄本师说潮候院——\"海\"——潮候院抄本师它就是潮候院——潮候院就是潮候院——",
+    "en": "the copyists said — the Institute — \"sea\" — it is the Institute — the Institute is the Institute —",
+    "refZh": "回响（其196） · 五",
+    "refEn": "Echo No. 196 · V"
+  },
+  {
+    "zh": "潮候院抄本师都回潮候院——潮候院里没人要收拾——潮候院里没有灯——潮候院抄本师说灯不会灭——",
+    "en": "the copyists returned to the Institute — no one wanted to clean — there was no lantern in the Institute — the copyists said the lantern would never go out —",
+    "refZh": "回响（其196） · 六",
+    "refEn": "Echo No. 196 · VI"
+  },
+  {
+    "zh": "潮候院有一块麻布——潮候院有潮候院以前——潮候院就有它——",
+    "en": "the Institute holds a piece of linen — it predates the Institute — the Institute exists because it does —",
+    "refZh": "回响（其197） · 一",
+    "refEn": "Echo No. 197 · I"
+  },
+  {
+    "zh": "潮候院抄本师底层找到那块麻布——潮候院抄本师他们没人知道它有——潮候院抄本师都呆住——",
+    "en": "the copyists found it in the lowest vault — none of them knew it was there — they stood speechless —",
+    "refZh": "回响（其197） · 二",
+    "refEn": "Echo No. 197 · II"
+  },
+  {
+    "zh": "麻布上只有一个字——它是\"潮\"——潮候院抄本师都能读——潮候院抄本师读了没说什么——",
+    "en": "there is one character on the linen — \"tide\" — every copyist can read it — none of them said anything —",
+    "refZh": "回响（其197） · 三",
+    "refEn": "Echo No. 197 · III"
+  },
+  {
+    "zh": "潮候院麻布它褪了——它只褪了一半——它原来有的那半只剩一半了——潮候院没人敢碰——",
+    "en": "the linen has faded — only half remains — the half it once was was once full — no one dares to touch it —",
+    "refZh": "回响（其197） · 四",
+    "refEn": "Echo No. 197 · IV"
+  },
+  {
+    "zh": "麻布只有一个字——它是潮——麻布三个字潮——潮候院第一次知道麻布是什么——",
+    "en": "one character — tide — the linen is tide — the Institute learned what the linen is for the first time —",
+    "refZh": "回响（其197） · 五",
+    "refEn": "Echo No. 197 · V"
+  },
+  {
+    "zh": "抄本师不知道潮候院为什么——麻布潮——抄本师不敢碰——潮候院第一次——抄本师潮——",
+    "en": "the copyists do not know why — the linen is tide — no one dares touch — the first time — the copyists tide —",
+    "refZh": "回响（其197） · 六",
+    "refEn": "Echo No. 197 · VI"
+  },
+  {
+    "zh": "抄本师第一次把麻布挂上——潮候院他们都看了——抄本师又把麻布取下来——",
+    "en": "the copyist hung the linen for the first time — they all saw it — he took it down again —",
+    "refZh": "回响（其198） · 一",
+    "refEn": "Echo No. 198 · I"
+  },
+  {
+    "zh": "抄本师说北墙——北墙是潮候院的潮候院——抄本师说错了——",
+    "en": "he said the north wall — the north wall is the Institute's Institute — he was wrong —",
+    "refZh": "回响（其198） · 二",
+    "refEn": "Echo No. 198 · II"
+  },
+  {
+    "zh": "潮候院问了一百次——抄本师没人回答——潮候院只知道——",
+    "en": "the Institute was asked one hundred times — no one answered — the Institute only knows —",
+    "refZh": "回响（其198） · 三",
+    "refEn": "Echo No. 198 · III"
+  },
+  {
+    "zh": "抄本师说潮候院它就是潮候院——麻布上只有一个字——抄本师都知道那是什么——",
+    "en": "the copyists said the Institute is the Institute — the linen bears one character — every copyist knows what it is —",
+    "refZh": "回响（其198） · 四",
+    "refEn": "Echo No. 198 · IV"
+  },
+  {
+    "zh": "抄本师他们最终知道——潮候院是潮候院——抄本师他们最终都知道——",
+    "en": "the copyists finally knew — the Institute is the Institute — the copyists finally knew —",
+    "refZh": "回响（其198） · 五",
+    "refEn": "Echo No. 198 · V"
+  },
+  {
+    "zh": "潮候院抄本师最后一次看麻布——潮候院抄本师没人说话——他们只看——潮候院里的灯光照进来——",
+    "en": "the copyists looked at it one last time — none of them spoke — they only looked — the light from outside reached the hall —",
+    "refZh": "回响（其198） · 六",
+    "refEn": "Echo No. 198 · VI"
+  },
+  {
+    "zh": "潮候院抄本师在麻布前坐了三天——潮候院抄本师都没人说话——潮候院他们知道麻布潮候院最老的潮——",
+    "en": "the copyists sat before the linen for three days — no one spoke — they all knew the linen is the Institute's oldest tide —",
+    "refZh": "回响（其199） · 一",
+    "refEn": "Echo No. 199 · I"
+  },
+  {
+    "zh": "潮候院第一次召集全体抄本师——潮候院没人穿正服——潮候院抄本师各自进——",
+    "en": "the Institute gathered every copyist for the first time — no one wore formal garments — each copyist entered alone —",
+    "refZh": "回响（其199） · 二",
+    "refEn": "Echo No. 199 · II"
+  },
+  {
+    "zh": "抄本院里有两个灯——抄本师都坐在麻布前——潮候院抄本院里第一次——潮候院里——",
+    "en": "there were two lanterns — they all sat before the linen — the first time in the copyists' hall — the Institute —",
+    "refZh": "回响（其199） · 三",
+    "refEn": "Echo No. 199 · III"
+  },
+  {
+    "zh": "抄本师都不说话——潮候院抄本师都盯着麻布——麻布只有一个字——它还更褪一点——抄本师不说——",
+    "en": "no one spoke — the copyists stared at the linen — only one faded character — it had faded a little more — none of them said —",
+    "refZh": "回响（其199） · 四",
+    "refEn": "Echo No. 199 · IV"
+  },
+  {
+    "zh": "潮候院抄本师都知道——封潮候院之潮——麻布是潮候院最后一代抄本院——抄本院——潮候院——",
+    "en": "the copyists knew — the sealed tide of the Institute — the linen is the last generation of the Institute's copyists' hall — the hall — the Institute —",
+    "refZh": "回响（其199） · 五",
+    "refEn": "Echo No. 199 · V"
+  },
+  {
+    "zh": "潮候院抄本师最后一次看麻布——抄本师他们都看了——麻布潮候院之潮——",
+    "en": "the copyists looked at the linen one last time — they all looked — the tide of the Institute's tide —",
+    "refZh": "回响（其199） · 六",
+    "refEn": "Echo No. 199 · VI"
   },
   {
     "zh": "钟楼里的钟槌碎了很多年，钟从来没有响过。",
@@ -1066,6 +4516,366 @@ export const BIBLE_ANCHORS: readonly BibleAnchor[] = [
     "refEn": "Echo No. 20 · V"
   },
   {
+    "zh": "潮候院抄本师日日坐麻布前——抄本师坐了很久——抄本师他们知道麻布潮候院最老的潮——",
+    "en": "the copyists sat before the linen every day — they sat for a long time — they knew the linen was the Institute's oldest tide —",
+    "refZh": "回响（其200） · 一",
+    "refEn": "Echo No. 200 · I"
+  },
+  {
+    "zh": "麻布抄本师摩挲一字——潮候院抄本师都来——他们只摩挲一字——",
+    "en": "they all came — they touched only one character — they touched only one character —",
+    "refZh": "回响（其200） · 二",
+    "refEn": "Echo No. 200 · II"
+  },
+  {
+    "zh": "麻布还褪着——它没说话——潮候院抄本师摩挲麻布——他们摩挲字的两笔——",
+    "en": "the linen still faded — it did not speak — the copyists rubbed the linen — they rubbed the two strokes of the character —",
+    "refZh": "回响（其200） · 三",
+    "refEn": "Echo No. 200 · III"
+  },
+  {
+    "zh": "潮候院抄本院的人都知道——麻布是潮候院最老的潮——",
+    "en": "the people of the copyists' hall all knew — the linen was the oldest tide of the Institute —",
+    "refZh": "回响（其200） · 四",
+    "refEn": "Echo No. 200 · IV"
+  },
+  {
+    "zh": "潮候院抄本师都知道——麻布就是潮候院的原本——没有人出声——",
+    "en": "the copyists all knew — the linen is the very source of the Institute — no one spoke —",
+    "refZh": "回响（其200） · 五",
+    "refEn": "Echo No. 200 · V"
+  },
+  {
+    "zh": "麻布第一百日潮候院抄本师都在麻布前——抄本院里只有两个灯——抄本院里没人说话——麻布它就是麻布——",
+    "en": "on the hundredth day they were all at the linen — only two lanterns — no one spoke — the linen is the linen —",
+    "refZh": "回响（其200） · 六",
+    "refEn": "Echo No. 200 · VI"
+  },
+  {
+    "zh": "潮候院抄本院最深处有一根石柱——抄本院抄本师第一次发现——它在那里一直——",
+    "en": "there is a pillar at the heart of the hall — the copyists found it for the first time — it had always been there —",
+    "refZh": "回响（其201） · 一",
+    "refEn": "Echo No. 201 · I"
+  },
+  {
+    "zh": "抄本院最深处没人翻新过——抄本院最深处墙上写着字——抄本师看不懂那是哪种字——",
+    "en": "no one had altered the deepest old tier — there is writing on the wall — the copyists could not read which kind of writing it was —",
+    "refZh": "回响（其201） · 二",
+    "refEn": "Echo No. 201 · II"
+  },
+  {
+    "zh": "抄本师第一次碰石柱——抄本院抄本师发现它是凉的——抄本院最深处没人碰它——",
+    "en": "the copyists touched the pillar for the first time — it was cold — no one had ever touched it —",
+    "refZh": "回响（其201） · 三",
+    "refEn": "Echo No. 201 · III"
+  },
+  {
+    "zh": "抄本院抄本师认出石柱上的弯是半月——潮候院——抄本院最深处抄本师他们第一次认出——",
+    "en": "the copyists recognized the arch on the pillar — it is half a moon — the copyists saw it for the first time —",
+    "refZh": "回响（其201） · 四",
+    "refEn": "Echo No. 201 · IV"
+  },
+  {
+    "zh": "抄本师第一次数潮印——抄本院抄本师数了一遍——抄本院石柱上有四十二道——",
+    "en": "the copyists counted the tide marks for the first time — they counted through once — there are forty-two marks —",
+    "refZh": "回响（其201） · 五",
+    "refEn": "Echo No. 201 · V"
+  },
+  {
+    "zh": "潮候院抄本师他们没人碰石柱——抄本院抄本师他们理解它——潮候院抄本院最深处——潮候院——",
+    "en": "no copyist touched the pillar — the copyists understood it — the pillar was the deepest part of the hall — the Institute —",
+    "refZh": "回响（其201） · 六",
+    "refEn": "Echo No. 201 · VI"
+  },
+  {
+    "zh": "抄本院最深处还有一本账本——抄本师第一次翻开它——潮候院潮候院潮候院——",
+    "en": "there is a tally-book hidden in the deepest tier — the copyists opened it for the first time — tide the tide the tide —",
+    "refZh": "回响（其202） · 一",
+    "refEn": "Echo No. 202 · I"
+  },
+  {
+    "zh": "抄本师第一天翻开账本——潮候院抄本院里最早的笔迹是清水一笔——潮候院潮候院潮候院——",
+    "en": "on the first day they opened the book — the earliest strokes were clear as water — tide tide tide —",
+    "refZh": "回响（其202） · 二",
+    "refEn": "Echo No. 202 · II"
+  },
+  {
+    "zh": "抄本师第二天翻开账本——抄本院里最旧的字只有最老的抄本师能认——",
+    "en": "on the second day they turned to the twentieth page — only the oldest copyists could read the oldest characters —",
+    "refZh": "回响（其202） · 三",
+    "refEn": "Echo No. 202 · III"
+  },
+  {
+    "zh": "抄本师第三天翻开账本——抄本师他们读到最后一页——它写着\"春\"——",
+    "en": "on the third day they reached the last page — and read only one word: \"spring\" —",
+    "refZh": "回响（其202） · 四",
+    "refEn": "Echo No. 202 · IV"
+  },
+  {
+    "zh": "抄本师合上账本——抄本院里隔了三天没人说话——抄本师他们终于——",
+    "en": "the copyists closed the book — three days passed with no one speaking — the copyists finally —",
+    "refZh": "回响（其202） · 五",
+    "refEn": "Echo No. 202 · V"
+  },
+  {
+    "zh": "抄本师把账本放回最深处——潮候院抄本院潮候院抄本院——它不像麻布——",
+    "en": "the copyists returned the book to the deepest tier — the Institute of the Institute — it is not like the linen —",
+    "refZh": "回响（其202） · 六",
+    "refEn": "Echo No. 202 · VI"
+  },
+  {
+    "zh": "抄本院抄本师第一次给四十二道印记各拓了一张——",
+    "en": "the copyists took one imprint of each of the forty-two tide-marks —",
+    "refZh": "回响（其203） · 一",
+    "refEn": "Echo No. 203 · I"
+  },
+  {
+    "zh": "抄本院抄本师拓了四十二张——四十二张上四十二个圆——有些重叠——",
+    "en": "forty-two imprints on forty-two papers — some overlapping —",
+    "refZh": "回响（其203） · 二",
+    "refEn": "Echo No. 203 · II"
+  },
+  {
+    "zh": "抄本院抄本师第一次知道他们住的房间有这样四十二张印——",
+    "en": "the copyists knew for the first time that this room held forty-two such imprints —",
+    "refZh": "回响（其203） · 三",
+    "refEn": "Echo No. 203 · III"
+  },
+  {
+    "zh": "抄本院抄本师把四十二张拓印缝在一起——一条带子——潮候院抄本院——",
+    "en": "the copyists bound the forty-two imprints together — one ribbon — the Institute —",
+    "refZh": "回响（其203） · 四",
+    "refEn": "Echo No. 203 · IV"
+  },
+  {
+    "zh": "抄本院抄本师谁都不对外说——潮候院抄本院都不说话——潮候院——",
+    "en": "none of the copyists said a word outside — the Institute was silent — the Institute —",
+    "refZh": "回响（其203） · 五",
+    "refEn": "Echo No. 203 · V"
+  },
+  {
+    "zh": "最后一张拓印上写着潮候院最早的冬季——潮候院抄本院——潮候院——",
+    "en": "on the last imprint is written the name of the Institute's first winter — the Institute — the Institute —",
+    "refZh": "回响（其203） · 六",
+    "refEn": "Echo No. 203 · VI"
+  },
+  {
+    "zh": "潮候院抄本师第一次数那条带子——潮候院抄本院找遍所有地方没有——",
+    "en": "the copyists counted the ribbon for the first time — the Institute found no one who knew where it came from —",
+    "refZh": "回响（其204） · 一",
+    "refEn": "Echo No. 204 · I"
+  },
+  {
+    "zh": "潮候院抄本师仔细看那条带子——潮候院抄本院抄本师说找不到——",
+    "en": "the copyists studied the ribbon closely — the Institute said it was not found there —",
+    "refZh": "回响（其204） · 二",
+    "refEn": "Echo No. 204 · II"
+  },
+  {
+    "zh": "抄本院抄本师他们发现那条带子不是潮候院抄本院的——潮候院抄本师都低头——",
+    "en": "the copyists found the ribbon was not the Institute's — the copyists all lowered their heads —",
+    "refZh": "回响（其204） · 三",
+    "refEn": "Echo No. 204 · III"
+  },
+  {
+    "zh": "潮候院抄本师没有人知道它是潮候院的——潮候院抄本师都没说过话——",
+    "en": "no copyist knew it was the Institute's — the copyists never spoke of it —",
+    "refZh": "回响（其204） · 四",
+    "refEn": "Echo No. 204 · IV"
+  },
+  {
+    "zh": "潮候院抄本院抄本师他们把那条带子放回最深处——潮候院潮候院——",
+    "en": "the copyists returned the ribbon to the deepest tier — the Institute of the Institute —",
+    "refZh": "回响（其204） · 五",
+    "refEn": "Echo No. 204 · V"
+  },
+  {
+    "zh": "潮候院抄本师再没碰过那条带子——潮候院抄本院潮候院抄本师再也没有说过话——",
+    "en": "the copyists never touched the ribbon again — the Institute never spoke of it again —",
+    "refZh": "回响（其204） · 六",
+    "refEn": "Echo No. 204 · VI"
+  },
+  {
+    "zh": "抄本院抄本师第一次用水湿法——抄本院抄本师他们终于看懂——",
+    "en": "the copyists tried water-shine for the first time — and for the first time they understood —",
+    "refZh": "回响（其205） · 一",
+    "refEn": "Echo No. 205 · I"
+  },
+  {
+    "zh": "潮候院抄本院抄本师他们用潮候院最干净的那滴——潮候院——",
+    "en": "the copyists of the Institute used the cleanest drop of tide — the Institute —",
+    "refZh": "回响（其205） · 二",
+    "refEn": "Echo No. 205 · II"
+  },
+  {
+    "zh": "潮候院抄本院抄本师他们用竹针蘸一滴——抄本师终于看见——",
+    "en": "the copyists touched the ribbon with a bamboo brush — and finally saw —",
+    "refZh": "回响（其205） · 三",
+    "refEn": "Echo No. 205 · III"
+  },
+  {
+    "zh": "潮候院抄本院抄本师发现它不是汉字——潮候院抄本院——",
+    "en": "the copyists found it was not Chinese characters — the Institute —",
+    "refZh": "回响（其205） · 四",
+    "refEn": "Echo No. 205 · IV"
+  },
+  {
+    "zh": "潮候院抄本院潮候院抄本师意识到那是一个名字——潮候院抄本院是一个人——",
+    "en": "the copyists realized it was a name — the Institute was a person —",
+    "refZh": "回响（其205） · 五",
+    "refEn": "Echo No. 205 · V"
+  },
+  {
+    "zh": "潮候院抄本院抄本师他们没告诉任何人——潮候院潮候院——",
+    "en": "the copyists told no one — the Institute — the Institute —",
+    "refZh": "回响（其205） · 六",
+    "refEn": "Echo No. 205 · VI"
+  },
+  {
+    "zh": "潮候院抄本师第一次商量着分读潮印——潮候院抄本院五个抄本师——",
+    "en": "the copyists split the tide-marks among themselves for the first time — five copyists —",
+    "refZh": "回响（其206） · 一",
+    "refEn": "Echo No. 206 · I"
+  },
+  {
+    "zh": "潮候院抄本院荒年冬天——抄本院潮候院潮候院——",
+    "en": "the barren winter in the Institute — the Institute — the Institute —",
+    "refZh": "回响（其206） · 二",
+    "refEn": "Echo No. 206 · II"
+  },
+  {
+    "zh": "抄本院抄本师他们花了四十二天——潮候院抄本院潮候院抄本院——",
+    "en": "the copyists spent forty-two days — the Institute of the Institute — the Institute —",
+    "refZh": "回响（其206） · 三",
+    "refEn": "Echo No. 206 · III"
+  },
+  {
+    "zh": "抄本院抄本师都把四十二道潮印记住——潮候院潮候院——",
+    "en": "every copyist memorized all the forty-two tide-marks — tide of the tide — the Institute —",
+    "refZh": "回响（其206） · 四",
+    "refEn": "Echo No. 206 · IV"
+  },
+  {
+    "zh": "抄本院抄本师都说潮候院潮候院——潮候院——潮候院——",
+    "en": "the copyists all said the Institute of the Institute — the Institute — the Institute —",
+    "refZh": "回响（其206） · 五",
+    "refEn": "Echo No. 206 · V"
+  },
+  {
+    "zh": "潮候院抄本院抄本师最后把四十二道潮印记在心里——潮候院——",
+    "en": "at last the copyists memorized all forty-two tide-marks in their hearts — the Institute —",
+    "refZh": "回响（其206） · 六",
+    "refEn": "Echo No. 206 · VI"
+  },
+  {
+    "zh": "潮候院抄本院荒年冬天第三周——抄本院潮候院抄本院——潮候院抄本师都不说话——",
+    "en": "the third week of the barren winter — the Institute of the Institute — the copyists said nothing —",
+    "refZh": "回响（其207） · 一",
+    "refEn": "Echo No. 207 · I"
+  },
+  {
+    "zh": "潮候院抄本师他们停在第八道上——潮候院那是一道圆——笔力深——",
+    "en": "the copyists stopped at the eighth mark — a deep circle — a heavy stroke —",
+    "refZh": "回响（其207） · 二",
+    "refEn": "Echo No. 207 · II"
+  },
+  {
+    "zh": "抄本院抄本师他们发现第十七道也是同一个——抄本院潮候院潮候院——",
+    "en": "the copyists found the seventeenth mark is the same — the Institute — the Institute —",
+    "refZh": "回响（其207） · 三",
+    "refEn": "Echo No. 207 · III"
+  },
+  {
+    "zh": "潮候院抄本师他们发现第二十九道也是同一个——潮候院抄本师没有人发出声——",
+    "en": "the copyists found the twenty-ninth mark is the same — no copyist uttered a sound —",
+    "refZh": "回响（其207） · 四",
+    "refEn": "Echo No. 207 · IV"
+  },
+  {
+    "zh": "抄本院抄本师他们坐在那里猜——潮候院抄本院抄本师他们——",
+    "en": "the copyists sat there guessing — the Institute's copyists guessing —",
+    "refZh": "回响（其207） · 五",
+    "refEn": "Echo No. 207 · V"
+  },
+  {
+    "zh": "潮候院抄本院抄本师——潮候院——潮候院抄本师——",
+    "en": "the Institute's copyists — the Institute — the Institute's copyists —",
+    "refZh": "回响（其207） · 六",
+    "refEn": "Echo No. 207 · VI"
+  },
+  {
+    "zh": "那本册子每天夜里都翻到第七十二页——屋里没有风。",
+    "en": "the ledger turned to page seventy-two every night — there was no wind in the room.",
+    "refZh": "回响（其208） · 一",
+    "refEn": "Echo No. 208 · I"
+  },
+  {
+    "zh": "第七十二页是空的，只留着一处被盐渍糊住的字。",
+    "en": "page seventy-two was blank, save one word blurred by salt.",
+    "refZh": "回响（其208） · 二",
+    "refEn": "Echo No. 208 · II"
+  },
+  {
+    "zh": "五个抄本师守了七夜——谁也没有承认翻过那本册子。",
+    "en": "five copyists kept watch seven nights — not one admitted turning the ledger.",
+    "refZh": "回响（其208） · 三",
+    "refEn": "Echo No. 208 · III"
+  },
+  {
+    "zh": "最年长的抄本师把手指按在盐渍上——他说这不是我们写的，是潮写的。",
+    "en": "the eldest copyist laid a finger on the salt stain — he said this was not written by us, but by the tide.",
+    "refZh": "回响（其208） · 四",
+    "refEn": "Echo No. 208 · IV"
+  },
+  {
+    "zh": "第二日清早那一页有了字——还是那只手写的。",
+    "en": "by morning the page had words — in the same hand.",
+    "refZh": "回响（其208） · 五",
+    "refEn": "Echo No. 208 · V"
+  },
+  {
+    "zh": "那页上始终没有写下一个名字——抄本师们仍然没有说话。",
+    "en": "no name was ever written on that page — the copyists still said nothing.",
+    "refZh": "回响（其208） · 六",
+    "refEn": "Echo No. 208 · VI"
+  },
+  {
+    "zh": "册子第一次自己翻到了第七十三页——那一页原本是空白的。",
+    "en": "the ledger turned to page seventy-three for the first time — that page had been blank.",
+    "refZh": "回响（其209） · 一",
+    "refEn": "Echo No. 209 · I"
+  },
+  {
+    "zh": "第七十三页上没有名字，只有一个往外挑的收笔。",
+    "en": "page seventy-three held no name, only a stroke-ending that turned outward.",
+    "refZh": "回响（其209） · 二",
+    "refEn": "Echo No. 209 · II"
+  },
+  {
+    "zh": "抄本师们摸那收笔——墨迹还是湿的。",
+    "en": "the copyists touched the stroke-ending — the ink was still wet.",
+    "refZh": "回响（其209） · 三",
+    "refEn": "Echo No. 209 · III"
+  },
+  {
+    "zh": "最年长的抄本师说——它翻到这里，是要我们知道那只手还在。",
+    "en": "the eldest copyist said — it turned to this page to let us know the hand is still here.",
+    "refZh": "回响（其209） · 四",
+    "refEn": "Echo No. 209 · IV"
+  },
+  {
+    "zh": "收笔旁边多了一道浅痕——像是在回答他们。",
+    "en": "beside the stroke-ending a faint mark appeared — as if in answer to them.",
+    "refZh": "回响（其209） · 五",
+    "refEn": "Echo No. 209 · V"
+  },
+  {
+    "zh": "那道浅痕也不是名字——抄本师们就让它留着。",
+    "en": "the faint mark was no name either — the copyists let it remain.",
+    "refZh": "回响（其209） · 六",
+    "refEn": "Echo No. 209 · VI"
+  },
+  {
     "zh": "七盏号灯没有哪一张施工图上画过它们——最早的图纸只有六盏的划痕。",
     "en": "no construction drawing of the Institute ever showed seven lamps — the oldest drawing marks only six.",
     "refZh": "回响（其21） · 一",
@@ -1096,6 +4906,342 @@ export const BIBLE_ANCHORS: readonly BibleAnchor[] = [
     "refEn": "Echo No. 21 · V"
   },
   {
+    "zh": "第三日清晨，那道浅痕淡了，边上多出半圈印沿。",
+    "en": "on the third morning the faint mark had faded, and half a rim had grown beside it.",
+    "refZh": "回响（其210） · 一",
+    "refEn": "Echo No. 210 · I"
+  },
+  {
+    "zh": "抄本师们数那道印沿——它只有四十二道潮印的一半。",
+    "en": "the copyists counted the rim — it was half of one of the forty-two tide-seals.",
+    "refZh": "回响（其210） · 二",
+    "refEn": "Echo No. 210 · II"
+  },
+  {
+    "zh": "没有人去补另外一半——缺着的那半，比补上的更像回答。",
+    "en": "no one filled in the other half — the missing half answered more than a completion would.",
+    "refZh": "回响（其210） · 三",
+    "refEn": "Echo No. 210 · III"
+  },
+  {
+    "zh": "册子从此停在第七十三页，不再自己翻。",
+    "en": "from then on the ledger stayed on page seventy-three and never turned itself again.",
+    "refZh": "回响（其210） · 四",
+    "refEn": "Echo No. 210 · IV"
+  },
+  {
+    "zh": "次日清晨，第七十三页上那半枚印沿不见了，纸上只留一圈浅白的痕。",
+    "en": "the next morning the half rim was gone from page seventy-three, leaving only a faint white ring on the paper.",
+    "refZh": "回响（其211） · 一",
+    "refEn": "Echo No. 211 · I"
+  },
+  {
+    "zh": "抄本师们去看四十二道潮印——第四十二道原是缺一半的，如今合上了。",
+    "en": "the copyists went to look at the forty-two tide-seals — the forty-second had been missing its half, and now it was fitted.",
+    "refZh": "回响（其211） · 二",
+    "refEn": "Echo No. 211 · II"
+  },
+  {
+    "zh": "两半的齿痕对得上，缝里没有一丝错。",
+    "en": "the teeth of the two halves matched, and the seam held not a hair's breadth of error.",
+    "refZh": "回响（其211） · 三",
+    "refEn": "Echo No. 211 · III"
+  },
+  {
+    "zh": "合上的第四十二道仍没有名字，抄本师们也不去刻一个。",
+    "en": "the fitted forty-second still bore no name, and the copyists carved none.",
+    "refZh": "回响（其211） · 四",
+    "refEn": "Echo No. 211 · IV"
+  },
+  {
+    "zh": "抄本师们把那道浅痕抄进册子——排在四十二道之后，成为第四十三道。",
+    "en": "the copyists entered the faint mark into the ledger — after the forty-two, as the forty-third.",
+    "refZh": "回响（其212） · 一",
+    "refEn": "Echo No. 212 · I"
+  },
+  {
+    "zh": "他们在旁边写了一句——这一道不是潮印，是回答。",
+    "en": "they wrote beside it — this is no tide mark, but an answer.",
+    "refZh": "回响（其212） · 二",
+    "refEn": "Echo No. 212 · II"
+  },
+  {
+    "zh": "没有人问过问题——那道浅痕却朝着他们站立的方向。",
+    "en": "no one had asked a question — yet the faint mark turned toward where they stood.",
+    "refZh": "回响（其212） · 三",
+    "refEn": "Echo No. 212 · III"
+  },
+  {
+    "zh": "最年长的抄本师说——留着它就好，不必追一个名字，潮从不署名。",
+    "en": "the eldest copyist said — let it be; no need to chase a name, the tide never signs.",
+    "refZh": "回响（其212） · 四",
+    "refEn": "Echo No. 212 · IV"
+  },
+  {
+    "zh": "第四十三道之后留了一行空白——像是给下一次回答留的位置。",
+    "en": "after the forty-third they left one blank line — a place, as if, for the next answer.",
+    "refZh": "回响（其212） · 五",
+    "refEn": "Echo No. 212 · V"
+  },
+  {
+    "zh": "册子不再夜里自己翻了——那行空白，第二天早晨又浅浅地有了一道。",
+    "en": "the ledger no longer turned itself at night — yet that blank line held a fresh faint mark by morning.",
+    "refZh": "回响（其212） · 六",
+    "refEn": "Echo No. 212 · VI"
+  },
+  {
+    "zh": "抄本师们把那道新痕数了一遍又一遍——四十三道仍旧排成一行，新痕却坐在那一行旁边。",
+    "en": "the copyists counted the fresh mark again and again — the forty-three still stood in their row, the fresh mark sat beside that row.",
+    "refZh": "回响（其213） · 一",
+    "refEn": "Echo No. 213 · I"
+  },
+  {
+    "zh": "他们想给它一个位置，可它不占任何位置——数字伸到那里就断了。",
+    "en": "they wanted to give it a place, yet it occupied none — the numbers reached that far and broke off.",
+    "refZh": "回响（其213） · 二",
+    "refEn": "Echo No. 213 · II"
+  },
+  {
+    "zh": "第二名抄本师在页边写下\"在旁边\"三个字，他的手一直在抖。",
+    "en": "the second copyist wrote \"beside\" in the margin, and his hand would not stop shaking.",
+    "refZh": "回响（其213） · 三",
+    "refEn": "Echo No. 213 · III"
+  },
+  {
+    "zh": "抄本师们说——册子问的是它自己的问题，回答便落在问题旁边，不是问题后面。",
+    "en": "the copyists said — the ledger asked its own question, so the answer fell beside the question, not after it.",
+    "refZh": "回响（其213） · 四",
+    "refEn": "Echo No. 213 · IV"
+  },
+  {
+    "zh": "最年长的抄本师在页边写——数字是用来数的，这一道不是用来数的。",
+    "en": "the eldest copyist wrote in the margin — a number is for counting; this one is not to be counted.",
+    "refZh": "回响（其213） · 五",
+    "refEn": "Echo No. 213 · V"
+  },
+  {
+    "zh": "冬潮月过去了，新痕还在原处，不挪不动；四十三道也还在那一行里。",
+    "en": "the winter-tide month passed, and the fresh mark stayed where it was, unmoved; the forty-three stayed in their row.",
+    "refZh": "回响（其213） · 六",
+    "refEn": "Echo No. 213 · VI"
+  },
+  {
+    "zh": "他们决定不给它起名字——起名字就要按名册排，而名册是数出来的。",
+    "en": "they decided not to give it a name — to name a thing is to file it in the register, and the register is a count.",
+    "refZh": "回响（其214） · 一",
+    "refEn": "Echo No. 214 · I"
+  },
+  {
+    "zh": "他们在页边写了三个字：不数者。写完谁都没念出声。",
+    "en": "in the margin they wrote three characters: the uncounted. Nobody read them aloud.",
+    "refZh": "回响（其214） · 二",
+    "refEn": "Echo No. 214 · II"
+  },
+  {
+    "zh": "抄本院里一共五个抄本师。第一个看见那三个字的没有问是谁写的——册子里的字从来不问出处。",
+    "en": "there were five copyists in the hall. the first to see those three characters did not ask who wrote them — words in the ledger never ask where they came from.",
+    "refZh": "回响（其214） · 三",
+    "refEn": "Echo No. 214 · III"
+  },
+  {
+    "zh": "后来每个抄本师路过那一页，都会停下来看一眼那三个字，然后什么也不做。",
+    "en": "afterwards every copyist passing that page stopped to look at the three characters, and then did nothing at all.",
+    "refZh": "回响（其214） · 四",
+    "refEn": "Echo No. 214 · IV"
+  },
+  {
+    "zh": "最年长的抄本师说——名字是给愿意被数的东西用的；它不愿意，那就不给。",
+    "en": "the eldest copyist said — a name is for a thing willing to be counted; it is not willing, so it gets none.",
+    "refZh": "回响（其214） · 五",
+    "refEn": "Echo No. 214 · V"
+  },
+  {
+    "zh": "冬潮月过完，那三个字还在页边，新痕还在原处，一行四十三道还在那一行里。",
+    "en": "when the winter-tide month ended, the three characters were still in the margin, the fresh mark still where it was, the forty-three still in their row.",
+    "refZh": "回响（其214） · 六",
+    "refEn": "Echo No. 214 · VI"
+  },
+  {
+    "zh": "最年轻的那个抄本师数了页边——一、二、三，数到第七就不数了。",
+    "en": "the youngest copyist counted the margin — one, two, three, and stopped at seven.",
+    "refZh": "回响（其215） · 一",
+    "refEn": "Echo No. 215 · I"
+  },
+  {
+    "zh": "可他回到座位上，还是在纸上写了一个七。",
+    "en": "yet back at his desk he wrote down a seven.",
+    "refZh": "回响（其215） · 二",
+    "refEn": "Echo No. 215 · II"
+  },
+  {
+    "zh": "那张纸第二天被最年长的抄本师看见，他看了很久。",
+    "en": "the next day the eldest copyist saw that paper, and looked at it for a long while.",
+    "refZh": "回响（其215） · 三",
+    "refEn": "Echo No. 215 · III"
+  },
+  {
+    "zh": "最年长的抄本师说——页边是唯一不数的地方；你数了，它就开始排队。",
+    "en": "the eldest copyist said — the margin is the one place nothing is counted; count it, and it starts to queue.",
+    "refZh": "回响（其215） · 四",
+    "refEn": "Echo No. 215 · IV"
+  },
+  {
+    "zh": "那张纸条没有烧掉，也没有抄进册子——被夹进了那一页的页边。",
+    "en": "the slip was neither burned nor copied into the ledger — it was tucked into that page's margin.",
+    "refZh": "回响（其215） · 五",
+    "refEn": "Echo No. 215 · V"
+  },
+  {
+    "zh": "后来页边又多了一条，没有人说那是第八条。",
+    "en": "afterwards one more line appeared in the margin, and nobody called it the eighth.",
+    "refZh": "回响（其215） · 六",
+    "refEn": "Echo No. 215 · VI"
+  },
+  {
+    "zh": "没有人排过页边。可放得多的纸条压在底下，放得少的浮在上面。",
+    "en": "nobody ever arranged the margin. Yet slips placed often sank to the bottom, slips placed rarely rose to the top.",
+    "refZh": "回响（其216） · 一",
+    "refEn": "Echo No. 216 · I"
+  },
+  {
+    "zh": "有人想按时间分，发现每张纸条都没有日期。",
+    "en": "someone tried to sort by time and found no slip carried a date.",
+    "refZh": "回响（其216） · 二",
+    "refEn": "Echo No. 216 · II"
+  },
+  {
+    "zh": "有人想按长短分，发现后来的纸条几乎一样短。",
+    "en": "someone tried to sort by length and found the later slips were nearly all the same shortness.",
+    "refZh": "回响（其216） · 三",
+    "refEn": "Echo No. 216 · III"
+  },
+  {
+    "zh": "写半句话的那张纸条总在中间。它既不是最短，也不是最长，像一行没有写完的记号。",
+    "en": "the slip with half a sentence always sat in the middle — neither the shortest nor the longest, like a mark left half written.",
+    "refZh": "回响（其216） · 四",
+    "refEn": "Echo No. 216 · IV"
+  },
+  {
+    "zh": "最年长的抄本师不再看那些纸条。他只是每次收工时，把封皮合上一半，让那道缝隙留着。",
+    "en": "the eldest copyist no longer looked at the slips. He only ever, at the close of work, shut the cover half way so the gap stayed open.",
+    "refZh": "回响（其216） · 五",
+    "refEn": "Echo No. 216 · V"
+  },
+  {
+    "zh": "灯下的人渐渐分成两种。一种人等账簿完整，一种人等页边更满。",
+    "en": "the people under the lamp slowly divided into two kinds — those who waited for the ledger to be complete, and those who waited for the margin to be fuller.",
+    "refZh": "回响（其216） · 六",
+    "refEn": "Echo No. 216 · VI"
+  },
+  {
+    "zh": "取走纸条的是那个写半句话的孩子。他把它从缝隙里抽出来，抽得很慢。",
+    "en": "the one who took a slip out was the child who wrote half sentences. He drew it out of the gap, slowly.",
+    "refZh": "回响（其217） · 一",
+    "refEn": "Echo No. 217 · I"
+  },
+  {
+    "zh": "他把那半句补完了。补完以后，他把纸条放回原处，位置一点没动。",
+    "en": "he finished the half sentence. When it was finished he put the slip back where it had been, and its place had not moved at all.",
+    "refZh": "回响（其217） · 二",
+    "refEn": "Echo No. 217 · II"
+  },
+  {
+    "zh": "第二天有人看见了那张纸条，问是谁补的。没有人回答。",
+    "en": "the next day somebody saw that slip and asked who had finished it. Nobody answered.",
+    "refZh": "回响（其217） · 三",
+    "refEn": "Echo No. 217 · III"
+  },
+  {
+    "zh": "最年长的抄本师说——取出来可以，放回去要轻；页边不记谁动过它。",
+    "en": "the eldest copyist said — you may take one out; put it back lightly. The margin does not record who touched it.",
+    "refZh": "回响（其217） · 四",
+    "refEn": "Echo No. 217 · IV"
+  },
+  {
+    "zh": "后来又有人取走过一张。那一张没有补全，也没有放回原处——它被留在了木面上。",
+    "en": "afterwards somebody took out another slip. That one was not finished, nor put back where it had been — it was left lying on the wood.",
+    "refZh": "回响（其217） · 五",
+    "refEn": "Echo No. 217 · V"
+  },
+  {
+    "zh": "木面上的那张没有人收。它在那儿放了一夜，第二天早上还在那儿，位置偏了一线。",
+    "en": "nobody picked up the slip on the wood. It lay there all night, and in the morning it was still there, its place shifted by a hair.",
+    "refZh": "回响（其217） · 六",
+    "refEn": "Echo No. 217 · VI"
+  },
+  {
+    "zh": "第二天，缝隙里空出一格，窄得只够一张纸条。",
+    "en": "the next day a gap opened in the seam, narrow enough for one slip and no more.",
+    "refZh": "回响（其218） · 一",
+    "refEn": "Echo No. 218 · I"
+  },
+  {
+    "zh": "孩子用指头量了那一格，和别的格一样宽。",
+    "en": "the child measured the gap with a finger; it was as wide as any other. He took the finger back and did not press the gap narrower.",
+    "refZh": "回响（其218） · 二",
+    "refEn": "Echo No. 218 · II"
+  },
+  {
+    "zh": "有人写了新的一句，想把它放进去。纸条进了一半，又抽了回来。",
+    "en": "someone wrote a new line and tried to set it in. The slip went halfway and was drawn back out.",
+    "refZh": "回响（其218） · 三",
+    "refEn": "Echo No. 218 · III"
+  },
+  {
+    "zh": "最年长的抄本师说，空格也是页边的一部分。",
+    "en": "the eldest copyist said the empty gap is part of the margin too.",
+    "refZh": "回响（其218） · 四",
+    "refEn": "Echo No. 218 · IV"
+  },
+  {
+    "zh": "账上不记空格，但抄本师在页数旁边点了一个点。",
+    "en": "the ledger does not record gaps, but the copyist set one dot beside the page number.",
+    "refZh": "回响（其218） · 五",
+    "refEn": "Echo No. 218 · V"
+  },
+  {
+    "zh": "那张留在木面上的纸条后来不见了，空格还在。",
+    "en": "the slip left on the wood disappeared later; the gap remained.",
+    "refZh": "回响（其218） · 六",
+    "refEn": "Echo No. 218 · VI"
+  },
+  {
+    "zh": "有人把页数旁边的点抄成一行，抄了七页。",
+    "en": "someone copied the dots beside the page numbers into a single line, seven pages of them.",
+    "refZh": "回响（其219） · 一",
+    "refEn": "Echo No. 219 · I"
+  },
+  {
+    "zh": "那些点加起来不等于任何一张纸条，也不等于少了几张。",
+    "en": "those dots did not add up to any slip, nor to any number of missing slips.",
+    "refZh": "回响（其219） · 二",
+    "refEn": "Echo No. 219 · II"
+  },
+  {
+    "zh": "孩子说一个点就是一个地方，不是数目。",
+    "en": "the child said one dot is one place, not a number.",
+    "refZh": "回响（其219） · 三",
+    "refEn": "Echo No. 219 · III"
+  },
+  {
+    "zh": "最年长的抄本师没有改他，只把自己的笔挪远了一寸。",
+    "en": "the eldest copyist did not correct him; he only moved his own brush an inch farther away.",
+    "refZh": "回响（其219） · 四",
+    "refEn": "Echo No. 219 · IV"
+  },
+  {
+    "zh": "后来的人照着点去找，找到的都是页边，不是纸条。",
+    "en": "those who came later followed the dots and found margins, not slips.",
+    "refZh": "回响（其219） · 五",
+    "refEn": "Echo No. 219 · V"
+  },
+  {
+    "zh": "空出来的那一格还空着，点还在旁边。",
+    "en": "the gap is still empty, and the dot is still beside it.",
+    "refZh": "回响（其219） · 六",
+    "refEn": "Echo No. 219 · VI"
+  },
+  {
     "zh": "里巷子晾鱼架最里侧的一号钩上，挂着一条谁都不记得是什么时候挂上去的鱼。",
     "en": "the innermost hook of the drying racks, hook No. 1, carries a fish nobody remembers being hung there.",
     "refZh": "回响（其22） · 一",
@@ -1124,6 +5270,42 @@ export const BIBLE_ANCHORS: readonly BibleAnchor[] = [
     "en": "racks are replaced; hook No. 1 is not — on windy nights people pass a half-step slower, not to see it.",
     "refZh": "回响（其22） · 五",
     "refEn": "Echo No. 22 · V"
+  },
+  {
+    "zh": "孩子把七页点铺在地上，用粉笔把点与点连起来。",
+    "en": "the child laid the seven pages of dots on the floor and joined dot to dot with chalk.",
+    "refZh": "回响（其220） · 一",
+    "refEn": "Echo No. 220 · I"
+  },
+  {
+    "zh": "他沿着线走，每一步落在一个点上。",
+    "en": "he walked along the line, each step landing on a dot.",
+    "refZh": "回响（其220） · 二",
+    "refEn": "Echo No. 220 · II"
+  },
+  {
+    "zh": "最后一个点之后是一条更长的空白，正好通向那一格空位。",
+    "en": "after the last dot ran a longer blank, leading exactly to the empty square.",
+    "refZh": "回响（其220） · 三",
+    "refEn": "Echo No. 220 · III"
+  },
+  {
+    "zh": "他把自己那盏灯放在空白的这一头，不是另一头。",
+    "en": "he set his lamp at this end of the blank, not the other.",
+    "refZh": "回响（其220） · 四",
+    "refEn": "Echo No. 220 · IV"
+  },
+  {
+    "zh": "后来的人把这条线叫作走法，不叫数法。",
+    "en": "those who came later called the line a way to walk, not a way to count.",
+    "refZh": "回响（其220） · 五",
+    "refEn": "Echo No. 220 · V"
+  },
+  {
+    "zh": "空白还是空白，只是现在有人知道它在路的尽头。",
+    "en": "the blank is still blank, only now someone knows it sits at the end of the road.",
+    "refZh": "回响（其220） · 六",
+    "refEn": "Echo No. 220 · VI"
   },
   {
     "zh": "雾港黄昏起雾的时候，码头口总有一艘船不在值守的名册上。",

@@ -165,6 +165,14 @@ management:
   endpoint:
     health:
       show-details: never
+  health:
+    # SC-12 — the Redis starter is on the classpath for the OPTIONAL shared limiter, so Boot auto-registers
+    # a Redis health contributor that pings 127.0.0.1:56379 even when backend=memory. Left on, /actuator/health
+    # (and therefore /platform/health) reports DOWN whenever the optional server is absent — the opposite of
+    # this build's promise that the default gateway needs no second process. The one honest probe is
+    # GatewayRateLimitHealthIndicator: it pings ONLY when backend=redis, and says "not_applicable" otherwise.
+    redis:
+      enabled: false
   # §SC-68: build-info goal 出 jar 时带 artifact/group/version/time + component
   info:
     build:

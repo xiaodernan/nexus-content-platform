@@ -11,11 +11,17 @@
  */
 import postgres from 'postgres';
 
-const url = process.env.NEXUS_DATABASE_URL ?? 'postgres://nexus:nexus_dev_only@localhost:55100/nexus';
+const url = process.env.NEXUS_DATABASE_URL ?? 'postgres://nexus_app:nexus_dev_app_only@127.0.0.1:5433/nexus_dev';
 const email = process.env.NEXUS_E2E_ADMIN_EMAIL ?? 'obs-admin+fixture@nexus.test';
 
-/** 防一手"环境变量还指着别的库"：这一份只应该动本地那块开发盘 */
-if (!url.includes('nexus_dev_only')) {
+/**
+ * 防一手"环境变量还指着别的库"：这一份只应该动本地开发盘。
+ * 2026-11-22 修：默认值曾指着旧的 `55100/nexus`，而产品（apps/web/.env.local）跑在
+ * `5433/nexus_dev`——脚本报"已经是 admin"，管理台 e2e 却永远"没有夹具"。现在按产品那份走。
+ */
+const localDev = /@(?:127\.0\.0\.1|localhost):\d+\//.test(url);
+const devDatabase = /\/(?:nexus|nexus_dev)(?:\?|$)/.test(url);
+if (!localDev || !devDatabase) {
   console.error(`拒绝执行：NEXUS_DATABASE_URL 看着不像本地开发库（${url.replace(/:[^:@/]*@/, ':***@')}）`);
   process.exit(1);
 }

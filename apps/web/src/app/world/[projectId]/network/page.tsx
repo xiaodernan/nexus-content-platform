@@ -40,6 +40,11 @@ const COPY = {
     bridgesTitle: '关节（割边）',
     bridgesHint: '删掉这条关系，世界就多裂成一块。它是叙事上"一断全散"的那根线。',
     bridgesEmpty: '没有割边：每一条关系都处在某个环里，删掉任一条都还连得起来。',
+    cutsTitle: '关节（割点）',
+    cutsHint: '去掉这个条目本身，它所在的关系网会裂成几块——比"断一条线"更重的位置。',
+    cutsEmpty: '没有割点：去掉任何一个条目，剩下的关系仍然连成一片。',
+    cutsParts: (n: number) => `裂成 ${n} 块`,
+    cutsDegree: (n: number) => `${n} 条关系`,
     crossTitle: '跨类关系',
     crossHint: '按关系标签聚合不同类别之间的连线——人物向势力效忠、势力向人物结怨，都在这里。',
     crossEmpty: '还没有跨类别的关系——同类条目之间的连线不进这张表。',
@@ -70,6 +75,11 @@ const COPY = {
     bridgesTitle: 'Bridges (cut edges)',
     bridgesHint: 'Remove this link and the world splits one more way — the thread that holds everything together.',
     bridgesEmpty: 'No bridges: every link sits in a cycle, so removing any one still leaves the graph connected.',
+    cutsTitle: 'Joints (cut vertices)',
+    cutsHint: 'Remove this entry itself and the network around it splits into pieces — heavier than cutting a single thread.',
+    cutsEmpty: 'No cut vertices: removing any one entry still leaves the rest connected.',
+    cutsParts: (n: number) => `splits into ${n}`,
+    cutsDegree: (n: number) => `${n} links`,
     crossTitle: 'Cross-kind ties',
     crossHint: 'Links between different kinds, grouped by label — a character pledging to a faction, a faction feuding with a character.',
     crossEmpty: 'No cross-kind links — ties between entries of the same kind are not listed here.',
@@ -79,7 +89,7 @@ const COPY = {
     footBack: '← Back to the world',
     footDigest: 'World digest →',
     emptyTitle: 'Network can’t open — the world won’t load',
-    emptyCopy: (name: string) => `「${name}」’s world document can’t be read right now, so no numbers here. Check the Studio world panel, confirm the world loads, then come back.`,
+    emptyCopy: (name: string) => `“${name}”’s world document can’t be read right now, so no numbers here. Check the Studio world panel, confirm the world loads, then come back.`,
     emptyLink: 'Back to the Studio world panel →',
   },
 } as const;
@@ -192,6 +202,23 @@ export default async function NetworkPage({ params }: { params: Promise<{ projec
                   <span className="nw-crossLabel">{e.label}</span>
                   <span className="nw-crossCount">{c.crossCount(e.count)}</span>
                   <span className="nw-crossPairs">{e.pairs.map((p) => `${kindLabel(p.fromKind, locale)}→${kindLabel(p.toKind, locale)} ${p.count}`).join(' · ')}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <section className="nw-panel nw-cutPanel" data-network-cuts aria-label={c.cutsTitle}>
+          <h2 className="nw-panelTitle">{c.cutsTitle}</h2>
+          <p className="nw-hint">{c.cutsHint}</p>
+          {net.cutVertices.length === 0 ? (
+            <p className="nw-empty" data-network-cuts-empty>{c.cutsEmpty}</p>
+          ) : (
+            <ul className="nw-bridgeList nw-cutList">
+              {net.cutVertices.map((v) => (
+                <li key={v.id} className="nw-bridge" data-network-cut={v.id}>
+                  <span className="nw-bridgeEnds">{titleOf.get(v.id) ?? v.id}</span>
+                  <span className="nw-bridgeLabel">{c.cutsParts(v.parts)} · {c.cutsDegree(v.degree)}</span>
                 </li>
               ))}
             </ul>

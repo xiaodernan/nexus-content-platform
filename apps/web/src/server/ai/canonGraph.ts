@@ -40,6 +40,10 @@ export interface CanonGraphState extends Record<string, unknown> {
   tokensOut: number;
   cachedTokens: number;
   cacheReported: boolean;
+  /** §COST-2：本轮问典花了多少钱（各轮相加，analyze 也花钱）。 */
+  costUsd: number;
+  /** 每一轮都算得出价才成立；有一轮 `unknown` 总额就不是一个数（与 ai-service execution 同一规则）。 */
+  allRoundsPriced: boolean;
   provider: string;
   model: string;
 }
@@ -54,7 +58,14 @@ export type CanonGraphResult =
       retrieved: readonly string[];
       provider: string;
       model: string;
-      usage: { tokensIn: number; tokensOut: number; cachedTokens: number; cacheReported: boolean };
+      usage: {
+        tokensIn: number;
+        tokensOut: number;
+        cachedTokens: number;
+        cacheReported: boolean;
+        costUsd: number;
+        costBasis: 'unknown' | 'configured';
+      };
       nodesVisited: readonly string[];
     }
   | { ok: false; status: number | null; error: string };
@@ -314,10 +325,33 @@ export function fallbackTerms(question: string): string[] {
   return [...new Set(words)].slice(0, ANALYZE_TIMEOUT_TERMS);
 }
 
-function usageOf(result: AiChatResult): { tokensIn: number; tokensOut: number; cachedTokens: number; cacheReported: boolean } {
-  if (!result.ok) return { tokensIn: 0, tokensOut: 0, cachedTokens: 0, cacheReported: false };
+function usageOf(result: AiChatResult): {
+  tokensIn: number;
+  tokensOut: number;
+  cachedTokens: number;
+  cacheReported: boolean;
+  costUsd: number;
+  costBasis: 'unknown' | 'configured';
+} {
+  if (!result.ok) {
+    return { tokensIn: 0, tokensOut: 0, cachedTokens: 0, cacheReported: false, costUsd: 0, costBasis: 'unknown' };
+  }
   const u = result.response.usage;
-  return { tokensIn: u.tokensIn, tokensOut: u.tokensOut, cachedTokens: u.cachedTokens, cacheReported: u.cacheReported };
+  const amount = Number.isFinite(u.costUsd) && u.costUsd > 0 ? u.costUsd : 0;
+  // 只有明确报了 `configured` **且金额算得出来**才算 configured；缺失/别的一律归 unknown。
+  // 为什么不用 `u.costBasis` 原样透出：这一路进来的对象未必经过 zod 的 default 补齐
+  // （测试替身、旧调用点都会给个缺字段的 usage），原样透出会把 undefined 写进
+  // 一个契约要求 enum 的字段——那不是「未知」，那是没有读数。
+  // 为什么金额也参与判定：与 ai-service 的回归钉同一条（test_pricing.py 不许
+  // `configured` 配 `costUsd=0`，那是"价目表其实没工作"的假绿）。
+  return {
+    tokensIn: u.tokensIn,
+    tokensOut: u.tokensOut,
+    cachedTokens: u.cachedTokens,
+    cacheReported: u.cacheReported,
+    costUsd: amount,
+    costBasis: u.costBasis === 'configured' && amount > 0 ? 'configured' : 'unknown',
+  };
 }
 
 export async function runCanonAnswerGraph(
@@ -343,6 +377,8 @@ export async function runCanonAnswerGraph(
     tokensOut: 0,
     cachedTokens: 0,
     cacheReported: true,
+    costUsd: 0,
+    allRoundsPriced: true,
     provider: '',
     model: '',
   };
@@ -359,6 +395,10 @@ export async function runCanonAnswerGraph(
       tokensOut: s.tokensOut + u.tokensOut,
       cachedTokens: digestBound ? s.cachedTokens + u.cachedTokens : s.cachedTokens,
       cacheReported: digestBound ? s.cacheReported && u.cacheReported : s.cacheReported,
+      // 钱与缓存不同：analyze 那一轮不复用 KV 前缀，但它照样花钱，所以金额**无条件相加**。
+      // 圆整到 1e-8 与 ai-service 的 `_cost_of` 同一口径，免得浮点尾巴把报文写成 0.30000000000000004。
+      costUsd: Math.round((s.costUsd + u.costUsd) * 1e8) / 1e8,
+      allRoundsPriced: s.allRoundsPriced && u.costBasis === 'configured',
     };
   };
 
@@ -476,6 +516,9 @@ export async function runCanonAnswerGraph(
       tokensOut: final.tokensOut,
       cachedTokens: final.cachedTokens,
       cacheReported: final.cacheReported,
+      costUsd: final.costUsd,
+      // 有一轮算不出价，总额就不成立——报 unknown，而不是报一个偏低的数（§COST-1 同一纪律）
+      costBasis: final.allRoundsPriced ? 'configured' : 'unknown',
     },
     nodesVisited: final.nodesVisited,
   };

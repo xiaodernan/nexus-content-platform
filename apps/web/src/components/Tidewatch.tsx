@@ -60,11 +60,11 @@ const COPY: Record<Locale, {
   foot: string;
 }> = {
   zh: {
-    kicker: 'TIDEWATCH · 潮候步进',
+    kicker: '潮候步进',
     title: '让潮记下你这一步',
     lede: '每一步都是一张真实编译的 StateGraph：读局（analyze）→ 检索典籍室锚句（retrieve）→ 潮回叙事 + 结构化改动（narrate）→ 逐字核验（canon_guard）→ 落账（assemble）。潮不编造典籍室没有的东西，你的吃亏由你自己记。',
-    stateKicker: '世界状态 · WORLD STATE',
-    moveKicker: '这一步 · YOUR MOVE',
+    stateKicker: '世界状态',
+    moveKicker: '这一步',
     flowKicker: '潮流转图',
     vigorLabel: '体力',
     depthLabel: '潮位',
@@ -78,7 +78,7 @@ const COPY: Record<Locale, {
     busy: '潮在想这一步……',
     counter: (n) => `${n} / ${MAX_MOVE}`,
     flowNodes: ['analyze', 'retrieve', 'narrate', 'canon_guard', 'assemble'],
-    narrationKicker: '潮回 · THE TIDE REPLIED',
+    narrationKicker: '潮回',
     deltaKicker: '这一步改了什么',
     citationsKicker: '典籍室依据（逐字核验）',
     tipMove: '说一步给潮听：至多 600 字。潮据此判断你的意图（读局），并永远遵守正典。',

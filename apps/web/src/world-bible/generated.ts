@@ -28460,15 +28460,260 @@ Sailors entering the harbor today first look to the direction of the sand table,
   },
   {
     order: 210,
-    slug: 'echo-210-forty-third',
+    slug: 'echo-210-the-faint-mark-becomes-half-a-tide-seal',
+    titleZh: '潮候院抄本院那道浅痕第三日变成半枚潮印',
+    titleEn: 'On the Third Day the Faint Mark Became Half a Tide-Seal',
+    eraLineZh: '纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十三年（同 E206–E209）。',
+    eraLineEn: 'Era: the Institute · after the 44th Convocation; the 143rd year of the winter-tide month (as in E206–E209).',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 210): On the Third Day the Faint Mark Became Half a Tide-Seal
+
+> 回响是正典之外的侧写——不是续篇，是同一块石上被盐啃出的另一层纹理。
+> 本篇写给 E209 之后：第七十三页上那道回答的浅痕，第三日淡了，边上多出半圈印沿。
+> 纪律同正典：锚句 zh/en 逐字对应；本篇不新增正典专名，只写已有设定的细节。
+>
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E209: on page seventy-three the answering faint mark faded, and half a rim had grown beside it.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail within established setting.
+
+> 纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十三年（同 E206–E209）。
+> Era: the Institute · after the 44th Convocation; the 143rd year of the winter-tide month (as in E206–E209).
+
+---
+
+## 一 · 第三日
+
+第三日清晨，那道浅痕淡了，边上多出半圈印沿。
+**锚句**：第三日清晨，那道浅痕淡了，边上多出半圈印沿。
+**Anchor sentence**: on the third morning the faint mark had faded, and half a rim had grown beside it.
+
+---
+
+## 二 · 半枚
+
+抄本师们数那道印沿——它只有四十二道潮印的一半。
+**锚句**：抄本师们数那道印沿——它只有四十二道潮印的一半。
+**Anchor sentence**: the copyists counted the rim — it was half of one of the forty-two tide-seals.
+
+---
+
+## 三 · 不补
+
+没有人去补另外一半：缺着的那半，比补上的更像回答。
+**锚句**：没有人去补另外一半——缺着的那半，比补上的更像回答。
+**Anchor sentence**: no one filled in the other half — the missing half answered more than a completion would.
+
+---
+
+## 四 · 停在第七十三页
+
+册子从此停在第七十三页，不再自己翻。
+**锚句**：册子从此停在第七十三页，不再自己翻。
+**Anchor sentence**: from then on the ledger stayed on page seventy-three and never turned itself again.
+
+---
+
+## 五 · Mapping（Echo No. 210 · world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | half a tide-seal rim · the unfilled other half · the ledger stops turning | 一、二、三、四 |
+| geography | the Institute's copy hall · the winter-tide month | 一、四 |
+| characters | the five copyists · the unnamed hand (E207) | 二、三 |
+| story | the faint mark becomes half a seal · and no one completes it | 全篇 |
+| items | the ledger · page seventy-three · the tide-seal rim | 一、二、四 |
+| history | the 143rd year after the 44th Convocation (continues E206–E209) | 纪元 |
+
+> 第七十三页上没有名字，只有半枚潮印——世界把答案写成缺一半的印，而不是写满的名。
+> Page seventy-three bore no name, only half a tide-seal — the world writes its answer as a seal missing its half, not as a name written full.`,
+    markdownEn: `
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E209: on page seventy-three the answering faint mark faded, and half a rim had grown beside it.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail within established setting.
+
+> Era: the Institute · after the 44th Convocation; the 143rd year of the winter-tide month (as in E206–E209).
+
+---
+
+## 一 · The Third Day
+
+On the third morning the faint mark had faded, and half a rim had grown beside it.
+**锚句**：第三日清晨，那道浅痕淡了，边上多出半圈印沿。
+**Anchor sentence**: on the third morning the faint mark had faded, and half a rim had grown beside it.
+
+---
+
+## 二 · Half a Seal
+
+The copyists counted the rim — it was half of one of the forty-two tide-seals.
+**锚句**：抄本师们数那道印沿——它只有四十二道潮印的一半。
+**Anchor sentence**: the copyists counted the rim — it was half of one of the forty-two tide-seals.
+
+---
+
+## 三 · Unfilled
+
+No one filled in the other half — the missing half answered more than a completion would.
+**锚句**：没有人去补另外一半——缺着的那半，比补上的更像回答。
+**Anchor sentence**: no one filled in the other half — the missing half answered more than a completion would.
+
+---
+
+## 四 · Stuck on Page Seventy-Three
+
+From then on the ledger stayed on page seventy-three and never turned itself again.
+**锚句**：册子从此停在第七十三页，不再自己翻。
+**Anchor sentence**: from then on the ledger stayed on page seventy-three and never turned itself again.
+
+---
+
+## 五 · Mapping（Echo No. 210 · world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | half a tide-seal rim · the unfilled other half · the ledger stops turning | 一、二、三、四 |
+| geography | the Institute's copy hall · the winter-tide month | 一、四 |
+| characters | the five copyists · the unnamed hand (E207) | 二、三 |
+| story | the faint mark becomes half a seal · and no one completes it | 全篇 |
+| items | the ledger · page seventy-three · the tide-seal rim | 一、二、四 |
+| history | the 143rd year after the 44th Convocation (continues E206–E209) | 纪元 |
+
+> 第七十三页上没有名字，只有半枚潮印——世界把答案写成缺一半的印，而不是写满的名。
+> Page seventy-three bore no name, only half a tide-seal — the world writes its answer as a seal missing its half, not as a name written full.`,
+  },
+  {
+    order: 211,
+    slug: 'echo-211-the-half-tide-seal-fits-the-forty-second',
+    titleZh: '潮候院抄本院那半枚潮印合到了第四十二道上',
+    titleEn: 'The Half Tide-Seal Fits the Forty-Second',
+    eraLineZh: '纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十四年（同 E206–E210）。',
+    eraLineEn: 'Era: the Institute · after the 44th Convocation; the 144th year of the winter-tide month (as in E206–E210).',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 211): The Half Tide-Seal Fits the Forty-Second
+
+> 回响是正典之外的侧写——不是续篇，是同一块石上被盐啃出的另一层纹理。
+> 本篇写给 E210 之后：第七十三页上那半枚印沿不见了；抄本师们去看四十二道潮印，
+> 第四十二道原是缺一半的，如今合上了。
+> 纪律同正典：锚句 zh/en 逐字对应；本篇不新增正典专名，只写已有设定的细节。
+>
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E210: the half rim on page seventy-three was gone; the copyists went to the forty-two tide-seals — the forty-second had been missing its half, and now it was fitted.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail within established setting.
+
+> 纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十四年（同 E206–E210）。
+> Era: the Institute · after the 44th Convocation; the 144th year of the winter-tide month (as in E206–E210).
+
+---
+
+## 一 · 不见了
+
+次日清晨，第七十三页上那半枚印沿不见了，纸上只留一圈浅白的痕。
+**锚句**：次日清晨，第七十三页上那半枚印沿不见了，纸上只留一圈浅白的痕。
+**Anchor sentence**: the next morning the half rim was gone from page seventy-three, leaving only a faint white ring on the paper.
+
+---
+
+## 二 · 第四十二道
+
+抄本师们去看四十二道潮印——第四十二道原是缺一半的，如今合上了。
+**锚句**：抄本师们去看四十二道潮印——第四十二道原是缺一半的，如今合上了。
+**Anchor sentence**: the copyists went to look at the forty-two tide-seals — the forty-second had been missing its half, and now it was fitted.
+
+---
+
+## 三 · 合得上
+
+两半的齿痕对得上，缝里没有一丝错。
+**锚句**：两半的齿痕对得上，缝里没有一丝错。
+**Anchor sentence**: the teeth of the two halves matched, and the seam held not a hair's breadth of error.
+
+---
+
+## 四 · 仍无名字
+
+合上的第四十二道仍没有名字，抄本师们也不去刻一个。
+**锚句**：合上的第四十二道仍没有名字，抄本师们也不去刻一个。
+**Anchor sentence**: the fitted forty-second still bore no name, and the copyists carved none.
+
+---
+
+## 五 · Mapping（Echo No. 211 · world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | the half rim leaves page 73 · it fits the forty-second seal · the seam is exact | 一、二、三 |
+| geography | the Institute's copy hall · the winter-tide month | 一、二 |
+| characters | the five copyists · the unnamed hand (E207) | 二、四 |
+| story | the answering half completes a real seal · and stays unnamed | 全篇 |
+| items | the ledger · page seventy-three · the forty-second tide-seal | 一、二、四 |
+| history | the 144th year after the 44th Convocation (closes E206–E210) | 纪元 |
+
+> 第四十二道合上了，仍没有名字——世界把答案补全，却不署名。
+> The forty-second was fitted, and still bore no name — the world completes its answer and signs nothing.`,
+    markdownEn: `
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E210: the half rim on page seventy-three was gone; the copyists went to the forty-two tide-seals — the forty-second had been missing its half, and now it was fitted.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail within established setting.
+
+> Era: the Institute · after the 44th Convocation; the 144th year of the winter-tide month (as in E206–E210).
+
+---
+
+## 一 · Gone
+
+The next morning the half rim was gone from page seventy-three, leaving only a faint white ring on the paper.
+**锚句**：次日清晨，第七十三页上那半枚印沿不见了，纸上只留一圈浅白的痕。
+**Anchor sentence**: the next morning the half rim was gone from page seventy-three, leaving only a faint white ring on the paper.
+
+---
+
+## 二 · The Forty-Second
+
+The copyists went to look at the forty-two tide-seals — the forty-second had been missing its half, and now it was fitted.
+**锚句**：抄本师们去看四十二道潮印——第四十二道原是缺一半的，如今合上了。
+**Anchor sentence**: the copyists went to look at the forty-two tide-seals — the forty-second had been missing its half, and now it was fitted.
+
+---
+
+## 三 · It Fits
+
+The teeth of the two halves matched, and the seam held not a hair's breadth of error.
+**锚句**：两半的齿痕对得上，缝里没有一丝错。
+**Anchor sentence**: the teeth of the two halves matched, and the seam held not a hair's breadth of error.
+
+---
+
+## 四 · Still Nameless
+
+The fitted forty-second still bore no name, and the copyists carved none.
+**锚句**：合上的第四十二道仍没有名字，抄本师们也不去刻一个。
+**Anchor sentence**: the fitted forty-second still bore no name, and the copyists carved none.
+
+---
+
+## 五 · Mapping（Echo No. 211 · world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | the half rim leaves page 73 · it fits the forty-second seal · the seam is exact | 一、二、三 |
+| geography | the Institute's copy hall · the winter-tide month | 一、二 |
+| characters | the five copyists · the unnamed hand (E207) | 二、四 |
+| story | the answering half completes a real seal · and stays unnamed | 全篇 |
+| items | the ledger · page seventy-three · the forty-second tide-seal | 一、二、四 |
+| history | the 144th year after the 44th Convocation (closes E206–E210) | 纪元 |
+
+> 第四十二道合上了，仍没有名字——世界把答案补全，却不署名。
+> The forty-second was fitted, and still bore no name — the world completes its answer and signs nothing.`,
+  },
+  {
+    order: 212,
+    slug: 'echo-212-forty-third',
     titleZh: '潮候院抄本院抄本师们把那道浅痕抄成了第四十三道',
     titleEn: 'The Copyists Entered the Faint Mark as the Forty-Third',
     eraLineZh: '纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E209）。',
     eraLineEn: 'Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E209).',
-    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 210): The Copyists Entered the Faint Mark as the Forty-Third
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 212): The Copyists Entered the Faint Mark as the Forty-Third
 
 > 回响是正典之外的侧写——不是续篇，是同一块石上被盐啃出的另一层纹理。
-> 本篇写给 E209 之后：抄本师们终于把第 73 页那道浅痕抄进册子，排在四十二道潮印之后——他们叫它第四十三道，却又说它不是潮印，是回答。
+> 本篇接在 E211 之后：抄本师们终于把第 73 页那道浅痕抄进册子，排在四十二道潮印之后——他们叫它第四十三道，却又说它不是潮印，是回答。
 > 纪律同正典：锚句 zh/en 逐字对应；本篇不新增正典专名，只写已有设定的细节。
 >
 > An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
@@ -28545,7 +28790,7 @@ Sailors entering the harbor today first look to the direction of the sand table,
 `,
     markdownEn: `
 > An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
-> Written after E209: the copyists finally copied the faint mark from page seventy-three into the ledger, after the forty-two tide marks — they called it the forty-third, yet said it was no tide mark, but an answer.
+> Written after E211: the copyists finally copied the faint mark from page seventy-three into the ledger, after the forty-two tide marks — they called it the forty-third, yet said it was no tide mark, but an answer.
 > Same discipline: anchors verbatim; no new canon proper nouns, only detail within established setting.
 
 > Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E209).
@@ -28617,20 +28862,20 @@ The ledger no longer turned itself at night — yet that blank line held a fresh
 `,
   },
   {
-    order: 211,
-    slug: 'echo-211-not-the-forty-fourth',
+    order: 213,
+    slug: 'echo-213-not-the-forty-fourth',
     titleZh: '潮候院抄本院抄本师们发现新痕不占第四十四道',
     titleEn: 'The Copyists Found the Fresh Mark Did Not Sit as the Forty-Fourth',
-    eraLineZh: '纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E210）。',
-    eraLineEn: 'Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E210).',
+    eraLineZh: '纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E212）。',
+    eraLineEn: 'Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E212).',
     markdownZh: `
 > An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
-> Written after E210: the blank line under the forty-third held a fresh faint mark by morning — this morning the
+> Written after E212: the blank line under the forty-third held a fresh faint mark by morning — this morning the
 > copyists counted, and found the new mark would not take the forty-fourth place.
 > Same discipline: anchors verbatim; no new canon proper nouns, only detail within established setting.
 
-> 纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E210）。
-> Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E210).
+> 纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E212）。
+> Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E212).
 > 页边：数字是用来数的，这一道不是用来数的。
 
 ---
@@ -28692,18 +28937,18 @@ The ledger no longer turned itself at night — yet that blank line held a fresh
 | characters | the five copyists · the second copyist's shaking hand · the eldest copyist | 三、五 |
 | story | the mark refuses the forty-fourth place · the answer sits beside the question | 全篇 |
 | items | the ledger · the forty-three marks · the fresh mark · the margin | 一、三、五 |
-| history | the 140th year after the 44th Convocation (continues E206–E210) | 纪元 |
+| history | the 140th year after the 44th Convocation (continues E206–E212) | 纪元 |
 
 > 第四十四道始终空着——不是留给下一道潮印，是留给一个不算数的位置。
 > The forty-fourth stays empty — not kept for the next tide mark, but for a place that is not counted.
 `,
     markdownEn: `
 > An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
-> Written after E210: the blank line under the forty-third held a fresh faint mark by morning — this morning the
+> Written after E212: the blank line under the forty-third held a fresh faint mark by morning — this morning the
 > copyists counted, and found the new mark would not take the forty-fourth place.
 > Same discipline: anchors verbatim; no new canon proper nouns, only detail within established setting.
 
-> Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E210).
+> Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E212).
 > Margin: a number is for counting; this one is not to be counted.
 
 ---
@@ -28765,25 +29010,25 @@ The winter-tide month passed, and the fresh mark stayed where it was, unmoved; t
 | characters | the five copyists · the second copyist's shaking hand · the eldest copyist | III, V |
 | story | the mark refuses the forty-fourth place · the answer sits beside the question | all |
 | items | the ledger · the forty-three marks · the fresh mark · the margin | I, III, V |
-| history | the 140th year after the 44th Convocation (continues E206–E210) | era |
+| history | the 140th year after the 44th Convocation (continues E206–E212) | era |
 
 > The forty-fourth stays empty — not kept for the next tide mark, but for a place that is not counted.
 > 第四十四道始终空着——不是留给下一道潮印，是留给一个不算数的位置。
 `,
   },
   {
-    order: 212,
-    slug: 'echo-212-not-a-name',
+    order: 214,
+    slug: 'echo-214-not-a-name',
     titleZh: '抄本师们给那道新痕起了个不是名字的名字',
     titleEn: 'The Copyists Gave the Fresh Mark a Word That Was Not a Name',
-    eraLineZh: '纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E211）。',
-    eraLineEn: 'Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E211).',
+    eraLineZh: '纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E213）。',
+    eraLineEn: 'Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E213).',
     markdownZh: `
 > An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
-> Written after E211: the fresh mark would not take the forty-fourth place, so the eldest wrote in the margin that a number is for counting and this one is not to be counted. This echo asks what they called it instead.
+> Written after E213: the fresh mark would not take the forty-fourth place, so the eldest wrote in the margin that a number is for counting and this one is not to be counted. This echo asks what they called it instead.
 > Same discipline: anchors verbatim; no new canon proper nouns, only detail within established setting.
 
-> 纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E211）。
+> 纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E213）。
 > 页边：名字是给愿意被数的东西用的；它不愿意，那就不给。
 
 ---
@@ -28845,17 +29090,17 @@ The winter-tide month passed, and the fresh mark stayed where it was, unmoved; t
 | characters | the five copyists · the first to see the characters · the eldest copyist | 三、四、五 |
 | story | the mark gets a word that is not a name, and nothing is filed | 全篇 |
 | items | the ledger · the margin · the three characters · the forty-three | 二、六 |
-| history | the 140th year after the 44th Convocation (continues E206–E211) | 纪元 |
+| history | the 140th year after the 44th Convocation (continues E206–E213) | 纪元 |
 
 > 名字之外还有位置——页边那一角从不数，所以它装得下任何不肯被数的东西。
 > There is room outside a name — the margin is never counted, so it holds anything that refuses to be.
 `,
     markdownEn: `
 > An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
-> Written after E211: the fresh mark would not take the forty-fourth place, so the eldest wrote in the margin that a number is for counting and this one is not to be counted. This echo asks what they called it instead.
+> Written after E213: the fresh mark would not take the forty-fourth place, so the eldest wrote in the margin that a number is for counting and this one is not to be counted. This echo asks what they called it instead.
 > Same discipline: anchors verbatim; no new canon proper nouns, only detail within established setting.
 
-> Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E211).
+> Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E213).
 > Margin: a name is for a thing willing to be counted; it is not willing, so it gets none.
 
 ---
@@ -28917,25 +29162,25 @@ When the winter-tide month ended, the three characters were still in the margin,
 | characters | the five copyists · the first to see the characters · the eldest copyist | III, IV, V |
 | story | the mark gets a word that is not a name, and nothing is filed | all |
 | items | the ledger · the margin · the three characters · the forty-three | II, VI |
-| history | the 140th year after the 44th Convocation (continues E206–E211) | era |
+| history | the 140th year after the 44th Convocation (continues E206–E213) | era |
 
 > There is room outside a name — the margin is never counted, so it holds anything that refuses to be.
 > 名字之外还有位置——页边那一角从不数，所以它装得下任何不肯被数的东西。
 `,
   },
   {
-    order: 213,
-    slug: 'echo-213-counting-the-margin',
+    order: 215,
+    slug: 'echo-215-counting-the-margin',
     titleZh: '有人开始数页边',
     titleEn: 'Somebody Started Counting the Margin',
-    eraLineZh: '纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E212）。',
-    eraLineEn: 'Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E212).',
+    eraLineZh: '纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E214）。',
+    eraLineEn: 'Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E214).',
     markdownZh: `
 > An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
-> Written after E212: the copyists refused to name the mark and wrote three characters in the margin instead. This echo is about the first person to count the margin.
+> Written after E214: the copyists refused to name the mark and wrote three characters in the margin instead. This echo is about the first person to count the margin.
 > Same discipline: anchors verbatim; no new canon proper nouns, only detail within established setting.
 
-> 纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E212）。
+> 纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E214）。
 > 页边：页边是唯一不数的地方；你数了，它就开始排队。
 
 ---
@@ -28997,16 +29242,16 @@ When the winter-tide month ended, the three characters were still in the margin,
 | characters | the youngest copyist · the eldest copyist · the five copyists | 一、三、四 |
 | story | the one uncounted place gets counted, and quietly refuses the count | 全篇 |
 | items | the margin · the slip with a seven · the ledger | 二、五 |
-| history | the 140th year after the 44th Convocation (continues E206–E212) | 纪元 |
+| history | the 140th year after the 44th Convocation (continues E206–E214) | 纪元 |
 
 > 不数的地方不是没有人想数——是每一次有人想数，都有人把纸条夹回页边。
 > The uncounted place is not one nobody wants to count — it is one where every time somebody tries, the slip goes back into the margin.`,
     markdownEn: `
 > An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
-> Written after E212: the copyists refused to name the mark and wrote three characters in the margin instead. This echo is about the first person to count the margin.
+> Written after E214: the copyists refused to name the mark and wrote three characters in the margin instead. This echo is about the first person to count the margin.
 > Same discipline: anchors verbatim; no new canon proper nouns, only detail within established setting.
 
-> Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E212).
+> Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E214).
 > Margin: the margin is the one place nothing is counted; count it, and it starts to queue.
 
 ---
@@ -29068,24 +29313,24 @@ Afterwards one more line appeared in the margin, and nobody called it the eighth
 | characters | the youngest copyist · the eldest copyist · the five copyists | I, III, IV |
 | story | the one uncounted place gets counted, and quietly refuses the count | all |
 | items | the margin · the slip with a seven · the ledger | II, V |
-| history | the 140th year after the 44th Convocation (continues E206–E212) | era |
+| history | the 140th year after the 44th Convocation (continues E206–E214) | era |
 
 > The uncounted place is not one nobody wants to count — it is one where every time somebody tries, the slip goes back into the margin.
 > 不数的地方不是没有人想数——是每一次有人想数，都有人把纸条夹回页边。`,
   },
   {
-    order: 214,
-    slug: 'echo-214-the-margin-sorts-itself',
+    order: 216,
+    slug: 'echo-216-the-margin-sorts-itself',
     titleZh: '页边开始按长短排',
     titleEn: 'The Margin Began to Sort Itself by Length',
-    eraLineZh: '纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E213）。',
-    eraLineEn: 'Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E213).',
+    eraLineZh: '纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E215）。',
+    eraLineEn: 'Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E215).',
     markdownZh: `
 > An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
-> Written after E213: the youngest copyist counted the margin and tucked the seven back in; nobody called the new line the eighth. This echo is about the order the margin found on its own.
+> Written after E215: the youngest copyist counted the margin and tucked the seven back in; nobody called the new line the eighth. This echo is about the order the margin found on its own.
 > Same discipline: anchors verbatim; no new canon proper nouns, only detail within established setting.
 
-> 纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E213）。
+> 纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E215）。
 > 页边：页边自己会长出次序——不是谁排的。
 
 ---
@@ -29147,16 +29392,16 @@ Afterwards one more line appeared in the margin, and nobody called it the eighth
 | characters | the five copyists · the eldest copyist · the child with half sentences | 四、五 |
 | story | the margin acquires an order nobody arranged | 全篇 |
 | items | the slips · the cover gap · the ledger | 一、五 |
-| history | the 140th year after the 44th Convocation (continues E206–E213) | 纪元 |
+| history | the 140th year after the 44th Convocation (continues E206–E215) | 纪元 |
 
 > 页边自己会长出次序——不是谁排的，是放的人多了，轻的自然浮上来。
 > The margin grows an order of its own — not arranged by anyone, only that as more slips are placed, the light ones rise.`,
     markdownEn: `
 > An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
-> Written after E213: the youngest copyist counted the margin and tucked the seven back in; nobody called the new line the eighth. This echo is about the order the margin found on its own.
+> Written after E215: the youngest copyist counted the margin and tucked the seven back in; nobody called the new line the eighth. This echo is about the order the margin found on its own.
 > Same discipline: anchors verbatim; no new canon proper nouns, only detail within established setting.
 
-> Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E213).
+> Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E215).
 > Margin: the margin grows an order of its own — not arranged by anyone.
 
 ---
@@ -29218,24 +29463,24 @@ The people under the lamp slowly divided into two kinds — those who waited for
 | characters | the five copyists · the eldest copyist · the child with half sentences | IV, V |
 | story | the margin acquires an order nobody arranged | all |
 | items | the slips · the cover gap · the ledger | I, V |
-| history | the 140th year after the 44th Convocation (continues E206–E213) | era |
+| history | the 140th year after the 44th Convocation (continues E206–E215) | era |
 
 > The margin grows an order of its own — not arranged by anyone, only that as more slips are placed, the light ones rise.
 > 页边自己会长出次序——不是谁排的，是放的人多了，轻的自然浮上来。`,
   },
   {
-    order: 215,
-    slug: 'echo-215-taking-one-out',
+    order: 217,
+    slug: 'echo-217-taking-one-out',
     titleZh: '有人从页边取走了一张',
     titleEn: 'Somebody Took One Out of the Margin',
-    eraLineZh: '纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E214）。',
-    eraLineEn: 'Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E214).',
+    eraLineZh: '纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E216）。',
+    eraLineEn: 'Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E216).',
     markdownZh: `
 > An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
-> Written after E214: the margin acquired an order nobody arranged — slips placed often sank, slips placed rarely rose. This echo is about the first slip anybody took back out.
+> Written after E216: the margin acquired an order nobody arranged — slips placed often sank, slips placed rarely rose. This echo is about the first slip anybody took back out.
 > Same discipline: anchors verbatim; no new canon proper nouns, only detail within established setting.
 
-> 纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E214）。
+> 纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E216）。
 
 ---
 
@@ -29296,16 +29541,16 @@ The people under the lamp slowly divided into two kinds — those who waited for
 | characters | the child with half sentences · the five copyists · the eldest copyist | 一、三、四 |
 | story | the first slip leaves the margin and returns; the second does not | 全篇 |
 | items | the slips · the cover gap · the wood surface | 二、五、六 |
-| history | the 140th year after the 44th Convocation (continues E206–E214) | 纪元 |
+| history | the 140th year after the 44th Convocation (continues E206–E216) | 纪元 |
 
 > 页边不记谁动过它——所以取出来再放回去，才算真的没动过。
 > The margin does not record who touched it — so only taking one out and putting it back counts as not having touched it at all.`,
     markdownEn: `
 > An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
-> Written after E214: the margin acquired an order nobody arranged — slips placed often sank, slips placed rarely rose. This echo is about the first slip anybody took back out.
+> Written after E216: the margin acquired an order nobody arranged — slips placed often sank, slips placed rarely rose. This echo is about the first slip anybody took back out.
 > Same discipline: anchors verbatim; no new canon proper nouns, only detail within established setting.
 
-> Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E214).
+> Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E216).
 
 ---
 
@@ -29366,10 +29611,310 @@ Nobody picked up the slip on the wood. It lay there all night, and in the mornin
 | characters | the child with half sentences · the five copyists · the eldest copyist | I, III, IV |
 | story | the first slip leaves the margin and returns; the second does not | all |
 | items | the slips · the cover gap · the wood surface | II, V, VI |
-| history | the 140th year after the 44th Convocation (continues E206–E214) | era |
+| history | the 140th year after the 44th Convocation (continues E206–E216) | era |
 
 > The margin does not record who touched it — so only taking one out and putting it back counts as not having touched it at all.
 > 页边不记谁动过它——所以取出来再放回去，才算真的没动过。`,
+  },
+  {
+    order: 218,
+    slug: 'echo-218-the-gap-left-behind',
+    titleZh: '空出来的那一格',
+    titleEn: 'The Gap Left Behind',
+    eraLineZh: '纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E217）。',
+    eraLineEn: 'Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E217).',
+    markdownZh: `
+> 回响不替正典续写——它只是页边另一层长出来的盐。
+> 写在 E217 之后：有人取走了一张，又有人把一张留在木面上。这一篇写的是那一格空位本身。
+> 纪律同前：锚句逐字；不新增正典专名，只在既有的灰棚与抄本院里添细节。
+
+> 纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E217）。
+
+---
+
+## 一 · 空位
+
+第二天，缝隙里空出一格，窄得只够一张纸条。
+**锚句**：第二天，缝隙里空出一格，窄得只够一张纸条。
+**Anchor sentence**: the next day a gap opened in the seam, narrow enough for one slip and no more.
+
+---
+
+## 二 · 量
+
+孩子用指头量了那一格，和别的格一样宽。他把指头收回来，没有把那一格按窄。
+**锚句**：孩子用指头量了那一格，和别的格一样宽。
+**Anchor sentence**: the child measured the gap with a finger; it was as wide as any other. He took the finger back and did not press the gap narrower.
+
+---
+
+## 三 · 想填
+
+有人写了新的一句，想把它放进去。纸条进了一半，又抽了回来——那一句说的是别处的潮。
+**锚句**：有人写了新的一句，想把它放进去。纸条进了一半，又抽了回来。
+**Anchor sentence**: someone wrote a new line and tried to set it in. The slip went halfway and was drawn back out.
+
+---
+
+## 四 · 最年长者又说
+
+最年长的抄本师说，空格也是页边的一部分；页边不是一张挨一张，是留出来的。
+**锚句**：最年长的抄本师说，空格也是页边的一部分。
+**Anchor sentence**: the eldest copyist said the empty gap is part of the margin too.
+
+---
+
+## 五 · 一个点
+
+账上不记空格，但抄本师在页数旁边点了一个点。那个点很小，翻页时也不会被擦掉。
+**锚句**：账上不记空格，但抄本师在页数旁边点了一个点。
+**Anchor sentence**: the ledger does not record gaps, but the copyist set one dot beside the page number.
+
+---
+
+## 六 · 仍在
+
+那张留在木面上的纸条后来不见了，空格还在。没有人把它填上，也没有人把它算作少了一张。
+**锚句**：那张留在木面上的纸条后来不见了，空格还在。
+**Anchor sentence**: the slip left on the wood disappeared later; the gap remained.
+
+---
+
+## 七 · Mapping（Echo No. 218 · world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | the gap is part of the margin · the margin is made of what is left out · a dot beside the page number | 一、四、五 |
+| geography | the Institute's copy hall · the winter-tide month | 一、六 |
+| characters | the child with half sentences · the five copyists · the eldest copyist | 二、三、四 |
+| story | after E217: the gap left by a taken slip stays empty | 全篇 |
+| items | the slips · the cover gap · the ledger · the page number | 一、五、六 |
+| history | the 140th year after the 44th Convocation (continues E206–E217) | 纪元 |
+
+> 页边不是纸挨着纸——是纸之间还肯留一格。
+> The margin is not slip against slip — it is the one gap the slips still agree to leave.
+`,
+    markdownEn: `
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E217: one slip was taken out, another was left on the wood. This echo is about the empty gap itself.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail within the established grey cover and copy hall.
+
+> Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E217).
+
+---
+
+## One · The Gap
+
+The next day a gap opened in the seam, narrow enough for one slip and no more.
+**锚句**：第二天，缝隙里空出一格，窄得只够一张纸条。
+**Anchor sentence**: the next day a gap opened in the seam, narrow enough for one slip and no more.
+
+---
+
+## Two · Measured
+
+The child measured the gap with a finger; it was as wide as any other. He took the finger back and did not press the gap narrower.
+**锚句**：孩子用指头量了那一格，和别的格一样宽。
+**Anchor sentence**: the child measured the gap with a finger; it was as wide as any other. He took the finger back and did not press the gap narrower.
+
+---
+
+## Three · An Attempt to Fill It
+
+Someone wrote a new line and tried to set it in. The slip went halfway and was drawn back out — that line spoke of a tide somewhere else.
+**锚句**：有人写了新的一句，想把它放进去。纸条进了一半，又抽了回来。
+**Anchor sentence**: someone wrote a new line and tried to set it in. The slip went halfway and was drawn back out.
+
+---
+
+## Four · The Eldest Speaks Again
+
+The eldest copyist said the empty gap is part of the margin too; a margin is not slip against slip, but what is left between them.
+**锚句**：最年长的抄本师说，空格也是页边的一部分。
+**Anchor sentence**: the eldest copyist said the empty gap is part of the margin too.
+
+---
+
+## Five · One Dot
+
+The ledger does not record gaps, but the copyist set one dot beside the page number. The dot was small, and turning the page would not rub it away.
+**锚句**：账上不记空格，但抄本师在页数旁边点了一个点。
+**Anchor sentence**: the ledger does not record gaps, but the copyist set one dot beside the page number.
+
+---
+
+## Six · Still There
+
+The slip left on the wood disappeared later; the gap remained. Nobody filled it, and nobody counted it as one slip short.
+**锚句**：那张留在木面上的纸条后来不见了，空格还在。
+**Anchor sentence**: the slip left on the wood disappeared later; the gap remained.
+
+---
+
+## Seven · Mapping（Echo No. 218 · world model）
+
+| Dimension | Value | Sections |
+| --- | --- | --- |
+| lore | the gap is part of the margin · the margin is made of what is left out · a dot beside the page number | I, IV, V |
+| geography | the Institute's copy hall · the winter-tide month | I, VI |
+| characters | the child with half sentences · the five copyists · the eldest copyist | II, III, IV |
+| story | after E217: the gap left by a taken slip stays empty | whole |
+| items | the slips · the cover gap · the ledger · the page number | I, V, VI |
+| history | the 140th year after the 44th Convocation (continues E206–E217) | Era |
+
+> The margin is not slip against slip — it is the one gap the slips still agree to leave.
+> 页边不是纸挨着纸——是纸之间还肯留一格。
+`,
+  },
+  {
+    order: 219,
+    slug: 'echo-219-the-ledger-of-dots',
+    titleZh: '点账',
+    titleEn: 'The Ledger of Dots',
+    eraLineZh: '纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E218）。',
+    eraLineEn: 'Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E218).',
+    markdownZh: `
+> 回响不替正典续写——它只是页边另一层长出来的盐。
+> 写在 E218 之后：空出来的那一格旁边，多了一个点。这一篇写的是那些点被抄成一行之后。
+> 纪律同前：锚句逐字；不新增正典专名，只在既有的灰棚与抄本院里添细节。
+
+> 纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E218）。
+
+---
+
+## 一 · 抄点
+
+有人把页数旁边的点抄成一行，抄了七页。他没有抄页数，只抄点与点之间的距离。
+**锚句**：有人把页数旁边的点抄成一行，抄了七页。
+**Anchor sentence**: someone copied the dots beside the page numbers into a single line, seven pages of them.
+
+---
+
+## 二 · 数不成
+
+那些点加起来不等于任何一张纸条，也不等于少了几张。它们只是一些位置，彼此隔着一小段空白。
+**锚句**：那些点加起来不等于任何一张纸条，也不等于少了几张。
+**Anchor sentence**: those dots did not add up to any slip, nor to any number of missing slips.
+
+---
+
+## 三 · 孩子说
+
+孩子说一个点就是一个地方，不是数目。他把手指按在第一个点上，又抬起来，指腹上什么也没有。
+**锚句**：孩子说一个点就是一个地方，不是数目。
+**Anchor sentence**: the child said one dot is one place, not a number.
+
+---
+
+## 四 · 笔挪远
+
+最年长的抄本师没有改他，只把自己的笔挪远了一寸。那一寸让两个人的手不再同时落在同一格上。
+**锚句**：最年长的抄本师没有改他，只把自己的笔挪远了一寸。
+**Anchor sentence**: the eldest copyist did not correct him; he only moved his own brush an inch farther away.
+
+---
+
+## 五 · 照着找
+
+后来的人照着点去找，找到的都是页边，不是纸条。有人在页边站了很久，最后把灯往那一格挪近了些。
+**锚句**：后来的人照着点去找，找到的都是页边，不是纸条。
+**Anchor sentence**: those who came later followed the dots and found margins, not slips.
+
+---
+
+## 六 · 还空着
+
+空出来的那一格还空着，点还在旁边。账上没有多一行，也没有少一行。
+**锚句**：空出来的那一格还空着，点还在旁边。
+**Anchor sentence**: the gap is still empty, and the dot is still beside it.
+
+---
+
+## 七 · Mapping（Echo No. 219 · world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | a dot marks a place, not a count · the dot ledger is not a second canon | 一、二、三 |
+| geography | the Institute's copy hall · the page margins · the lamp moved closer | 一、五 |
+| characters | the child with half sentences · the eldest copyist · the later readers | 三、四、五 |
+| story | after E218: the gap stays empty; the dot stays beside it | 全篇 |
+| items | the dots · the copied line · the ledger · the lamp | 一、二、五、六 |
+| history | the 140th year after the 44th Convocation (continues E206–E218) | 纪元 |
+
+> 点不是账目——是有人替一张不在的纸条留了个位置。
+> A dot is not an entry — it is a place someone kept for a slip that is not there.
+`,
+    markdownEn: `
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E218: beside the empty gap, a dot remained. This echo is about what happened when the dots were copied into a line.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail within the established grey cover and copy hall.
+
+> Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E218).
+
+---
+
+## One · Copying Dots
+
+Someone copied the dots beside the page numbers into a single line, seven pages of them. He copied no page numbers, only the distances between one dot and the next.
+**锚句**：有人把页数旁边的点抄成一行，抄了七页。
+**Anchor sentence**: someone copied the dots beside the page numbers into a single line, seven pages of them.
+
+---
+
+## Two · No Sum
+
+Those dots did not add up to any slip, nor to any number of missing slips. They were only places, each separated from the next by a little blank.
+**锚句**：那些点加起来不等于任何一张纸条，也不等于少了几张。
+**Anchor sentence**: those dots did not add up to any slip, nor to any number of missing slips.
+
+---
+
+## Three · The Child Says
+
+The child said one dot is one place, not a number. He pressed a finger on the first dot, lifted it, and there was nothing on his fingertip.
+**锚句**：孩子说一个点就是一个地方，不是数目。
+**Anchor sentence**: the child said one dot is one place, not a number.
+
+---
+
+## Four · The Brush Moves Back
+
+The eldest copyist did not correct him; he only moved his own brush an inch farther away. That inch kept two hands from landing on the same square at once.
+**锚句**：最年长的抄本师没有改他，只把自己的笔挪远了一寸。
+**Anchor sentence**: the eldest copyist did not correct him; he only moved his own brush an inch farther away.
+
+---
+
+## Five · Following the Dots
+
+Those who came later followed the dots and found margins, not slips. Someone stood at the margin a long while, then moved the lamp a little closer to that square.
+**锚句**：后来的人照着点去找，找到的都是页边，不是纸条。
+**Anchor sentence**: those who came later followed the dots and found margins, not slips.
+
+---
+
+## Six · Still Empty
+
+The gap is still empty, and the dot is still beside it. The ledger has gained no line and lost none.
+**锚句**：空出来的那一格还空着，点还在旁边。
+**Anchor sentence**: the gap is still empty, and the dot is still beside it.
+
+---
+
+## Seven · Mapping（Echo No. 219 · world model）
+
+| Dimension | Value | Sections |
+| --- | --- | --- |
+| lore | a dot marks a place, not a count · the dot ledger is not a second canon | I, II, III |
+| geography | the Institute's copy hall · the page margins · the lamp moved closer | I, V |
+| characters | the child with half sentences · the eldest copyist · the later readers | III, IV, V |
+| story | after E218: the gap stays empty; the dot stays beside it | whole |
+| items | the dots · the copied line · the ledger · the lamp | I, II, V, VI |
+| history | the 140th year after the 44th Convocation (continues E206–E218) | Era |
+
+> A dot is not an entry — it is a place someone kept for a slip that is not there.
+> 点不是账目——是有人替一张不在的纸条留了个位置。
+`,
   },
   {
     order: 22,
@@ -29555,6 +30100,156 @@ Watchers tell the new arrivals: racks are swapped; the hook is not — on windy 
 
 > 风夜经过一号钩的人总慢半步——不是想看一号钩的鱼，是怕惊到它。
 > People passing hook No. 1 on windy nights slow a half-step — not to see the fish, but to avoid startling it.
+`,
+  },
+  {
+    order: 220,
+    slug: 'echo-220-walking-the-line-of-dots',
+    titleZh: '照着点走一遍',
+    titleEn: 'Walking the Line of Dots',
+    eraLineZh: '纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E219）。',
+    eraLineEn: 'Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E219).',
+    markdownZh: `
+> 回响不替正典续写——它只是页边另一层长出来的盐。
+> 写在 E219 之后：点被抄成一行之后，孩子把那行点铺在了地上。这一篇写的是沿着点走一遍会发生什么。
+> 纪律同前：锚句逐字；不新增正典专名，只在既有的灰棚与抄本院里添细节。
+
+> 纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E219）。
+
+---
+
+## 一 · 起念
+
+孩子把七页点铺在地上，用粉笔把点与点连起来。线绕开书架，窄得只够一个人走。
+**锚句**：孩子把七页点铺在地上，用粉笔把点与点连起来。
+**Anchor sentence**: the child laid the seven pages of dots on the floor and joined dot to dot with chalk.
+
+---
+
+## 二 · 走
+
+他沿着线走，每一步落在一个点上。数到第十九步时他停下来——不是累了，是前面没有点了。
+**锚句**：他沿着线走，每一步落在一个点上。
+**Anchor sentence**: he walked along the line, each step landing on a dot.
+
+---
+
+## 三 · 空的一截
+
+最后一个点之后是一条更长的空白，正好通向那一格空位。孩子没有跨过去，只在空白前站住。
+**锚句**：最后一个点之后是一条更长的空白，正好通向那一格空位。
+**Anchor sentence**: after the last dot ran a longer blank, leading exactly to the empty square.
+
+---
+
+## 四 · 抄本师也走
+
+最年长的抄本师照着孩子的线走了一遍，走到空白前也停了。他把自己那盏灯放在空白的这一头，不是另一头。
+**锚句**：他把自己那盏灯放在空白的这一头，不是另一头。
+**Anchor sentence**: he set his lamp at this end of the blank, not the other.
+
+---
+
+## 五 · 走法
+
+后来的人把这条线叫作走法，不叫数法。有人走完就回去翻自己抄的那一页，发现自己的点也在这条线上。
+**锚句**：后来的人把这条线叫作走法，不叫数法。
+**Anchor sentence**: those who came later called the line a way to walk, not a way to count.
+
+---
+
+## 六 · 线还在
+
+粉笔线被鞋底磨淡了，点还在。空白还是空白，只是现在有人知道它在路的尽头。
+**锚句**：空白还是空白，只是现在有人知道它在路的尽头。
+**Anchor sentence**: the blank is still blank, only now someone knows it sits at the end of the road.
+
+---
+
+## 七 · Mapping（Echo No. 220 · world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | a line of dots is a route, not a tally · the blank is the road's end, not a missing entry | 二、三、五 |
+| geography | the Institute's copy hall · the floor between shelves · the empty square | 一、三 |
+| characters | the child with chalk · the eldest copyist · the later walkers | 一、二、四、五 |
+| story | after E219: the dots are walked; the lamp stays on this side of the blank | 全篇 |
+| items | the seven pages · the chalk line · the lamp · the erased line | 一、四、六 |
+| history | the 140th year after the 44th Convocation (continues E206–E219) | 纪元 |
+
+> 线不是答案——是有人把一个位置走成了可以去的地方。
+> The line is not an answer — it is a place someone walked until it could be gone to.
+`,
+    markdownEn: `
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E219: once the dots were copied into a line, the child laid that line on the floor. This echo is about what happens when you walk it.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail within the established grey cover and copy hall.
+
+> Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E219).
+
+---
+
+## One · The Notion
+
+The child laid the seven pages of dots on the floor and joined dot to dot with chalk. The line bent around the shelves, narrow enough for one person.
+**锚句**：孩子把七页点铺在地上，用粉笔把点与点连起来。
+**Anchor sentence**: the child laid the seven pages of dots on the floor and joined dot to dot with chalk.
+
+---
+
+## Two · The Walk
+
+He walked along the line, each step landing on a dot. At the nineteenth step he stopped — not from tiredness, but because there were no dots ahead.
+**锚句**：他沿着线走，每一步落在一个点上。
+**Anchor sentence**: he walked along the line, each step landing on a dot.
+
+---
+
+## Three · The Long Blank
+
+After the last dot ran a longer blank, leading exactly to the empty square. The child did not cross it; he stood at the blank's edge.
+**锚句**：最后一个点之后是一条更长的空白，正好通向那一格空位。
+**Anchor sentence**: after the last dot ran a longer blank, leading exactly to the empty square.
+
+---
+
+## Four · The Copyist Walks Too
+
+The eldest copyist walked the child's line once, and stopped at the blank as well. He set his lamp at this end of the blank, not the other.
+**锚句**：他把自己那盏灯放在空白的这一头，不是另一头。
+**Anchor sentence**: he set his lamp at this end of the blank, not the other.
+
+---
+
+## Five · A Way to Walk
+
+Those who came later called the line a way to walk, not a way to count. Someone finished the walk, went back to the page he had copied, and found his own dot sitting on that line.
+**锚句**：后来的人把这条线叫作走法，不叫数法。
+**Anchor sentence**: those who came later called the line a way to walk, not a way to count.
+
+---
+
+## Six · The Line Remains
+
+The chalk line wore thin under heels, but the dots remained. The blank is still blank, only now someone knows it sits at the end of the road.
+**锚句**：空白还是空白，只是现在有人知道它在路的尽头。
+**Anchor sentence**: the blank is still blank, only now someone knows it sits at the end of the road.
+
+---
+
+## Seven · Mapping（Echo No. 220 · world model）
+
+| Dimension | Value | Sections |
+| --- | --- | --- |
+| lore | a line of dots is a route, not a tally · the blank is the road's end, not a missing entry | II, III, V |
+| geography | the Institute's copy hall · the floor between shelves · the empty square | I, III |
+| characters | the child with chalk · the eldest copyist · the later walkers | I, II, IV, V |
+| story | after E219: the dots are walked; the lamp stays on this side of the blank | whole |
+| items | the seven pages · the chalk line · the lamp · the erased line | I, IV, VI |
+| history | the 140th year after the 44th Convocation (continues E206–E219) | Era |
+
+> The line is not an answer — it is a place someone walked until it could be gone to.
+> 线不是答案——是有人把一个位置走成了可以去的地方。
 `,
   },
   {

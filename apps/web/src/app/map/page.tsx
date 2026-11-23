@@ -4,10 +4,18 @@ import { getLocale, type Locale } from '@/lib/i18n';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: '世界全图 · The Atlas — NEXUS',
-  description: 'NEXUS 宇宙的完整航行图：大典与玩法、世界之门、创作岛屿、管理观察哨、说明书——每一个真实存在的入口，都在这里。中英双语。',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  return locale === 'zh'
+    ? {
+        title: '世界全图 — NEXUS',
+        description: 'NEXUS 宇宙的完整航行图：大典与玩法、世界之门、创作岛屿、管理观察哨、说明书——每一个真实存在的入口，都在这里。',
+      }
+    : {
+        title: 'World atlas — NEXUS',
+        description: 'The full navigational chart of the NEXUS universe: the canon and its games, world gates, authoring islands, the admin watch, and the handbook — every real entrance in one place.',
+      };
+}
 
 /**
  * 世界全图 / The Atlas —— 防止新用户在大陆上迷路的那一册图纸。
@@ -17,7 +25,7 @@ export const metadata: Metadata = {
  */
 const COPY: Record<Locale, { kicker: string; title: string; lede: string; sections: { heading: string; body: string; links: { path: string; labelKey: keyof typeof LABELS }[] }[] }> = {
   zh: {
-    kicker: '世界全图 · THE ATLAS',
+    kicker: '世界全图',
     title: '这片土地是什么，以及它通向哪里',
     lede: '世界很大——但你可以一眼看完它的全部入口。每一格都是真实存在的页面；迷路时回到这里，挑一个门进去。推荐先走一圈典籍室 → 潮汐挑战 → 七口井，再回 Studio。',
     sections: [
@@ -91,7 +99,7 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
     ],
   },
   en: {
-    kicker: 'THE ATLAS · 世界全图',
+    kicker: 'THE ATLAS · WORLD MAP',
     title: 'What this land is — and where every road goes',
     lede: 'The world is big — but you can read its whole map in one glance. Every tile here is a real route. If you are lost, come back and pick a door. A good first walk: /bible → /bible/quiz → /bible/well, then back to Studio.',
     sections: [
@@ -167,38 +175,38 @@ const COPY: Record<Locale, { kicker: string; title: string; lede: string; sectio
 };
 
 const LABELS = {
-  bible: { zh: '典籍室 · Tide Conclave 原典', en: 'Tide Conclave canon' },
-  quiz: { zh: '潮汐挑战 · The Tidal Trial', en: 'The Tidal Trial' },
-  well: { zh: '七口井 · Seven Wells', en: 'The Seven Wells' },
-  ask: { zh: '问典 · Ask the Canon', en: 'Ask the Canon' },
-  anchors: { zh: '锚句回放 · Anchor Echo', en: 'Anchor Echo' },
-  bibleSearch: { zh: '正典检索 · Canon Search', en: 'Canon Search' },
-  whisper: { zh: '答问者 · The Answerer', en: 'The Answerer' },
-  margins: { zh: '页边 · Margins of the Canon', en: 'Margins of the Canon' },
+  bible: { zh: '典籍室 · 潮汐教团原典', en: 'Tide Conclave canon' },
+  quiz: { zh: '潮汐挑战', en: 'The Tidal Trial' },
+  well: { zh: '七口井', en: 'The Seven Wells' },
+  ask: { zh: '问典', en: 'Ask the Canon' },
+  anchors: { zh: '锚句回放', en: 'Anchor Echo' },
+  bibleSearch: { zh: '正典检索', en: 'Canon Search' },
+  whisper: { zh: '答问者', en: 'The Answerer' },
+  margins: { zh: '页边批注', en: 'Margins of the Canon' },
 
-  about: { zh: '关于 NEXUS · About', en: 'About NEXUS' },
+  about: { zh: '关于 NEXUS', en: 'About NEXUS' },
   home: { zh: '首页 · 创作大厅', en: 'Home / the making hall' },
-  discover: { zh: '广场 · Discover', en: 'Discover' },
-  market: { zh: '市场 · Marketplace', en: 'Marketplace' },
-  blocks: { zh: '区块库 · Blocks', en: 'Blocks' },
-  ship: { zh: '交付记录 · Ship', en: 'Ship' },
-  analytics: { zh: '创作数据 · Analytics', en: 'Analytics' },
-  credits: { zh: '额度账本 · Credits', en: 'Credits' },
-  notifications: { zh: '通知中心 · Notifications', en: 'Notifications' },
-  creators: { zh: '创作者主页 · 按 handle 公开的作品墙', en: 'Creator home — public work wall by handle' },
-  apiTokens: { zh: 'API 令牌 · API tokens', en: 'API tokens' },
-  search: { zh: '全平台搜索 · Search', en: 'Search' },
+  discover: { zh: '广场', en: 'Discover' },
+  market: { zh: '市场', en: 'Marketplace' },
+  blocks: { zh: '区块库', en: 'Blocks' },
+  ship: { zh: '交付记录', en: 'Ship' },
+  analytics: { zh: '创作数据', en: 'Analytics' },
+  credits: { zh: '额度账本', en: 'Credits' },
+  notifications: { zh: '通知中心', en: 'Notifications' },
+  creators: { zh: '创作者主页 · 按昵称公开的作品墙', en: 'Creator home — public work wall by handle' },
+  apiTokens: { zh: 'API 令牌', en: 'API tokens' },
+  search: { zh: '全平台搜索', en: 'Search' },
   onboarding: { zh: '上手漫游 · 6 步从一句到一作', en: 'Onboarding — 6 steps, one word to one work' },
-  guide: { zh: '使用指南 · User Guide', en: 'User Guide' },
-  insight: { zh: '观察哨 · Insight（口令 123）', en: 'Insight (passcode 123)' },
-  admin: { zh: '管理台 · Admin（role=admin）', en: 'Admin console (role=admin)' },
-  savings: { zh: 'AI 节省总账 · Savings', en: 'LLM savings ledger' },
-  tideOracle: { zh: '潮汐预言 · Tide Oracle', en: 'Tide Oracle' },
-  tideWire: { zh: '今日潮声 · Tide Wire', en: 'Tide Wire' },
-  tidewatch: { zh: '潮候步进 · Tidewatch', en: 'Tidewatch' },
-  daily: { zh: '今日潮候 · The Daily Tide', en: 'The Daily Tide' },
-  observatory: { zh: '公共观测大厅 · Observatory', en: 'Public Observatory' },
-  stategraph: { zh: '状态图 · StateGraph', en: 'StateGraph' },
+  guide: { zh: '使用指南', en: 'User Guide' },
+  insight: { zh: '观察哨（口令 123）', en: 'Insight (passcode 123)' },
+  admin: { zh: '管理台（需管理员角色）', en: 'Admin console (role=admin)' },
+  savings: { zh: 'AI 节省总账', en: 'LLM savings ledger' },
+  tideOracle: { zh: '潮汐预言', en: 'Tide Oracle' },
+  tideWire: { zh: '今日潮声', en: 'Tide Wire' },
+  tidewatch: { zh: '潮候步进', en: 'Tidewatch' },
+  daily: { zh: '今日潮候', en: 'The Daily Tide' },
+  observatory: { zh: '公共观测大厅', en: 'Public Observatory' },
+  stategraph: { zh: '状态图', en: 'StateGraph' },
 } as const;
 
 export default async function AtlasPage() {

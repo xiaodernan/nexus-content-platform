@@ -104,9 +104,12 @@ describe('§WORLD-NET /world/<project>/network 万象脉络', () => {
     expect(nwSegment).toMatch(/@media\s*\(max-width:\s*720px\)/);
   });
 
+  // 2026-11-22：新增「关节（割点）」面板（cutVertices 纯函数投影），
+  // 是真实功能变更，不是样式漂移——重钉一次；className 仍全部脱敏。
+  // 同日 f5c5f02c 改英文文案（"World network →"）时漏钉本门；全量复跑后按当前字节补钉。
   it('SHA256 钉死（本线字节）', () => {
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      'e8f47991e0d48261939f2f256c935c456be4cd7a990ce1956ade617f510ed59f',
+      'f059724660b9f2d2256bcfcd97faf1a5b79abcb3d1a44fd1e87488bfb56b3c0a',
     );
   });
 });

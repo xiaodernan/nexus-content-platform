@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import json
 import os
+import time
 from pathlib import Path
 from typing import Any, Callable
 
@@ -159,11 +160,36 @@ def test_live_chat_route_is_real_not_demo() -> None:
 
 @_LIVE_SKIP
 def test_live_healthz_reports_embedding_honestly() -> None:
-    """/healthz 在 embedding 关闭时如实报 unavailable，llm 仍 real（能力面不被牵连）。"""
+    """真线路上量 ADR-0310 那个冷启动窗口：先"未验证"，探测落地后同一份读数的变化。
+
+    不在这里 sleep 猜时长——`/healthz` 自己会在读到过期时补一次后台探测，
+    所以轮询到结论出现为止，顺便把"到底几秒"打进断言消息里（gpt-6.2-sol 实测 2.5-3.3s）。
+    """
     settings = load_settings(_LIVE)
     assert settings.embedding_enabled is False, "本网关只有 chat 模型，embedding 必须 opt-out"
-    client = TestClient(create_app(settings, registry=Registry(settings)))
-    _judge_embedding_honest(client.get("/healthz").json())
+    registry = Registry(settings)
+    client = TestClient(create_app(settings, registry=registry))
+
+    cold = client.get("/healthz").json()
+    cold_llm = next(p for p in cold["providers"] if p["kind"] == "llm")
+    # 关键的第一读：key 明明在（`has_llm` 为真），但没探过就不许写 real（§159 的反面）
+    assert cold_llm["status"] == "unavailable", "没探过就报 real，ADR-0310 判据失守"
+    assert "未验证" in cold_llm["reason"]
+
+    started = time.monotonic()
+    deadline = started + 30.0
+    warm: dict[str, Any] = cold
+    while time.monotonic() < deadline:
+        warm = client.get("/healthz").json()
+        if next(p for p in warm["providers"] if p["kind"] == "llm")["status"] == "real":
+            break
+        time.sleep(0.25)
+    elapsed = time.monotonic() - started
+    llm = next(p for p in warm["providers"] if p["kind"] == "llm")
+    assert llm["status"] == "real", f"真网关 30s 内没让 llm 行落地：{llm['reason']}"
+    assert llm["models"], "探测通过后仍不列模型名"
+    _judge_embedding_honest(warm)
+    print(f"[live] llm 行从「未验证」到 real 用了 {elapsed:.2f}s")
 
 
 # ── 离线变异臂（恒跑，证明三个判据有牙 + key 不泄漏）─────────────────────

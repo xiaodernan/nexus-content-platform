@@ -25,7 +25,7 @@ const COPY: Record<Locale, {
   orderLabel: (n: number) => string;
 }> = {
   zh: {
-    kicker: '潮汐见证 · THE TIDE-EYE',
+    kicker: '潮汐见证',
     hint: '本章的旁证：口令 123 解锁后，那位坐在典籍室门口的人会说一句只会引自本章的话——正典没写的，他一个字也说不出来。',
     locked: '这片潮还没到你眼前——先去开 /insight（口令 123）再来',
     cta: '潮给原典作证',

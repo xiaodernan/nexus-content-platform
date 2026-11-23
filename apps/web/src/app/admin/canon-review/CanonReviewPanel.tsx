@@ -102,7 +102,6 @@ export function CanonReviewPanel({
         message?: string;
       };
       if (!response.ok) {
-        const code = body.error?.code ?? '';
         if (response.status === 401) setError(c.unauthenticated);
         else if (response.status === 403) setError(c.denied);
         else if (response.status === 429) setError(c.rateLimited);

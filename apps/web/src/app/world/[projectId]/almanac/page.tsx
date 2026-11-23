@@ -45,7 +45,7 @@ const COPY: Record<Locale, {
   echoes: (n: number) => string;
   erasRibbon: string;
   epigraphSource: (title: string) => string;
-  doors: (projectId: string, storyHistory: number, spaceCount: number, echoes: number, characters: number, lanterns: number) => DoorCopy[];
+  doors: (projectId: string, storyHistory: number, spaceCount: number, echoes: number, characters: number, lanterns: number, links: number) => DoorCopy[];
   censusTitle: string;
   kindLabels: Record<WorldKind, string>;
   footnote: (unreadable: number) => string;
@@ -61,12 +61,13 @@ const COPY: Record<Locale, {
     echoes: (n) => `${n} 道回声`,
     erasRibbon: '纪元长卷',
     epigraphSource: (title) => `—— ${title}`,
-    doors: (projectId, storyHistory, spaceCount, echoes, characters, lanterns) => [
+    doors: (projectId, storyHistory, spaceCount, echoes, characters, lanterns, links) => [
       { vol: '卷一', title: '世界编年', href: `/world/${projectId}/chronicle`, count: `${storyHistory} 条目`, note: '纪元之轴上，每一次燃与灭都按时间排着' },
       { vol: '卷二', title: '寰宇图志', href: `/world/${projectId}/atlas`, count: `${spaceCount} 座星位`, note: '地理与势力在夜图上星火对峙（黄金角排布）' },
       { vol: '卷三', title: '记忆回廊', href: `/world/${projectId}/memories`, count: `${echoes} 道回声`, note: '每一条都是"你在场时听到了什么"' },
       { vol: '卷四', title: '角色星图', href: `/world/${projectId}/constellation`, count: `${characters} 位人物`, note: '全档人物与骨架节点，一张可以步行的星图' },
       { vol: '卷五', title: '谜灯馆', href: `/world/${projectId}/quiz`, count: `${lanterns} 盏灯`, note: '凭记忆为这座世界点灯——题面全出自世界文档' },
+      { vol: '卷六', title: '万象脉络', href: `/world/${projectId}/network`, count: `${links} 条关系`, note: '枢纽榜、势力团与割边关节——同一份世界文档的图算法骨架' },
     ],
     censusTitle: '世界九造 · 条目普查',
     kindLabels: WORLD_KIND_LABELS,
@@ -83,12 +84,13 @@ const COPY: Record<Locale, {
     echoes: (n) => `${n} echoes`,
     erasRibbon: 'The Era Ribbon',
     epigraphSource: (title) => `—— ${title}`,
-    doors: (projectId, storyHistory, spaceCount, echoes, characters, lanterns) => [
+    doors: (projectId, storyHistory, spaceCount, echoes, characters, lanterns, links) => [
       { vol: 'VOL. I', title: 'The World Chronicle', href: `/world/${projectId}/chronicle`, count: `${storyHistory} entries`, note: 'On the axis of ages, every burning and every dying, in order' },
       { vol: 'VOL. II', title: 'The Atlas', href: `/world/${projectId}/atlas`, count: `${spaceCount} pins`, note: 'Geography and factions on a night map (golden-angle spiral)' },
       { vol: 'VOL. III', title: 'The Memory Corridor', href: `/world/${projectId}/memories`, count: `${echoes} echoes`, note: 'Each one is "what you heard when you were there"' },
       { vol: 'VOL. IV', title: 'The Constellation', href: `/world/${projectId}/constellation`, count: `${characters} characters`, note: 'The full roster on one walkable star chart' },
       { vol: 'VOL. V', title: 'The Lantern Trial', href: `/world/${projectId}/quiz`, count: `${lanterns} lanterns`, note: 'Light this world by memory — every question comes from the document' },
+      { vol: 'VOL. VI', title: 'The Power Skeleton', href: `/world/${projectId}/network`, count: `${links} relations`, note: 'Hubs, cliques and bridge joints — a graph-algorithm skeleton over the same world document' },
     ],
     censusTitle: 'The Nine Factions · Entry Census',
     kindLabels: EN_KIND_LABELS,
@@ -144,7 +146,8 @@ export default async function AlmanacPage({ params }: { params: Promise<{ projec
   const KIND_ORDER: WorldKind[] = ['lore', 'history', 'geography', 'factions', 'characters', 'creatures', 'items', 'quests', 'story'];
   const maxKind = Math.max(1, ...KIND_ORDER.map((k) => countByKind.get(k) ?? 0));
 
-  const doors = c.doors(projectId, storyHistory, spaceCount, memories.length, characters.items.length, quizRounds);
+  const linkCount = worldOk?.links?.length ?? 0;
+  const doors = c.doors(projectId, storyHistory, spaceCount, memories.length, characters.items.length, quizRounds, linkCount);
 
   return (
     <main className="alm-root" data-almanac-root>

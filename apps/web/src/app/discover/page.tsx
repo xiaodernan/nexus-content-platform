@@ -58,7 +58,6 @@ const COPY = {
       '要的是模型推荐，没有可用的推荐 provider': '要的是模型推荐，没有可用的推荐 provider',
       '没有登录，看不到关注关系': '没有登录，看不到关注关系',
     } as Record<string, string>,
-    localeToggleHint: 'Switch to English',
   },
   en: {
     title: 'Discover',
@@ -82,7 +81,6 @@ const COPY = {
       '要的是模型推荐，没有可用的推荐 provider': 'You asked for model picks, but no recommendation provider is configured',
       '没有登录，看不到关注关系': 'You are not signed in, so there are no following relations to show',
     } as Record<string, string>,
-    localeToggleHint: '切换到中文',
   },
 } as const;
 

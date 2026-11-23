@@ -3,8 +3,14 @@ uvicorn==0.34.0
 httpx==0.28.1
 jsonschema==4.26.0
 python-dotenv==1.0.1
-# §162 作业队列的 Redis 后端（不配 NEXUS_REDIS_URL 时用内存后端，这个依赖不会被导入）
+# Spec 162 Redis backend for the job queue. Without NEXUS_REDIS_URL the in-memory
+# backend is used and this import never happens. (ASCII only on purpose: pip
+# decodes requirements.txt with the *locale* encoding, so CJK comments crash
+# `bash infra/dev-ai.sh` on a GBK/CP936 Windows box. Not even a section sign:
+# that one glyph is 2 bytes and CP936 reads them as a different character.
+# Enforced by tests/test_requirements_ascii.py. See ADR 0312.)
 redis==5.2.1
 pytest==9.1.1
-# §LangGraph (2026-11-16) — 状态图编排 /v1/ai/design-graph 用的运行时；缺失时状态图路径 import 失败、身份验证即红
+# LangGraph (2026-11-16) - runtime for the state-graph orchestration behind
+# /v1/ai/design-graph. If missing, that path fails to import at startup.
 langgraph==1.2.22

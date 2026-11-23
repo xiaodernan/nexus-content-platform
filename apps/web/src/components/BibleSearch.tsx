@@ -31,7 +31,7 @@ const COPY = {
     headingKind: '标题',
     bodyKind: '正文',
     anchorKind: '锚句',
-    askButton: '问典（StateGraph · 模型释义）',
+    askButton: '问典（状态图 · 模型释义）',
     askPlaceholder: '模型只会解释你搜到的 · 不会跳出典籍',
     askBusy: '模型翻看中…',
     askEmpty: '输入点什么先搜索，再点问典。模型只解释你搜到的东西。',

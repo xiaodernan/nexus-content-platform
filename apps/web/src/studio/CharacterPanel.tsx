@@ -150,7 +150,7 @@ const COPY = {
     relationshipsTitle: 'Relationships (pointing at world entries)',
     removeRelationship: 'Delete this relationship',
     noRelationships: 'No relationships yet.',
-    noRelationshipTarget: '＋ Pick a world entry…',
+    noRelationshipTarget: '+ Pick a world entry…',
     noWorld: 'This project has no world yet; relationships have nothing to point at.',
     relationshipAria: 'Relationship name',
     relationshipKindPlaceholder: 'Relationship',

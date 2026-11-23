@@ -6,7 +6,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRateLimiter } from '../src/server/security/rateLimitMemory';
-import { getRateLimiter, setRateLimiter } from '../src/server/security/rateLimit';
+import { setRateLimiter } from '../src/server/security/rateLimit';
 import { buildPersonaSystemPrompt, files, getFile, whisperCacheLane } from '../src/server/domain/whisperCanon';
 
 const chatCalls: Array<{ requestId: string; system: string; user: string; modelClass: string; cacheLane?: string }> = [];

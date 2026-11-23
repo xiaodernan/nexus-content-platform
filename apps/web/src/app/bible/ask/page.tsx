@@ -4,10 +4,19 @@ import { BibleAsk } from '@/components/BibleAsk';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: '问典 · The Tidal Inquiry — 低语诸王',
-  description: '向《低语诸王》世界大典提问：十三章正典 + 一百六十三篇回响即时可答。/ Ask the Whispers’ Kings canon: thirteen chapters + one hundred sixty-three echoes, answered live.',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  return locale === 'zh'
+    ? {
+        title: '问典 · 低语诸王',
+        // 真实计数口径改为不随每篇回响漂移的「全部回响」（2026-11-22 E220 落库时确认）。
+        description: '向《低语诸王》世界大典提问：十四章正典 + 全部回响即时可答。',
+      }
+    : {
+        title: 'The Tidal Inquiry · The Whispers’ Kings',
+        description: 'Ask the Whispers’ Kings canon: fourteen chapters and all their echoes, answered live.',
+      };
+}
 
 /**
  * §BIBLE-4 问典——正典 Q&A：只答典籍范围，明说没有，不编造（§159/§160）。

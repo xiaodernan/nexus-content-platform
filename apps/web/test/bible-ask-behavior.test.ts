@@ -30,8 +30,13 @@ describe('§BIBLE-4 问典 digest 契约', () => {
       zh += extractAnchorTexts(chapter.markdownZh, 'zh').length;
       en += extractAnchorTexts(chapter.markdownEn, 'en').length;
     }
-    expect(zh).toBe(1303);
-    expect(en).toBe(1303);
+    // 2026-11-22 并轨 origin/master：正典 13 章 → 14 章（新增「数页边的人」第十四章），
+    // 回响 212 → 217（master 的 E211–E215 整体后移两位并入），
+    // 锚句 1275 → 1311（master 侧 1303 是「只有 212 回响时」的数；并入后以本行为准）。
+    // 2026-11-22 E218《页边空出来的那一格》落库：1311 → 1317（+6 锚，中英各半继续对齐）；
+    // E219《点账》：1317 → 1323；E220《照着点走一遍》：1323 → 1329。
+    expect(zh).toBe(1329);
+    expect(en).toBe(1329);
   });
 
   it('SYSTEM_PROMPT 长度 < 预算（≈30k chars）', () => {

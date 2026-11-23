@@ -1,8 +1,8 @@
 {
-  "runId": "mwnqcmbn-57220",
+  "runId": "mw9lz2cl-30360",
   "redisUrl": "redis://127.0.0.1:56379",
   "luaSha256": "8db0f4043dd7",
-  "at": "2026-11-19T15:53:48.532Z",
+  "at": "2026-11-09T18:42:30.986Z",
   "shared": {
     "verdicts": [
       1,
@@ -10,7 +10,7 @@
       0
     ],
     "tokens": "0",
-    "pttlMs": 3599995
+    "pttlMs": 3599996
   },
   "perInstance": {
     "verdicts": [
@@ -24,10 +24,10 @@
     "allowed": 3,
     "verdicts": [
       1,
+      0,
+      0,
+      0,
       1,
-      0,
-      0,
-      0,
       0,
       0,
       0,
@@ -45,21 +45,21 @@
       0
     ],
     "afterWait": 1,
-    "stamp": 1795103627.0063,
-    "serverBefore": 1795103626.979613,
-    "serverAfter": 1795103627.028693,
+    "stamp": 1794249749.5634,
+    "serverBefore": 1794249749.561248,
+    "serverAfter": 1794249749.564844,
     "tokens": 1
   },
   "clockSkew": {
     "verdict": 0,
     "tokens": 0,
-    "futureStamp": 1795103657.063361
+    "futureStamp": 1794249779.57023
   },
   "ttl": {
     "first": 1,
-    "writtenMs": 1191,
+    "writtenMs": 1199,
     "existsAfter": 0,
     "afterExpiry": 1,
-    "zeroRateMs": 3599994
+    "zeroRateMs": 3599999
   }
 }

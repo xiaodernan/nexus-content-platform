@@ -5,11 +5,18 @@ import { BibleMargins } from '@/components/BibleMargins';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: '页边批注 · Margins of the Canon — 低语诸王',
-  description:
-    '抄本师写在页边的话：不属于正文、不进名册、也不算进任何一道。Words the copyists left in the margins — not the body, not the register, not counted into any mark.',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  return locale === 'zh'
+    ? {
+        title: '页边批注 · 低语诸王',
+        description: '抄本师写在页边的话：不属于正文、不进名册、也不算进任何一道。',
+      }
+    : {
+        title: 'Margins of the Canon · The Whispers’ Kings',
+        description: 'Words the copyists left in the margins — not the body, not the register, not counted into any mark.',
+      };
+}
 
 const COPY: Record<Locale, { crumb: string; back: string }> = {
   zh: { crumb: '低语诸王 · 典籍室', back: '← 回典籍室' },

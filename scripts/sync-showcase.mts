@@ -29,10 +29,11 @@ const sh = (cmd: string, opts: { cwd?: string; env?: Record<string, string> } = 
 
 function run(): void {
   // 1. regenerate latest.json
-  // Pin the fact pack to `master`: this repo's `main` is an UNRELATED, STALE content line
-  // (E211, no margins). Running this script while checked out on `main` used to publish main's
-  // numbers to the portfolio as "latest" — the page then showed the old branch.
-  sh('npx tsx scripts/gen-latest.mts', { cwd: ROOT, env: { NEXUS_FACT_REF: 'master' } });
+  // 2026-11-22 并轨后本地只剩 `main` 一条线；`master` 只存在于远端。
+  // 此前这里钉 `NEXUS_FACT_REF=master`，本机解不开 → 事实包 head 空串、commits null，
+  // 个人主页那几个数字就成了空的（15:49 那次同步的真实事故）。
+  // 现在不再钉远端分支：默认 HEAD 就是当前 checkout 的活跃线，数字永远解得开。
+  sh('npx tsx scripts/gen-latest.mts', { cwd: ROOT });
 
   // 2. clone or reuse existing clone
   if (!existsSync(SHOWSPATIAL)) {

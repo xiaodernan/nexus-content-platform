@@ -42,7 +42,8 @@ describe('§BIBLE-2 典籍室「七口井」', () => {
     expect(page).not.toContain('use client');
     expect(page).toContain("export const dynamic = 'force-dynamic'");
     expect(page).toContain('import { getLocale');
-    expect(page).toContain('export const metadata');
+    // 2026-11-22：metadata 跟随 cookie 语言（英文标签页 The Seven Wells）。
+    expect(page).toContain('export async function generateMetadata');
     for (const hook of ['data-bible-well-page', 'data-bible-locale', 'data-bible-well-back']) {
       expect(page, `shell 丢了钩子 ${hook}`).toContain(hook);
     }
@@ -123,7 +124,8 @@ describe('§BIBLE-2 典籍室「七口井」', () => {
 
   it('SHA256 钉死（EOL 归一 + className→@）：shell / 组件', () => {
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      '91c0c6c53cd26fcbfae6810166b68221eaf9d711febd8b6b000f112e23f61cba',
+      // 2026-11-22：metadata 跟随语言（page 的 DOM 未动）。
+      '49f5653affd72ae5e04a0bbb03eb27e636e7000b72b60189edcdc9d28c4921e3',
     );
     expect(createHash('sha256').update(redactClasses(component)).digest('hex')).toBe(
       '9a8f3fa7677dd483ef83143fbff578757feeea6001daca145c13938c8bd0c60f',

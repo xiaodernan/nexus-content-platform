@@ -32,7 +32,7 @@
 - 样式读数：`display:grid`、`padding:16px`、`border-radius:10px`、按钮背景 `rgb(139, 92, 246)`
   ——此前这五个类名在 `globals.css` 里零定义，是裸按钮。
 
-## 4. 并行会话缓存（`npm run probe:cache-parallel`，4 路）
+## 4. 并行会话缓存（`npm run probe:cache-parallel`，四路）
 
 生产路径 web → ai-service → provider，system 前缀 24,208 字符：
 

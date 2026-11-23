@@ -31,7 +31,7 @@ import { cn } from '@/lib/cn';
 import { patchLore } from '@/lib/worldLore';
 import type { Locale } from '@/lib/i18n';
 import { chatWithCharacter } from '@/server/ai/client';
-import { fillableKinds, formatWorldFillError, parseChronicleReply, parseEchoReply, parseLinkReply, parseWorldFillReply, retrieveWorldContext } from '@/lib/worldFill';
+import { formatWorldFillError, parseChronicleReply, parseEchoReply, parseLinkReply, parseWorldFillReply, retrieveWorldContext } from '@/lib/worldFill';
 import { rollFate, type FateCard } from '@/lib/worldFate';
 import { useStudioReady } from './store';
 import { useWorld, worldStore } from './worldStore';

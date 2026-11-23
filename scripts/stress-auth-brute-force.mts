@@ -107,8 +107,7 @@ async function main(): Promise<void> {
   const email = `brute-${STAMP}@example.test`;
   const password = 'correct-horse-battery-staple';
 
-  const registered = await request('POST', '/api/auth/register', { email, password, displayName: 'Brute Probe' }, cookie);
-  void token;
+  const registered = await request('POST', '/api/auth/register', { email, password, displayName: 'Brute Probe' }, cookie, token);
   const registerOk = registered.status === 200 || registered.status === 201;
 
   const attempts: { n: number; status: number; ms: number; retryAfter: string | null }[] = [];
@@ -129,18 +128,19 @@ async function main(): Promise<void> {
     '/api/auth/register',
     { email: otherEmail, password, displayName: 'Brute Probe Two' },
     cookie,
+    token,
   );
   const otherLogin = otherRegistered.status === 200 || otherRegistered.status === 201
     ? await request('POST', '/api/auth/login', { email: otherEmail, password: 'still-wrong' }, cookie, token)
     : null;
 
   const verdict = [
-    registerOk ? 'register ok' : 'register FAILED',
+    registerOk ? 'register ok' : `register FAILED (${registered.status} ${registered.body.slice(0, 120)})`,
     first429 ? `first 429 at attempt ${first429.n}` : 'no 429 within N attempts',
     first429?.retryAfter ? `retry-after=${first429.retryAfter}s` : 'no retry-after on the 429',
     non401Before.length === 0 ? 'every pre-threshold reply is 401' : `UNEXPECTED pre-threshold codes: ${non401Before.map((a) => a.status).join(',')}`,
     wrongAfter.length === 0 ? 'nothing leaks past the threshold' : `LEAKED past threshold: ${wrongAfter.map((a) => a.status).join(',')}`,
-    otherLogin ? `second account same IP: ${otherLogin.status} (not blocked)` : 'second account could not be registered',
+    otherLogin ? `second account same IP: ${otherLogin.status} (not blocked)` : `second account could not be registered (${otherRegistered.status})`,
   ];
 
   for (const line of verdict) console.log(line);

@@ -84,7 +84,10 @@ export async function POST(req: Request): Promise<NextResponse> {
       tokensIn: response.usage?.tokensIn ?? 0,
       tokensOut: response.usage?.tokensOut ?? 0,
       cacheReported: response.usage?.cacheReported ?? false,
-      costBasis: 'usage',
+      costUsd: response.usage?.costUsd ?? 0,
+      // §COST-2：透传 provider 报的那一档；没有 usage 就说 unknown，不自造字面量。
+      // 'usage' 曾经写在这里，而它不在契约的 enum 值域内（packages/schemas 的 UsageSchema）。
+      costBasis: response.usage?.costBasis ?? 'unknown',
     });
   } catch {
     increment('nexus_insight_chat_total', { outcome: 'error' });

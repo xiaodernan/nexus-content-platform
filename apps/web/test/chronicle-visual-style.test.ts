@@ -120,9 +120,9 @@ describe('§FE-CRN /world/<project>/chronicle 世界编年', () => {
     expect(code).toContain('tabIndex={0}');
   });
 
-  it('SHA256 钉死（本线字节）', () => {
+  it('SHA256 钉死（本线字节；2026-11-22 §I18N-EN-PURITY 重钉：en 文案中文书名号改英文引号）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      'a8b3ecb8f7584127b91283f06bf7146ddd782abf18be6c81c46ee0231604bf44',
+      'a54edca6448331b6dc677735e9310ed0cb781682bfe0dbcdf48186cea4b7600c',
     );
   });
 });

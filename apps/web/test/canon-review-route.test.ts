@@ -16,7 +16,7 @@ vi.mock('next/headers', () => ({
 }));
 
 import { MemoryRateLimiter } from '../src/server/security/rateLimitMemory';
-import { getRateLimiter, setRateLimiter } from '../src/server/security/rateLimit';
+import { setRateLimiter } from '../src/server/security/rateLimit';
 
 type ChatReq = { requestId: string; system: string; user: string; modelClass: string; cacheLane?: string };
 const chatCalls: ChatReq[] = [];

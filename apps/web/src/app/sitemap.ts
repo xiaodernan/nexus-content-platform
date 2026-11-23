@@ -45,6 +45,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: absolute('/bible/search') },
     { url: absolute('/bible/whisper') },
     { url: absolute('/bible/anchors') },
+    { url: absolute('/bible/dot-road') },
     ...rows.slice(0, SITEMAP_LIMIT).map((row) => ({
       url: absolute(row.path),
       lastModified: row.publishedAt,

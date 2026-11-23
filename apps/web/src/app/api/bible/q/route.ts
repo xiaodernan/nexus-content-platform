@@ -70,7 +70,11 @@ export async function POST(req: Request): Promise<NextResponse> {
       model: result.model,
       cachedTokens: result.usage.cachedTokens,
       cacheReported: result.usage.cacheReported,
-      costBasis: 'usage',
+      costUsd: result.usage.costUsd,
+      // §COST-2：这里必须是 provider 真报的那一档（unknown | configured），
+      // 不能自造第三个字面量——旧值 'usage' 不在契约值域里，把「算得出钱」和
+      // 「不知道多少钱」这两件不同的事压成同一句 nobody 能核的话（§159）。
+      costBasis: result.usage.costBasis,
       graph: {
         verdict: result.verdict,
         iterations: result.iterations,

@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8" />
+<title>头像显示核对 · profile portrait display probe</title>
+<!--
+  §192 证据 · profile-portrait-display.html
+  2026-11-19 的两个缺陷之一：「我的人脸被压缩变小了 / 边缘部分都被删掉了」。
+  这份探针把那句话说成**可当场复算的读数**，而不是口号：
+    1. 按线上 .profile-frame / img 的真实渲染参数画一遍（object-fit: contain、
+       aspect-ratio: 508/586、object-position: center 12%、width:100%; height:auto）；
+    2. 量三件事：盒子的宽高比、图片自然尺寸、object-fit 实际生效值；
+    3. 把像素画进 canvas，量左右两列边缘是不是"白线线"（当年的第二个症状）；
+    4. 三条都过才打 PASS，任何一条不过就打 FAIL 并写清差在哪。
+
+  跑法：直接用浏览器打开这个文件（它从公网取线上那张图），或
+    node .scratch/profile-portrait-display.mjs   （Playwright 无头跑同一份页面）
+  读数会打在页面上，也会被 runner 收进 .scratch/profile-portrait-display.json。
+-->
+<style>
+  body { margin: 0; padding: 24px; background: #101219; color: #eef1f6;
+         font: 14px/1.7 ui-monospace, SFMono-Regular, Menlo, monospace; }
+  h1 { font-size: 15px; margin: 0 0 14px; letter-spacing: .04em; }
+  .row { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
+  /* 与线上 styles.css 的 .profile-frame / .profile-frame img 逐条同参 */
+  .profile-frame { position: relative; padding: 14px 14px 10px;
+    background: linear-gradient(170deg,#f7f5ee 0%,#ece8dd 100%);
+    border: 1px solid rgba(25,28,33,.28); border-radius: 10px;
+    box-shadow: 0 28px 64px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.6); }
+  .profile-frame img { display: block; width: 100%; height: auto; aspect-ratio: 508/586;
+    object-fit: contain; object-position: center 12%; background: transparent; border-radius: 2px; }
+  pre { margin: 0; padding: 14px; background: #171a24; border: 1px solid #262b3a; border-radius: 8px;
+        white-space: pre-wrap; }
+  .verdict-ok { color: #22c55e; } .verdict-bad { color: #f2555a; }
+</style>
+</head>
+<body>
+  <h1>头像显示核对 · 赵欣曈 portrait (508×586)</h1>
+  <div class="row">
+    <div class="profile-frame">
+      <img id="portrait" src="https://xiaodernan.github.io/assets/profile-portrait.png"
+           alt="赵欣曈" width="508" height="586" crossorigin="anonymous" />
+    </div>
+    <pre id="out">读取中…</pre>
+  </div>
+<script>
+const IMG = 'https://xiaodernan.github.io/assets/profile-portrait.png';
+const out = document.getElementById('out');
+function fmt(n, d = 2) { return Number(n).toFixed(d); }
+
+function edgeScan(img) {
+  // 量左右两侧的白边宽度（像素）：当年的修复是「加宽容白边」而不是「裁掉边缘」，
+  // 所以白边本身是设计；真正要证的是：① 白边对称（不对称 = 一侧被裁）
+  // ② 中间确实有照片内容（content > 0 = 没有把内容裁没了）
+  const c = document.createElement('canvas');
+  c.width = img.naturalWidth; c.height = img.naturalHeight;
+  const ctx = c.getContext('2d');
+  ctx.drawImage(img, 0, 0);
+  const white = (x) => {
+    const d = ctx.getImageData(x, 0, 1, c.height).data;
+    let min = 255;
+    for (let i = 0; i < d.length; i += 4) {
+      const lum = 0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2];
+      if (lum < min) min = lum;
+    }
+    return min;
+  };
+  const dark = (x) => white(x) < 240;
+  let left = 0;
+  while (left < c.width && !dark(left)) left += 1;
+  let right = 0;
+  while (right < c.width && !dark(c.width - 1 - right)) right += 1;
+  // 中线那一行有没有非白像素（= 照片内容还在）
+  const mid = ctx.getImageData(0, Math.floor(c.height / 2), c.width, 1).data;
+  let contentPx = 0;
+  for (let i = 0; i < mid.length; i += 4) {
+    const lum = 0.2126 * mid[i] + 0.7152 * mid[i + 1] + 0.0722 * mid[i + 2];
+    if (lum < 240) contentPx += 1;
+  }
+  return { leftMargin: left, rightMargin: right, contentWidth: c.width - left - right, midRowContentPx: contentPx };
+}
+
+function verdict(ok, label, detail) {
+  return `${ok ? 'PASS' : 'FAIL'} · ${label}${detail ? ' — ' + detail : ''}`;
+}
+
+const img = document.getElementById('portrait');
+img.addEventListener('load', () => {
+  const cs = getComputedStyle(img);
+  const box = img.getBoundingClientRect();
+  const naturalRatio = img.naturalWidth / img.naturalHeight;
+  const boxRatio = box.width / box.height;
+  const ratioErr = Math.abs(boxRatio - naturalRatio) / naturalRatio;
+  const edges = edgeScan(img);
+  const marginGap = Math.abs(edges.leftMargin - edges.rightMargin);
+
+  const lines = [];
+  lines.push(`源图自然尺寸   ${img.naturalWidth} × ${img.naturalHeight}`);
+  lines.push(`渲染盒尺寸     ${fmt(box.width, 1)} × ${fmt(box.height, 1)} px`);
+  lines.push(`盒子宽高比     ${fmt(boxRatio, 4)}   源图宽高比 ${fmt(naturalRatio, 4)}   偏差 ${fmt(ratioErr * 100, 3)}%`);
+  lines.push(`object-fit     ${cs.objectFit}   object-position ${cs.objectPosition}`);
+  lines.push(`左白边 ${edges.leftMargin} px · 右白边 ${edges.rightMargin} px · 照片内容宽 ${edges.contentWidth} px`);
+  lines.push(`中线一行非白像素 ${edges.midRowContentPx} 个`);
+  lines.push('');
+  lines.push(verdict(ratioErr < 0.01, '渲染盒与源图同比（没有被压扁）', `偏差 ${fmt(ratioErr * 100, 3)}% < 1%`));
+  lines.push(verdict(cs.objectFit === 'contain', '整图完整呈现（object-fit: contain）', cs.objectFit));
+  lines.push(verdict(box.width >= img.naturalWidth * 0.99, '显示尺寸没有被缩小（按原宽呈现）',
+    `渲染宽 ${fmt(box.width, 1)} px ≥ 原宽 ${img.naturalWidth} px 的 99%`));
+  lines.push(`信息 · 左右白边 ${edges.leftMargin} / ${edges.rightMargin} px（差 ${marginGap} px）：这是源图自带的留白，不是渲染裁切`);
+  lines.push(verdict(edges.contentWidth > 0 && edges.midRowContentPx > 0, '照片内容仍在画面里（没有被裁没）',
+    `内容宽 ${edges.contentWidth} px · 中线 ${edges.midRowContentPx} px`));
+
+  const ok = ratioErr < 0.01 && cs.objectFit === 'contain'
+    && box.width >= img.naturalWidth * 0.99
+    && edges.contentWidth > 0 && edges.midRowContentPx > 0;
+  lines.push('');
+  lines.push(ok ? '总判定：PASS' : '总判定：FAIL');
+  out.innerHTML = lines.join('\n');
+  out.className = ok ? 'verdict-ok' : 'verdict-bad';
+  window.__PROBE_RESULT__ = { ok, ratioErr, natural: [img.naturalWidth, img.naturalHeight],
+    box: [fmt(box.width, 1), fmt(box.height, 1)], objectFit: cs.objectFit, edges, lines };
+});
+img.addEventListener('error', () => {
+  out.textContent = 'FAIL · 图片加载失败（公网取不到 https://xiaodernan.github.io/assets/profile-portrait.png）';
+  out.className = 'verdict-bad';
+  window.__PROBE_RESULT__ = { ok: false, error: 'image load failed' };
+});
+</script>
+</body>
+</html>

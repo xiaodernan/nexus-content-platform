@@ -108,9 +108,9 @@ describe('§FE-IC /world/<project>/integrity 世界体检', () => {
     for (const token of usedTokens) expect(tokens, `tokens.css 没有声明 ${token}`).toContain(token);
   });
 
-  it('SHA256 钉死（本线字节）', () => {
+  it('SHA256 钉死（本线字节；2026-11-22 新增第九项「星图独行」卡）', () => {
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      '936b027523f58bd3513361c99f2e37b0869b7c1aa8bbfdf0d6768cf6fc515bc3',
+      '57c26d1f4223256d57e9c0602a8707d2a301c2028f40dbdccbb84530dfc8fa95',
     );
   });
 });

@@ -43,9 +43,9 @@ function pickPairs(count: number, total: number): Pair[] {
  * ② 「猜长短」——按 E214 写的那条次序（放得多的沉底、放得少的浮起；没有日期，
  * 后来的几乎一样短）猜哪张纸条压在哪张上面。猜的是**故事里的次序**，不是真的在量
  * 字符串字节——界面上把这一点写明，不装作在测字节；
- * ③ 「取一张出来」——E215 说：取出来可以，放回去要轻；页边不记谁动过它。
+ * ③ 「取一张出来」——E217《有人从页边取走了一张》说：取出来可以，放回去要轻；页边不记谁动过它。
  * 所以界面允许把一条页边抽出来看（它从队列里淡出，位置留给空），
- * 也允许原样放回（回到**原来的位置**，不是队列末尾——那正是 E215 第一条纸条做的事）。
+ * 也允许原样放回（回到**原来的位置**，不是队列末尾——那正是 E217 第一条纸条做的事）。
  * 纪律：不需要 provider、不需要网络；没有任何计数器冒充"读过的人数"；
  * 抽出来的纸条不删除、不进数据库，刷新页面即归位。
  */
@@ -77,7 +77,7 @@ const COPY = {
     takeOut: '取一张出来',
     putBack: '放回原处',
     takenOut: (n: number) => `取出 ${n} 张`,
-    takeOutNote: 'E215：取出来可以，放回去要轻；页边不记谁动过它。放回时它回到原来的位置，不是末尾。',
+    takeOutNote: 'E217：取出来可以，放回去要轻；页边不记谁动过它。放回时它回到原来的位置，不是末尾。',
     crumb: '低语诸王 · 典籍室',
   },
   en: {
@@ -106,7 +106,7 @@ const COPY = {
     takeOut: 'Take one out',
     putBack: 'Put it back',
     takenOut: (n: number) => `${n} taken out`,
-    takeOutNote: 'E215: you may take one out; put it back lightly. The margin does not record who touched it — and it returns to its own place, not to the end.',
+    takeOutNote: 'E217: you may take one out; put it back lightly. The margin does not record who touched it — and it returns to its own place, not to the end.',
     crumb: 'The Whispers’ Kings · The shelf',
   },
 } as const;
@@ -119,7 +119,7 @@ export function BibleMargins({ locale }: { locale: Locale }) {
   const [round, setRound] = useState<Pair[]>([]);
   const [picked, setPicked] = useState<ReadonlyArray<number | null>>([]);
   const [started, setStarted] = useState(false);
-  // 取一张出来：抽走的条目不删除，只是不在队列里；放回时按原索引插回（E215 的"位置一点没动"）。
+  // 取一张出来：抽走的条目不删除，只是不在队列里；放回时按原索引插回（E217 的"位置一点没动"）。
   const [taken, setTaken] = useState<ReadonlySet<number>>(new Set());
   const takeOut = (index: number): void => {
     setTaken((prev) => {

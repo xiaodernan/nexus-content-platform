@@ -160,3 +160,71 @@ describe('§WORLD-NET 万象脉络（图算法纯投影）', () => {
     });
   });
 });
+
+describe('§WORLD-NET 割点（谁一倒、整张网裂开）', () => {
+  it('链 a-b-c：只有 b 是割点，裂成 2 块', () => {
+    const out = buildWorldNetwork(world(
+      [node('a', 'characters', '甲'), node('b', 'factions', '乙'), node('c', 'items', '丙')],
+      [link('l1', 'a', 'b'), link('l2', 'b', 'c')],
+    ));
+    expect(out.cutVertices).toEqual([{ id: 'b', degree: 2, parts: 2 }]);
+  });
+
+  it('三角形：拆掉任何一个角，剩下两个仍然连着——没有割点', () => {
+    const out = buildWorldNetwork(world(
+      [node('a', 'characters', '甲'), node('b', 'factions', '乙'), node('c', 'items', '丙')],
+      [link('l1', 'a', 'b'), link('l2', 'b', 'c'), link('l3', 'c', 'a')],
+    ));
+    expect(out.cutVertices).toEqual([]);
+    expect(out.bridges).toEqual([]);
+  });
+
+  it('星形：中心是割点，去掉它裂成 3 块', () => {
+    const out = buildWorldNetwork(world(
+      [node('h', 'factions', '枢纽'), node('a', 'characters', '甲'), node('b', 'characters', '乙'), node('c', 'characters', '丙')],
+      [link('l1', 'a', 'h'), link('l2', 'b', 'h'), link('l3', 'c', 'h')],
+    ));
+    expect(out.cutVertices).toEqual([{ id: 'h', degree: 3, parts: 3 }]);
+  });
+
+  it('两团用一条边相连：两端都是割点，各裂成 2 块', () => {
+    const out = buildWorldNetwork(world(
+      [node('a1', 'characters', '甲'), node('a2', 'characters', '乙'), node('a3', 'characters', '丙'),
+       node('b1', 'factions', '丁'), node('b2', 'factions', '戊'), node('b3', 'factions', '己')],
+      [link('l1', 'a1', 'a2'), link('l2', 'a2', 'a3'), link('l3', 'a3', 'a1'),
+       link('l4', 'b1', 'b2'), link('l5', 'b2', 'b3'), link('l6', 'b3', 'b1'),
+       link('l7', 'a1', 'b1')],
+    ));
+    expect(out.cutVertices).toEqual([
+      { id: 'a1', degree: 3, parts: 2 },
+      { id: 'b1', degree: 3, parts: 2 },
+    ]);
+  });
+
+  it('重边救不了割点：a⇄b 两条边 + b-c，b 仍是割点', () => {
+    const out = buildWorldNetwork(world(
+      [node('a', 'characters', '甲'), node('b', 'factions', '乙'), node('c', 'items', '丙')],
+      [link('l1', 'a', 'b'), link('l2', 'b', 'a'), link('l3', 'b', 'c')],
+    ));
+    expect(out.cutVertices.map((v) => v.id)).toEqual(['b']);
+    // a-b 双向成环不是桥；b-c 只有一条，仍是桥——割点与割边是两种性质。
+    expect(out.bridges).toEqual([{ from: 'b', to: 'c', label: '关系' }]);
+  });
+
+  it('长链 2000 节点：中间每个点都是割点，但两端不是（迭代不爆栈）', () => {
+    const nodes = Array.from({ length: 2000 }, (_, i) => node(`n${i}`, 'items', `条目${i}`));
+    const links = nodes.slice(1).map((n, i) => link(`l${i}`, `n${i}`, n.id));
+    const out = buildWorldNetwork(world(nodes, links));
+    expect(out.cutVertices.length).toBe(1998);
+    expect(out.cutVertices.some((v) => v.id === 'n0')).toBe(false);
+    expect(out.cutVertices.every((v) => v.parts === 2)).toBe(true);
+  });
+
+  it('确定性：同输入两次输出逐字节一致', () => {
+    const build = () => buildWorldNetwork(world(
+      [node('a', 'characters', '甲'), node('b', 'characters', '乙'), node('c', 'characters', '丙'), node('d', 'characters', '丁')],
+      [link('l1', 'a', 'b'), link('l2', 'b', 'c'), link('l3', 'c', 'd'), link('l4', 'b', 'd')],
+    ));
+    expect(JSON.stringify(build().cutVertices)).toBe(JSON.stringify(build().cutVertices));
+  });
+});

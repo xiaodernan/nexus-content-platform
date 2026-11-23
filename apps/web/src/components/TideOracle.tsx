@@ -27,7 +27,7 @@ const COPY: Record<Locale, {
   citeLabel: { cited: (n: number) => string; declined: string; notCited: string };
 }> = {
   zh: {
-    kicker: 'THE TIDE ORACLE · 潮语',
+    kicker: '潮语',
     title: '向潮问一句话',
     lede: '潮不知道你是谁，也不预言将来——它从《低语诸王》世界大典里读一遍，只说它看见的生活面。你问的是灰封之后、第四十三次大会、灰炉为什么还热——凡正典里有的，它都答；正典里没有的，它一句也不编。',
     examplesHeading: '几句有人真问过的话',
@@ -44,7 +44,7 @@ const COPY: Record<Locale, {
     citeLabel: { cited: (n) => `引经据典 · 正典锚句逐字对齐 ✓（${n} 条）`, declined: '正典没写 · 潮如实给出没有的答复', notCited: '自由作答 · 未逐字引典' },
   },
   en: {
-    kicker: 'THE TIDE ORACLE · 潮语',
+    kicker: 'THE TIDE ORACLE',
     title: 'Ask the tide one thing',
     lede: 'The tide does not know who you are and does not foresee the future — it reads the World Bible of «The Whispers’ Kings» and says only what it sees on the surface. Ask about the grey binding, the forty-third Convocation, the grey hearth — whatever the canon holds, it answers; anything the canon does not hold, it will not invent.',
     examplesHeading: 'Things people have genuinely asked',

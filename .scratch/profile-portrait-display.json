@@ -1,0 +1,36 @@
+{
+  "measuredAt": "2026-11-22T08:37:27.257Z",
+  "ok": true,
+  "ratioErr": 0,
+  "natural": [
+    508,
+    586
+  ],
+  "box": [
+    "508.0",
+    "586.0"
+  ],
+  "objectFit": "contain",
+  "edges": {
+    "leftMargin": 61,
+    "rightMargin": 49,
+    "contentWidth": 398,
+    "midRowContentPx": 192
+  },
+  "lines": [
+    "源图自然尺寸   508 × 586",
+    "渲染盒尺寸     508.0 × 586.0 px",
+    "盒子宽高比     0.8669   源图宽高比 0.8669   偏差 0.000%",
+    "object-fit     contain   object-position 50% 12%",
+    "左白边 61 px · 右白边 49 px · 照片内容宽 398 px",
+    "中线一行非白像素 192 个",
+    "",
+    "PASS · 渲染盒与源图同比（没有被压扁） — 偏差 0.000% < 1%",
+    "PASS · 整图完整呈现（object-fit: contain） — contain",
+    "PASS · 显示尺寸没有被缩小（按原宽呈现） — 渲染宽 508.0 px ≥ 原宽 508 px 的 99%",
+    "信息 · 左右白边 61 / 49 px（差 12 px）：这是源图自带的留白，不是渲染裁切",
+    "PASS · 照片内容仍在画面里（没有被裁没） — 内容宽 398 px · 中线 192 px",
+    "",
+    "总判定：PASS"
+  ]
+}

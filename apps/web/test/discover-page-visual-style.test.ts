@@ -102,9 +102,9 @@ describe('§FE-77 /discover 发现页原子清零', () => {
     expect(segment).not.toMatch(/--nexus-[a-z0-9-]+\s*:/);
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：e71adbc59007d8809a6c95db91cf6ef8809200ddb40ff966b77890aab84629cf）', () => {
+  it('剥 className 后全文 SHA256 守恒（2026-11-22 §I18N-EN-PURITY 重钉：删未用的 localeToggleHint，零行为：a30f970716f151352bcf0bb28f68084e7e2cfa53f44e15a99bbde21505a32088）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      'e71adbc59007d8809a6c95db91cf6ef8809200ddb40ff966b77890aab84629cf',
+      'a30f970716f151352bcf0bb28f68084e7e2cfa53f44e15a99bbde21505a32088',
     );
   });
 });

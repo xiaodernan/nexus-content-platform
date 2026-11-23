@@ -68,7 +68,7 @@ describe('§BIBLE-MARGINS 猜长短小玩', () => {
     expect(component).toContain('data-bible-margins-game-best');
     expect(component).toContain('/* 记忆不可用时放弃——游戏不强制 */');
   });
-  it('取一张出来：抽走不删除，放回按原索引归位（E215 的"位置一点没动"）', () => {
+  it('取一张出来：抽走不删除，放回按原索引归位（E217 的"位置一点没动"）', () => {
     const component = readFileSync(join(ROOT, 'apps/web/src/components/BibleMargins.tsx'), 'utf8');
     expect(component).toContain('data-bible-margins-take-out=');
     expect(component).toContain('data-bible-margins-put-back=');

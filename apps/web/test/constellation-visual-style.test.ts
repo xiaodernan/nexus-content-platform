@@ -103,9 +103,9 @@ describe('§FE-CNS /world/<project>/constellation 人物关系星图', () => {
     expect(svgHex, `SVG 里写死 hex：${svgHex.join(' ')}`).toHaveLength(0);
   });
 
-  it('SHA256 钉死（本线字节）', () => {
+  it('SHA256 钉死（本线字节；2026-11-22 §I18N-EN-PURITY 重钉：en 文案中文书名号改英文引号）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      'ffbfb51527148292577b76b6bb86b675e7177e9cd6294d5e59c060fdd715d761',
+      '06e93add1b4dbee78d3554aa23c8efc52128f327083573029d24e4e23e20e821',
     );
   });
 });

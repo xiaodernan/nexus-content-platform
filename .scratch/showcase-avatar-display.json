@@ -1,0 +1,100 @@
+{
+  "measuredAt": "2026-11-22T08:45:04.552Z",
+  "ok": true,
+  "probe": {
+    "ok": true,
+    "ratioErr": 0,
+    "natural": [
+      508,
+      586
+    ],
+    "box": [
+      "508.0",
+      "586.0"
+    ],
+    "objectFit": "contain",
+    "objectPosition": "50% 12%",
+    "aspectRatio": "508 / 586",
+    "scan": {
+      "contentBox": {
+        "x": 61,
+        "y": 52,
+        "w": 398,
+        "h": 475
+      },
+      "margins": {
+        "left": 61,
+        "right": 49,
+        "top": 52,
+        "bottom": 59
+      },
+      "contentWidth": 398,
+      "midRowContentPx": 192
+    },
+    "lines": [
+      "源图自然尺寸   508 × 586",
+      "渲染盒尺寸     508.0 × 586.0 px",
+      "盒子宽高比     0.8669   源图宽高比 0.8669   偏差 0.000%",
+      "object-fit     contain   object-position 50% 12%",
+      "源图留白       左 61 px · 右 49 px · 上 52 px · 下 59 px",
+      "内容包围盒     x=61 y=52 398×475",
+      "中线一行非白像素 192 个",
+      "",
+      "PASS · 渲染盒与源图同比（没有被压扁） — 偏差 0.000% < 1%",
+      "PASS · 整图完整呈现（object-fit: contain，不裁边） — contain",
+      "PASS · 显示尺寸没有被缩小（按原宽呈现） — 渲染宽 508.0 px ≥ 原宽 508 px 的 99%",
+      "PASS · 照片内容仍在画面里（没有被裁没） — 内容宽 398 px · 中线 192 px",
+      "PASS · 源图就是 508×586 补边版（不是 2026-11-19 回归期的 415×492 face-fills-frame） — 508×586",
+      "",
+      "总判定：PASS"
+    ]
+  },
+  "site": {
+    "found": true,
+    "total": 1,
+    "visibleCount": 1,
+    "src": "assets/profile-portrait.png",
+    "alt": "赵欣曈 · 南方科技大学本科→香港中文大学硕士 · 计算机科学与技术",
+    "natural": [
+      508,
+      586
+    ],
+    "box": [
+      540.58,
+      623.58
+    ],
+    "aspectRatio": "508 / 586",
+    "objectFit": "contain",
+    "objectPosition": "50% 12%",
+    "width": "540.578px",
+    "height": "623.578px",
+    "ratioErr": 0.0000034527368660708116,
+    "complete": true,
+    "screenshotBytes": 321892
+  },
+  "lines": [
+    "源图自然尺寸   508 × 586",
+    "渲染盒尺寸     508.0 × 586.0 px",
+    "盒子宽高比     0.8669   源图宽高比 0.8669   偏差 0.000%",
+    "object-fit     contain   object-position 50% 12%",
+    "源图留白       左 61 px · 右 49 px · 上 52 px · 下 59 px",
+    "内容包围盒     x=61 y=52 398×475",
+    "中线一行非白像素 192 个",
+    "",
+    "PASS · 渲染盒与源图同比（没有被压扁） — 偏差 0.000% < 1%",
+    "PASS · 整图完整呈现（object-fit: contain，不裁边） — contain",
+    "PASS · 显示尺寸没有被缩小（按原宽呈现） — 渲染宽 508.0 px ≥ 原宽 508 px 的 99%",
+    "PASS · 照片内容仍在画面里（没有被裁没） — 内容宽 398 px · 中线 192 px",
+    "PASS · 源图就是 508×586 补边版（不是 2026-11-19 回归期的 415×492 face-fills-frame） — 508×586",
+    "",
+    "总判定：PASS",
+    "",
+    "—— 展示页原件（.scratch/showcase-site/site/index.html，file:// 实测）——",
+    "<img class> 命中 1/1 个可见 · src assets/profile-portrait.png",
+    "源图 508×586 · 渲染盒 540.58×623.58 px · 偏差 0.000%",
+    "aspect-ratio 508 / 586 · object-fit contain · object-position 50% 12%",
+    "PASS · 真实展示页的头像同款规则生效（508×586 + contain + 同比）",
+    "",
+    "总判定：PASS"
+  ]
+}

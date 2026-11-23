@@ -54,6 +54,7 @@ const COPY = {
     openConstellation: '人物星图 →',
     openTide: '世界潮汐 →',
     openNetwork: '万象脉络 →',
+    openQuests: '世界委托 →',
     footBack: '← 回到世界图',
     emptyTitle: '速览打不开——世界读不出来',
     emptyCopy: (name: string) => `「${name}」的世界文档现在读不到，所以这里不画任何数字。先去 Studio 里检查世界面板，等世界确定能读，再回来。`,
@@ -85,9 +86,10 @@ const COPY = {
     openConstellation: 'Constellation →',
     openTide: 'World Tide →',
     openNetwork: 'World network →',
+    openQuests: 'World commissions →',
     footBack: '← Back to the world',
     emptyTitle: 'Digest can’t open — the world won’t load',
-    emptyCopy: (name: string) => `「${name}」’s world document can’t be read right now, so no numbers here. Check the Studio world panel, confirm the world loads, then come back.`,
+    emptyCopy: (name: string) => `“${name}”’s world document can’t be read right now, so no numbers here. Check the Studio world panel, confirm the world loads, then come back.`,
     emptyLink: 'Back to the Studio world panel →',
     ariaEras: 'Recent eras',
     ariaLore: 'Recently touched notes',
@@ -243,6 +245,7 @@ export default async function DigestPage({ params }: { params: Promise<{ project
         <Link className="dg-panelLink" href={`/world/${projectId}/constellation`} data-digest-open-constellation>{c.openConstellation}</Link>
         <Link className="dg-panelLink" href={`/world/${projectId}/tide`} data-digest-open-tide>{c.openTide}</Link>
         <Link className="dg-panelLink" href={`/world/${projectId}/network`} data-digest-open-network>{c.openNetwork}</Link>
+        <Link className="dg-panelLink" href={`/world/${projectId}/quests`} data-digest-open-quests>{c.openQuests}</Link>
       </footer>
     </main>
   );

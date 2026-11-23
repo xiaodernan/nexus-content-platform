@@ -35,10 +35,18 @@ function _roman(n: number): string {
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: '典籍室 · World Bible — NEXUS',
-  description: '《低语诸王》世界大典 · 全十四章正典，锚句中英字字对齐。/ The fourteen canonical chapters of The Whispers’ Kings, anchor sentences verbatim in both languages.',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  return locale === 'zh'
+    ? {
+        title: '典籍室 · 低语诸王 — NEXUS',
+        description: '《低语诸王》世界大典 · 全十四章正典，锚句中英字字对齐。',
+      }
+    : {
+        title: 'World Bible · The Whispers’ Kings — NEXUS',
+        description: 'The fourteen canonical chapters of The Whispers’ Kings, anchor sentences verbatim in both languages.',
+      };
+}
 
 /**
  * §BIBLE-1 低语诸王 · 典籍室（`/bible` 目录页）。
@@ -61,6 +69,7 @@ const COPY: Record<Locale, {
   whisperLink: string;
   oracleLink: string;
   anchorsLink: string;
+  dotRoadLink: string;
   chapterLabel: (order: number) => string;
   anchorsLine: (count: number) => string;
   readLink: string;
@@ -80,9 +89,10 @@ const COPY: Record<Locale, {
     whisperLink: '答问者 · 问点书里的事',
     oracleLink: '问潮 · 潮汐预言',
     anchorsLink: '锚句回放',
+    dotRoadLink: '点路 · 照着点走一遍',
     chapterLabel: (order) => `第${['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二', '十三', '十四'][order - 1] ?? order}章`,
     echoLabel: (order) => `回响 · 其${_cn(order)}`,
-    echoTitle: '回响 · Echoes',
+    echoTitle: '回响',
     echoLede: '正典之外的侧写——不是续篇，不是错的，只是同一块盐加了另一层纹理。',
     anchorsLine: (count) => `${count} 句锚 · 中英字字对齐`,
     readLink: '开始阅读',
@@ -102,6 +112,7 @@ const COPY: Record<Locale, {
     whisperLink: 'The Answerer · ask one question of the book',
     oracleLink: 'Ask the tide · The Tide Oracle',
     anchorsLink: 'Anchor Echo',
+    dotRoadLink: 'The Dot Road',
     chapterLabel: (order) => `Chapter ${['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV'][order - 1] ?? order}`,
     echoLabel: (order) => `Echo ${_roman(order)}`,
     echoTitle: 'Echoes',
@@ -131,6 +142,7 @@ export default async function BiblePage() {
           <span className="bb-playTrialSep" aria-hidden="true">·</span>
           <Link href="/bible/whisper" className="bb-playLink" data-bible-open-whisper>{c.whisperLink}</Link>
           <Link href="/bible/anchors" className="bb-playLink" data-bible-open-anchors>{c.anchorsLink}</Link>
+          <Link href="/bible/dot-road" className="bb-playLink" data-bible-open-dot-road>{c.dotRoadLink}</Link>
           <Link href="/tide-oracle" className="bb-playLink" data-bible-open-oracle>{c.oracleLink}</Link>
           <Link href="/bible/ask" className="bb-playLink" data-bible-open-ask>{c.askLink}</Link>
           <span className="bb-playTrialSep" aria-hidden="true">·</span>

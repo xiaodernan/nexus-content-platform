@@ -5,11 +5,18 @@ import { Tidewatch } from '@/components/Tidewatch';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: '潮候 · Tidewatch · 潮记你这一步——NEXUS',
-  description:
-    '一步世界 = 一张编译后的 StateGraph：读局 → 锚句检索 → 潮回叙事 + 结构化 delta → 逐字核验 → 落账。真实 provider、真流转、真潮账。A real StateGraph for one step of the world: analyze → retrieve → narrate + structured delta → verbatim guard → assemble. Real provider, real state flow, real tide ledger.',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  return locale === 'zh'
+    ? {
+        title: '潮候 — 潮记你这一步 — NEXUS',
+        description: '一步世界 = 一张编译后的 StateGraph：读局 → 锚句检索 → 潮回叙事 + 结构化 delta → 逐字核验 → 落账。真实 provider、真流转、真潮账。',
+      }
+    : {
+        title: 'Tidewatch — the tide records your step — NEXUS',
+        description: 'One step of the world is one compiled StateGraph: read the position → retrieve anchor lines → narrate the tide return with a structured delta → verify verbatim → settle the ledger. A real provider, a real state flow, a real tide ledger.',
+      };
+}
 
 /**
  * §WS-1 `/tidewatch` — 潮候步进：大模型不只是"答一句"的接口，而是世界状态机的分析层。

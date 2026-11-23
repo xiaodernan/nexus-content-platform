@@ -48,8 +48,10 @@ const countRecursive = (dir: string, match: (name: string) => boolean) => {
 };
 
 // Which ref the fact pack describes. Defaults to HEAD (whatever the caller checked out), but
-// NEXUS_FACT_REF lets a caller pin it: this repo's `main` and `master` are UNRELATED histories,
-// and `main` is the STALE content line (E211, no margins) while `master` is the active one (E215).
+// NEXUS_FACT_REF lets a caller pin it.
+// 2026-11-22 并轨后：main 与 master 已经是同一条历史（master 的全部成果已并入 main，
+// 并轨提交 00bde67 + 后续并轨），不再是「两条互不相干的历史」。当初那段「main 陈旧、
+// master 活跃」的说明只作历史记录保留——今天的默认仍是 HEAD。
 // A sync script that happened to run on `main` used to publish main's numbers as "latest".
 const FACT_REF = (process.env.NEXUS_FACT_REF ?? 'HEAD').trim() || 'HEAD';
 const commits = sh(['rev-list', '--count', FACT_REF]);

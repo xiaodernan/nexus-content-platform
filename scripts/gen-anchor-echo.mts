@@ -53,12 +53,12 @@ for (const zhName of chapterFiles) {
   const roman = ROMAN[n - 1] ?? String(n);
   out.push(...pairFor(join(BIBLE_DIR, zhName), join(BIBLE_DIR, enName), `第${zhNum}章`, `Chapter ${roman}`));
 }
-// ── 回响：E0N-*.md
-const echoFiles = readdirSync(ECHOES_DIR).filter((f) => /^E\d{2}-.+\.md$/.test(f) && !f.endsWith('.en.md')).sort();
+// ── 回响：E0N-*.md（E100 起是三位编号；旧正则只认两位，2026-11-22 实测把 E100–E218 整段漏在门外）
+const echoFiles = readdirSync(ECHOES_DIR).filter((f) => /^E\d{2,3}-.+\.md$/.test(f) && !f.endsWith('.en.md')).sort();
 for (const zhName of echoFiles) {
   const enName = zhName.replace(/\.md$/, '.en.md');
   if (!existsSync(join(ECHOES_DIR, enName))) throw new Error(`缺英文译本 ${enName}`);
-  const n = parseInt(zhName.slice(1, 3), 10);
+  const n = Number(/^E(\d{2,3})-/.exec(zhName)![1]);
   const zhNum = ZH_NUM[n - 1] ?? String(n);
   out.push(...pairFor(join(ECHOES_DIR, zhName), join(ECHOES_DIR, enName), `回响（其${zhNum}）`, `Echo No. ${n}`));
 }

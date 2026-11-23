@@ -224,7 +224,25 @@ class Registry:
         }
 
     def text_status(self) -> str:
-        return "real" if self._llm else "unavailable"
+        """文本能力由探测结论决定，不由"配了 key"决定——与 `embedding_status()` 同一判据。
+
+        2026-11-22 实测的读数事故：key 被吊销（网关回 `insufficient_user_quota`）之后，
+        /healthz 还连着报 `llm=real`，而同一份 payload 里 `llmLive.state` 已经是 `failed`——
+        两个读数各说各话，web 照着 real 那一行把请求发给一条死链路。
+        `providers()` 与 `llmLive` 现在读同一个结论源，不再一个探、一个不探。
+        """
+        if not self._llm:
+            return "unavailable"
+        return "real" if self._llm_liveness.state == "ok" else "unavailable"
+
+    def text_reason(self) -> str:
+        if not self._llm:
+            return "缺少 NEXUS_OPENAI_API_KEY"
+        if self._llm_liveness.state == "unknown":
+            # 启动时确实起了后台探测，但第一次 /healthz 可能比它先落地：
+            # 这里说"没验证过"，而不是沿用"有 key 就算 real"——unknown 按不可用处理是 llm_liveness 定的口径
+            return "未验证：还没对真实 chat 补全探过一次"
+        return self._llm_liveness.reason
 
     def embedding_status(self) -> str:
         """
@@ -246,8 +264,17 @@ class Registry:
     def providers(self) -> list[ProviderInfo]:
         infos: list[ProviderInfo] = []
         if self._llm:
+            # 状态与理由成对来自探测结论；没验证过就不把模型名列出去——
+            # 列出来会被读成"这个模型在这条链路上"，而那正是刚才说谎的地方
+            status = self.text_status()
             infos.append(
-                ProviderInfo("llm", self._llm.name, "real", self._llm.models(), "")
+                ProviderInfo(
+                    "llm",
+                    self._llm.name,
+                    status,
+                    self._llm.models() if status == "real" else [],
+                    self.text_reason(),
+                )
             )
         else:
             infos.append(ProviderInfo("llm", "openai-compatible", "unavailable", [], "缺少 NEXUS_OPENAI_API_KEY"))
@@ -296,6 +323,44 @@ class Registry:
         而调用方（`execution.py` 算成本）只需要单价。
         """
         return self._settings.price_table
+
+    def pricing_state(self) -> dict[str, Any]:
+        """成本账是不是黑的，以及**为什么**黑（§COST-2 / ADR-0311）。
+
+        两种黑法处置完全相反，混成一句「costUsd=0」就会开错药：
+
+        | `state` | 含义 | 该做什么 |
+        |---|---|---|
+        | `unconfigured` | `NEXUS_LLM_PRICES` 缺席，表是空的 | 配单价，或接受"账是黑的" |
+        | `model-drift` | 表配了 N 条，但**当前模型名一条都没匹配上** | 改模型名时漏改价目表——静默归零 |
+        | `ok` | 每个在用的模型名都算得出价 | 什么也别做 |
+
+        中间那档是这片要照亮的地方：`NEXUS_MODEL_*` 从 `gpt-6-sol` 换到 `gpt-6.2-sol`
+        这类改名，代码一行没坏、调用照常 200，只有成本账悄悄变成 0——而 0 会被读成"免费"。
+        这里只回答"匹配得上吗"，不预测金额，也不碰 provider。
+        """
+        table = self._settings.price_table
+        models = dict(self._settings.llm_models)
+        priced = [name for name, model in models.items() if model and table.price_for(str(model))]
+        unpriced = [name for name, model in models.items() if model and name not in priced]
+        if not len(table):
+            state = "unconfigured"
+        elif unpriced:
+            state = "model-drift"
+        else:
+            state = "ok"
+        return {
+            "state": state,
+            "configured": bool(len(table)),
+            "entries": len(table),
+            "models": models,
+            "priced": sorted(priced),
+            "unpriced": sorted(unpriced),
+            "note": (
+                "presence of a price entry for each configured model name; "
+                "costUsd=0 with state=unconfigured means not priced, not free"
+            ),
+        }
 
     @property
     def design_review_enabled(self) -> bool:

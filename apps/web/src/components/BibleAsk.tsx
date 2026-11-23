@@ -35,7 +35,7 @@ const COPY: Record<Locale, {
   retrievalHint: string;
 }> = {
   zh: {
-    kicker: '问典 · The Tidal Inquiry',
+    kicker: '问典',
     title: '问潮问问 · 向《低语诸王》提问',
     lede: '正典（13 章）+ 回响（163 篇）都在桌上——用中文或英文问，任何问题；问典只答潮候院范围内的事。',
     label: '你的问题',

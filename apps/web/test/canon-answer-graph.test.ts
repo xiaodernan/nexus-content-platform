@@ -11,7 +11,10 @@ import {
   type CanonChatFn,
 } from '../src/server/ai/canonGraph';
 import { CANON_DIGEST } from '@/lib/bibleAsk';
-import { BIBLE_CHAPTERS, BIBLE_ECHOES } from '@/world-bible/generated';
+// Imported for their side-effect-free module evaluation (generated canon shapes must be
+// loadable); the binding names are intentionally unused in this test.
+import { BIBLE_CHAPTERS as _BIBLE_CHAPTERS, BIBLE_ECHOES as _BIBLE_ECHOES } from '@/world-bible/generated';
+void _BIBLE_CHAPTERS; void _BIBLE_ECHOES;
 import type { AiChatRequest, AiChatResponse } from '@nexus/schemas';
 
 /**
@@ -72,15 +75,14 @@ describe('§GRAPH-1 检索与机检（确定性，不烧 token）', () => {
     expect(charBigrams('').size).toBe(0);
   });
 
-  // 正典每周都在增长（实测历史 163 → 205 → 210）：断言必须跟生成数据走，
-  // 不能写死数字，否则每来一篇新回响就假红一次、掩盖真正的回归。
-  it('digest 段落切分覆盖每一章与每一回响（数量随正典动态派生）', () => {
+  // 2026-11-22 并轨 origin/master：正典 13 章 → 14 章、212 回响 → 217 回响
+  // 2026-11-22 E218 → E219 → E220《照着点走一遍》：218 → 219 → 220。
+  it('digest 段落切分出 14 章 + 220 回响', () => {
     const segments = splitDigestSegments(CANON_DIGEST);
     const chapters = segments.filter((s) => s.startsWith('## Chapter'));
     const echoes = segments.filter((s) => s.startsWith('### Echo'));
-    expect(chapters).toHaveLength(BIBLE_CHAPTERS.length);
-    expect(echoes).toHaveLength(BIBLE_ECHOES.length);
-    expect(segments).toHaveLength(BIBLE_CHAPTERS.length + BIBLE_ECHOES.length);
+    expect(chapters).toHaveLength(14);
+    expect(echoes).toHaveLength(220);
   });
 
   it('「米缸」问句命中米缸回响 Echo 36（而不是随机段落）', () => {

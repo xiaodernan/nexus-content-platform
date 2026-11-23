@@ -8741,7 +8741,7 @@ Primary CTA · 悬停）→ Headline 粘贴 → 撤销只回滚这一贴（Headl
   补它需要服务端"按访客视口解一次"，届时 ADR-0069 要改成"默认按视口、显式参数覆盖"。
 - **作者写规则的那一格**：Properties 面板只有"读取"（会显示「tablet 下为 W×H」），Studio 的 viewport 切换
   不写规则。没有规则可写时，四档按钮对多数已发布作品仍是同一张画——下一寸该补这个入口，而不是自动适配。
-- 移动端体检那条 `[~]` 仍欠复跑：Studio／发现／市场／后台的窄视口没进读数。
+- ~~移动端体检那条 `[~]` 仍欠复跑~~ → [x] 2026-11-22 §MOBILE-AUDIT-2 已复跑：应用外壳 12 个 <24px 目标 + 管理台 7 页溢出全部修掉（详见文末）。
 - 测量会污染读数：`recordView` 每次 SSR 加载给 `publishedProjects.views` +1 且不去重，夹具账号与项目固定，
   那些"浏览"不是真人。
 
@@ -15253,9 +15253,13 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
 - [x] **压测脚本自检**：第一版有一族"路径注入"其实是合法请求，误触发 12 次真模型调用。
   修为每族必缺 `requestId`（契约必填），从结构上保证不可能走到 provider。
   检测器自己会烧 token 时，它测的不是系统鲁棒性。
-- [~] 60 并发下 health p95 退化到 1531ms（单 worker + 同步 access log 的代价），
+- [x] ~~60 并发下 health p95 退化到 1531ms（单 worker + 同步 access log 的代价），
   响应码全 200 且风暴后立即恢复。继续往上堆并发需多 worker + 关 access log，
-  不是路由代码的问题。
+  不是路由代码的问题。~~ **这条归因是错的，2026-11-23 用对照腿推翻**（见 §STRESS-5）：
+  发压脚本自己是单进程 asyncio + 纯 Python h11，同样 60 并发拆成 4 个进程就快 4.3–4.6 倍。
+  那 1531ms 量的是发压端排队，不是 ai-service；access log 只影响 404 对照腿，对 `/healthz` 无可测影响。
+  "不是路由代码的问题"这句结论侥幸还对，但它是从错误的读数里读出来的——留原文不删，是为了把
+  "没有对照腿的延迟数字不能归因"这件事记在这儿。
 
 ## §AILIVE-3 收尾（2026-11-21）
 
@@ -15300,8 +15304,9 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
 - [x] `/world/[projectId]/network` RSC 页（双语、`.nw-*` 门面、强制色彩回退）+
       `network-visual-style` 8 门；digest 页脚加「万象脉络 →」入口（SHA 重钉 1cfae46a→cfb5e1af）。
 - [x] 判据 22 条全绿；tsc web 绿。
-- [~] 浏览器像素层未验证：`nexus-postgres` WAL 损坏 shutdown，页面需真项目数据 + 登录，
-      本机起不来；DB 恢复后需真机截图核对 1440/390 无重叠。
+- [x] 浏览器像素层已核对：数据库抢修后建了 12 节点/12 关系的临时世界，登录后 1440 与 390
+      两档截图，`scrollWidth == clientWidth`（1440/1440、390/390），0 pageerror；桌面两栏、
+      手机单栏，无重叠。世界年鉴的卷门补上「卷六 · 万象脉络」（12 条关系计数来自真文档）。
 
 ## §DB-REPAIR 两库 WAL / 统计目录损坏抢修（2026-11-22）
 
@@ -15322,7 +15327,7 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
 ## §ADMIN-LLM-2 观察站 AI 清单：服务端边界 + 数字出处核对（2026-11-22）
 
 - [x] 新增 `POST /api/admin/observer/advice`：口令 123 / role=admin、DEMO 409、每 IP 5 次/小时，
-      指标由服务器现算；请求体只有 locale（ADR 0299）。
+      指标由服务器现算；请求体只有 locale（ADR 0307）。
 - [x] 修掉一个真 bug：`ObserverAiAdvice` 是 client 组件，却直接 import 了 server-only 的
       `chatWithCharacter`——浏览器里没有 ai-service 地址与凭据，按钮点了等于没调。改为走路由后
       真机点击返回 4 条建议、0 pageerror。
@@ -15330,292 +15335,473 @@ D. **Character soul patch 自动归档**——角色视觉字段变更同步归�
       不在快照中的数字**不删只标**（千分位/百分号归一）。真机 1 条 `0.08%` 被正标注为"可能是推算"。
 - [x] 补 `.obs-aiAdvice*` 五个类名的门面样式（此前 globals.css 一个都没定义，整块裸渲染）。
 - [x] 判据 13 条（含源码级边界）+ `observer-deepread` / `observer-projection` 回归 27 条全绿；
-      tsc web 绿；ADR 0299。
-## v868 — M9 链的第三个词：PR 是「请求复核」，不是「合并」（2026-11-22 · ADR 0067 · amendment 577）
+      tsc web 绿；ADR 0307。
 
-- **缺口**：链条已落前两词（incident v594 · patch v595）。操作者下一句是「请复核这个 patch」，
-  而 patch 行只说改动是什么，不说谁在何时请谁看过。`IncidentPatch` 的注释早就写着「later words will
-  move it」——本片是第一个真的移动它的词。
-- **字段与门**：`POST /patches/{patchId}/pull-requests` → 201 七字段
-  （id patchId title summary status openedBy openedAt）；`GET /patches/{patchId}/pull-requests` →
-  该 patch 的最新窗口 + count/total/limit/offset；`GET /pull-requests/{pullRequestId}` → 单条。
-  没有 approve / reject / merge / close / deploy 门——后续词缺席是刻意的。
-- **字节不复制**：diff 只住在 `incident_patch`；PR 行只存 `patchId`。复制会让同一问题有两个答案
-  （先读对、后读漂移）。活证据钉死：PR 恰好七字段、无 diff，patch 读回仍 29 字符。
-- **父门先行**：patch 不存在 → 404 `unknown-patch`，且在字段校验之前；列表同样检查父，因为
-  「这个 patch 没被复核过」与「没有这个 patch」是两个答案，空窗口会抹掉差别。
-- **一个 patch 同时只允许一个 open 请求**：闸门读请求表自己的 `countByPatchIdAndStatus(patchId,"open")`，
-  不读 patch 的 status 字；冲突回 409 `already-open`（不是 400：请求本身可能完全合法，冲突在状态）。
-  活证据证明拒绝既没写行也没移动 patch。
-- **链的游标同事务移动**：`PullRequestService.open` 调 `PatchService.submit`（patch 状态迁移的唯一主人）
-  → 包内 `IncidentPatch.submit()`，一次事务写两行，所以「请求已存在但 patch 仍 proposed」不可观察。
-  新状态词 `submitted`；`submit()` 幂等，未来 close 释放计数后无需第二道门。
-- **未关闭的竞态，写明**：一键闸是 count-then-insert，两个并发提交可能都读到 0 都插入；部分唯一索引
-  （`unique (patch_id) where status='open'`）是诚实加固，本片刻意不写：Hibernate 无法可移植表达
-  部分索引，且加 close 的那片才知道重开时该不该保留该不变式。记为边界，不冒充保证。
-- **窗口规则是「调用」不是「抄写」**：服务静态导入 `IncidentService.effectiveLimit/appliedOffset`，
-  三张表共用一个 cap（默认 20 · 上限 100 · 下限 1 · offset 落到所在页边界）。活证据用
-  `limit=1000&offset=150` 读回 cap 100 / skip 100。
-- **不写第二份记录**：0 audit、0 webhook delivery（psql 实测）。请求表就是记录。
-- **实测**：25/25 单测（16 service + 9 controller）；活库 proof
-  `docs/evidence/m9/pull-request-proof.mjs`（临时 pgvector/pg16 + 构建 jar）§1–§7 全绿，
-  含 STOP/START 后请求与 `submitted` 状态仍在；末行 252 字节。
-- **接线**：`package.json` 新增 `verify:pull-requests`；census 计数随 index 重算。
+## §WORLD-NET-2 割点：谁一倒、整张网裂开（2026-11-22）
 
+- [x] `worldNetwork.ts` 新增 `cutVertices`（迭代 Tarjan，父边按 edgeId 跳过，parts 精确到块数）；
+      与割边互补：割边是"断一条线"，割点是"少一个条目"。
+- [x] 修掉写测试时抓到的根节点误判：根的每个子树都会让 separated 自增，照非根公式算会把
+      一条链的根报成 parts=2。改为 roots 集合单独判定（根 = 子树数）。
+- [x] 页面新增全宽「关节（割点）」面板（`.nw-cutPanel` + 自适应 240px 网格），真实世界
+      读数 6 个割点；SHA 重钉 e8f47991→e859c4e0（真实功能变更）。
+- [x] 判据 8 条 + 网络页 29 条全绿；tsc web 绿；ADR 0298 补记。
 
-## v869 — M9 链的第四个词：裁决是「判词」，不是「合并」（2026-11-22 · ADR 0068 · amendment 578）
+## §BIBLE-MERGE-3 并轨第二轮：两条线的回响重排与真值对齐（2026-11-22）
 
-- **缺口**：v868 开了复核请求，但没有门把它排空——复核请求成了没人能关的队列，链条走不到部署。
-  操作者第四句话是「批准」或「不批」，此前无家可归。
-- **字段与门**：`POST /pull-requests/{pullRequestId}/decisions` → 201 六字段
-  （id pullRequestId verdict reason decidedBy decidedAt）；`GET /pull-requests/{pullRequestId}/decisions`
-  → 该请求的最新窗口 + 两计数；`GET /decisions/{decisionId}` → 单条。没有 merge / apply / deploy 门。
-- **闸门是 UPDATE 不是 count**：`closeIfOpen` 把 `status='open'` 放进 UPDATE 内部，返回移动行数——
-  1 = 本次调用关掉了它，0 = 别人先关了 → 409 `already-decided`。这正是 v868 记录为边界的竞态，
-  在裁决门上被单条条件 UPDATE 真正关掉；活证据证明第二次裁决既没写行也没移动任何状态。
-- **请求状态直接变成判词词**（`approved` / `rejected`），列表无需 join 即可筛。
-- **拒绝把 patch 放回 `proposed`**：被拒的 patch 既不在复核中也不被批准；留在 `submitted` 会描述一场
-  已经结束的复核，并把一键闸永久锁死。活证据：同一道门随后接受重新提交，patch 读回 `submitted`。
-- **三份记录一个事务**：请求状态、patch 状态（`approved` 或回 `proposed`）、裁决行同事务写入；
-  patch 状态迁移仍只经 `PatchService.approve/revise`（与 v868 的 `submit` 同一主人）。
-- **判词词表封闭且精确匹配**：`approved` / `rejected`，不做大小写折叠；`Approved` → 400
-  `invalid-decision` 并列出两个合法词。
-- **窗口规则仍是调用**：导入 `IncidentService.effectiveLimit/appliedOffset`；活证据
-  `limit=1000&offset=150` 读回 cap 100 / skip 100。
-- **不写第二份记录**：0 audit、0 webhook delivery（psql 实测）。裁决表就是记录。
-- **实测**：30/30 单测（18 decision service + 9 decision controller + 3 patch approve/revise）；
-  活库 proof `docs/evidence/m9/decision-proof.mjs` §1–§9 全绿（批准移动两表、二次裁决 409、
-  拒绝回 proposed 并可重提、三处拒绝、重启保持、psql 2 条裁决 + 状态迁移 + 0/0）；末行 231 字节。
-- **接线**：`package.json` 新增 `verify:decisions`；census 随 index 重算。
+- [x] `origin/master` 的 E211–E215 整体后移两位并入（→ E213–E217），不删内容；
+      正文前驱引用与纪元范围同步 +2；slug 同步 echo-213…echo-217。
+- [x] 真值重算并全文对齐：正典 **14 章 · 217 回响 · 1311 锚句**；说明书中英两版、
+      bible-ask-behavior 计数 pin、canon-answer-graph 段落断言、`docs/showcase/latest.json` 全部改成它。
+- [x] 修掉并轨带来的三处回归：机检判据取回 main 版（master 版断言的是旧行为）、
+      页边数据重跑生成器、bible 视觉门 SHA 重钉（含并轨前就漏钉的 reader 一格）。
+- [x] 失效引用清理：`E215 → E217` 六处；`gen-latest.mts` 分支说明改为「并轨后只有一条线」；
+      ADR 0304/0305/0306 加并轨补记；main 的 ADR 0304 改号 0307。
+- [x] 验证：verify:world-bible ✓ · verify:bible-snapshot ✓ · 并轨相关判据 148 条全绿 · tsc web ✓。
 
+## §WORLD-QUEST 世界委托：真实缺口 → 今日三件（2026-11-22）
 
-## v870 — M9 链的第五个词（收官）：部署是「记录」，不是「动作」（2026-11-22 · ADR 0069 · amendment 579）
+- [x] `lib/worldQuests.ts` 纯函数：八类委托（空页 / 薄节点 / 未标纪元 / 序号撞号 /
+      未解析关系 / 孤岛 / 关节 / 缺色板），数字与 `/integrity` 同口径（`buildChronicle`
+      的纪元归一、`buildWorldNetwork` 的 Tarjan、`buildConstellation` 的未解析）——
+      两页不会互相矛盾；同输入同输出，零随机。
+- [x] 「今日三件」= `FNV-1a(projectId + UTC+8 日期) % open.length` 起点轮转，取前三；
+      同一天同一世界同一组，跨天换一批。没有 `Math.random`，没有假积分。
+- [x] 三态：`open`（有缺口）/ `closed`（曾适用、计数归零）/ `notStarted`（对象还不存在，
+      例如还没有人物）——没人物时「缺色板」不冒充已完成（ADR 0262 同形状）。
+- [x] `/world/[projectId]/quests` RSC：仅作者可见；每张卡三步怎么做 + 最多 3 条真实样例 +
+      直达最适操作面；空世界先教落第一条；世界读不出来如实空白（零数字）。
+- [x] 双语 + 门面：zh/en 八类委托齐全；`.wq-*` 全 token、forced-colors、720px 单列；
+      `/integrity` 与 `/digest` 页脚各加双语入口，`/guide` 世界地图两侧补行（SHA 重钉 2 处）。
+- [x] 判据：`world-quests.test.ts` 10/10 · `quests-visual-style.test.ts` 8/8 ·
+      受影响五门 41/41 · `tsc -p apps/web` EXIT=0。
+- [x] 浏览器实测（`e2e/world-quests.spec.ts`，Playwright + 系统 Chrome）：真夹具
+      （登录 → 建项目 → PUT 六节点世界）→ 今日正好 3 卡 · 每卡三步 · 样例全是夹具真标题 ·
+      1440/390 均无横向溢出且卡片 top 单调（不重叠）· 英文模式零中文界面文案 · 0 pageerror；
+      截图落 `.scratch/world-quests-{desktop,mobile,en}.png`。
+- [~] **像素目验缺席**：截图已产出但图像上传工具本次报 Backend error，只能以 Playwright
+      几何读数 + a11y 快照为准；下一次窗口补肉眼核对。ADR 0308。
+- [x] §i18n 收口（同日）：`WorldGraphView` 的 12 个世界入口按钮（含新增「世界委托」）/
+      图上「N 条目 · M 关系」/「九类：…」/ 台地 aria 全部进 COPY zh/en 两套；
+      判据新增「COPY 之外零中文界面文案」（剥注释与 COPY 后正则扫描），全文 SHA 重钉
+      `eb6d7936…`。Studio 页浏览器复读未做，由静态判据 + tsc 覆盖。
 
-- **缺口**：577（请求）与 578（裁决）之后，链条最后一句「部署它」无家可归。本服务没有集群、镜像库、
-  主机或目标环境；它唯一绝不能做的事，是宣称一次部署发生过。于是最后一个词拆成两个诚实的动作：
-  调用者为**已批准**的复核请求**请求**部署；之后由部署者以自己的名义**上报**观察到的结果
-  （`succeeded` / `failed`）。
-- **字段与四道门**：`POST /pull-requests/{pullRequestId}/deployments` → 201 十字段
-  （id pullRequestId patchId environment status requestedBy requestedAt finishedAt reportedBy outcome）；
-  `GET /pull-requests/{pullRequestId}/deployments` → 最新窗口 + 两计数；`GET /deployments/{deploymentId}`
-  → 单条；`POST /deployments/{deploymentId}/complete` → 200 完成后的记录。`requested` 时三字段为 null——
-  证据钉死：不发明完成时间、上报人或结果。
-- **只有 approved 可部署，拒绝是 409**：open 尚无判词，rejected 的判词是「不」。`409 not-approved`
-  点明状态，且在字段校验之后（畸形请求体无论状态都是 400）。活证据：对 open 与 rejected 各请求一次，
-  两次都 409 且一行未写。
-- **完成是一次条件 UPDATE**：`completeIfRequested` 把 `status='requested'` 放进 UPDATE，
-  返回移动行数——0 → 409 `already-completed`；`clearAutomatically` 让重读回答数据库而非陈旧副本。
-  重试是**新记录**，历史不被覆盖。
-- **只有成功上报移动 patch**：`succeeded` → 同事务 `PatchService.deploy` → `deployed`；
-  `failed` → patch 保持 `approved`（批准仍然为真，失败是关于一次尝试的事实）。活证据跑完整条链两次：
-  成功读回 `deployed`，失败读回 `approved`。
-- **环境词表封闭且精确匹配**（`staging` / `production`，不做大小写折叠）；`Production` → 400
-  `invalid-deployment` 并列出两词。`patchId` 在请求时与 `pullRequestId` 并列存储（二者不可变），
-  完成门不依赖可能走失的父连接。
-- **窗口规则仍是调用**：导入 `IncidentService.effectiveLimit/appliedOffset`；活证据
-  `limit=1000&offset=150` 读回 cap 100 / skip 100。
-- **不写第二份记录**：0 audit、0 webhook delivery（psql 实测）。部署表就是记录。
-- **实测**：38/38 单测（24 deployment service + 11 deployment controller + 3 patch deploy）；
-  活库 proof `docs/evidence/m9/deployment-proof.mjs` §1–§9 全绿（五词链跑两遍、十字段三 null、
-  409 not-approved、成功移动/二次上报 409、失败保持 approved、未知 parent/record、三处 400、
-  重启保持、psql 2 条记录 + deployed/approved + 0/0）；末行 221 字节。
-- **链条至此完整**：incident（547）→ patch（548）→ 复核请求（577）→ 判词（578）→ 部署记录（579）。
-  每个词都是持久行，每次迁移都是一个事务，每道闸要么带名的 4xx、要么原子条件 UPDATE。
-  仍做不到的事——应用字节、跑测试、接触目标、认证调用者——写在 ADR 0067–0069 里，而非暗示掉。
-- **接线**：`package.json` 新增 `verify:deployments`；census 随 index 重算。
+## §STRESS-API 真 nexus-api + Postgres 端到端压测（2026-11-22）
 
+- [x] 上一轮欠的格子补上：Docker 恢复后，用 HEAD 重新 `mvn package` 的 fat jar 起真服务
+      （`-Xmx512m`，8091，Eureka 关），打 `GET /projects?limit=5` → JPA → Postgres。
+- [x] 三臂：32/100/200 workers × 10s = 15,929 / 26,990 / 26,672 请求，**全部 200、0 错误**；
+      吞吐拐点在 ~100 worker（2,690 rps），200 worker 只增延迟（p99 90→161ms），不增失败。
+- [x] 诚实边界写进 `docs/STRESS-TESTS.md`：`publications` 空表（真查询、空结果集）、
+      localhost 同机、单 JVM 512MB、Hikari 默认池、不在网关限流后、LLM 车道未压（供应商已关）。
 
-## v871 — M9 链视图：整条链一次读回一棵树（2026-11-22 · ADR 0070 · amendment 580）
+## §GATE-DEBT 门债清零（2026-11-22）
 
-- **缺口**：五个写门写五张表（incident / patch / 复核请求 / 判词 / 部署记录）。读者要看完整故事得跳五次，
-  且没有任何单一答案能说明某个 patch 到底部署过没有。链条完整了，但还不是「一件可读的东西」。
-- **门**：`GET /incidents/{incidentId}/chain` → 事件 + 其 patches + 每个 patch 的请求 + 每个请求的
-  判词与部署。**只读**：没有第六张表、没有缓存、没有汇总行。活证据对五张表在两次读前后做行数比对
-  （1/2/2/2/1 不变），audit / delivery 保持 0。
-- **镜头穿过「主人」**：`ChainService` 只调 `IncidentService` / `PatchService` / `PullRequestService` /
-  `DecisionService` / `DeploymentService`，不碰 repository——视图看不到自己的门会拒绝的行，
-  排序与窗口规则也继承而非另立。
-- **嵌套记录就是写门的类型**：`IncidentRecord`(11) / `PatchRecord`(8) / `PullRequestRecord`(7) /
-  `DecisionRecord`(6) / `DeploymentRecord`(10) 原样复用；任一门改字段，这里编译期报错。活证据一次读钉死五个尺寸。
-- **每一层都带总数**：每个子列表取 `CHILD_LIMIT = 100`，并报 `patchTotal` / `requestTotal` /
-  `decisionTotal` / `deploymentTotal`；`total > list.size()` 就是截断的诚实信号。
-- **一次读看全故事**：patch A `deployed` / request `approved` / decision `approved` / deployment
-  `succeeded`；patch B `proposed` / request `rejected` / decision `rejected` / 无部署——同一个答案里。
-  未知事件 → 事件门自己的 404 `unknown-incident`，在触碰任何子级之前抛出。
-- **重启后同一棵树逐字节相等**（深比较）：视图是行上的镜头，不是会过期的缓存。
-- **实测**：10/10 单测（6 service + 4 controller）；活库 proof `docs/evidence/m9/chain-proof.mjs`
-  §1–§8 全绿；末行 188 字节。
-- **它不是**：不是分页（每层上限 100）、不是权限（ADR 0018）、不是搜索索引（须知道 incident id）、
-  不是能力（不加 merge/apply/deploy）。截断可见但不可导航；要看余下部分走各表自己的窗口门。
-- **接线**：`package.json` 新增 `verify:chain`；census 随 index 重算。
+- [x] census：删掉 6 个零引用 `.et-*` 门面类（`.et-note` 保留），
+      `verify:census` — globals.css 3240 个类全部有引用。
+- [x] 三处 SHA 重钉（今日功能提交未随钉，先核对无域外类/无裸 Tailwind 再钉）：
+      `/search` §EXT-SEARCH（字面量 20→31 + SHA）、`CharacterChat` §LLMCTX-1、`/admin` §ADMIN-13。
+- [x] `verify:fe-gates` 整线复绿：**155 文件 / 1419 条全过**（census + no-raw-tailwind + 全部视觉门）。
 
+## §MOBILE-AUDIT-2 应用外壳窄视口复跑：12 个 <24px 目标真的修掉（2026-11-22）
 
-## v1095 — 文档点名的 scratch 证据：入册、分级，并给门加上第五腿（2026-11-23 · ADR 0307 · amendment 581）
+> 复跑 `e2e/narrow-surfaces.spec.ts`（Playwright + 系统 Chrome，五档：390/768/1024/1279/1280）。
+> 第一次跑就红了——不是测试坏了，是 Studio 里真有 12 个点击目标低于 WCAG 2.5.8 的 24×24。
 
-- **缺口**：v871 时 `doc-evidence` 三条腿是红的，而红的原因不在代码里。2026-11-16 的
-  `49dec689 chore(repo): untrack .scratch/ (already in .gitignore)` 把 128 个已在版本库里的证据文件
-  `git rm --cached`，却没同步改掉任何一句「见证」；此后本机 scratch 又被清过一轮。2026-11-22 实测：
-  docs 里 110 个点名 token，磁盘上只剩 2 个——整条证据链既不入册、也不在这台机器上了。
-- **恢复（逐字节，不重造）**：`git checkout 49dec689^ -- <127 paths>` 把历史里有的 127 个文件取回磁盘并入册，
-  合计约 1.38 MB；`gateway-rate-lua-live/readings.json` 磁盘上是**更新的**一份，保留本机字节并按
-  `docs/CURRENT-STATE.md:619` 自己早写明的修法 `git add -f`。入册人口回到 **128**，点名可解出率从 2/110 回到
-  87/110（110 = 86 个仍带点的点名 + 24 个改走名册声明；2026-11-23 复测：那 86 个全部解得出，且 glob/目录
-  展开出的每一个路径都在版本库里）。
-- **分级（声明失踪，不是豁免）**：剩下 23 个 token 从未入册，且全部依赖 2026-11-22 起**已关闭**的外部模型 API
-  或当时的实时栈，今天无法诚实重跑，也就无法诚实重造。它们登记进 ADR 0307 的名册，文档里 37 处声称改用
-  `scratch/<tok>` 拼写——少一个点就落在抓取器正则之外，语义是「这是当时的 scratch 工具，未入册，读数以正文为权威」。
-  另有一处点名指的压根不是证据：`showcase-site/site` 是 Pages 仓库的克隆工作副本（含 `.git`，展开 5051 个文件），
-  点名改指 `docs/evidence/io-avatar-languages-nan-root-cause-2026-11-19.md`，名册里 kind=`clone`。
-- **门新增第五腿**（派生，不手填）：docs 里每个 `scratch/<tok>` 声明必须在名册有一行；名册每行必须仍被
-  docs 声明（不许留尸体行）；kind=`lost` 的行必须仍然磁盘查无且 `git ls-files` 查无——所以「声明失踪」不能用来
-  藏一个其实存在、本该入册的文件；kind=`clone` 的行必须仍是含 `.git` 的目录且它内部一个文件都不入册；
-  名册与声明两侧人口都非空，否则这一腿会因为什么都不必比而假绿。
-- **实测**：`npx vitest run apps/web/test/doc-evidence.test.ts` → **5 passed**（起点是 3 红 2 绿）。
-  三个走查桩各自 refused / named / restored 齐过：A1 名册多一行而 docs 不再声明它 → 红「名册里有尸体行」；
-  A2 磁盘上造一个名册说失踪的 `ab-cache-key.mts` → 红「名册说失踪，磁盘上却有」；
-  A3 在 `docs/TESTING.md` 用失踪拼写点名一个没登记的 `arm-unrostered.mjs` → 红「声明没有名册行」。
-  每个桩跑完都把原字节写回，并复测确认回到 5 passed。
-- **label 的来源**：两个平面各自取最大——`git log --all --format=%s` 与 `git grep -nE "v[0-9]{3,4}" -- docs`，
-  并且只认**后面不接 `-`/`.`/数字**的命中（用 `-o` 会把 `v2026-11-20` 这种日期截成它的前四位，前沿就假高到
-  2026 去了）。实测：subject 平面最大 **v1094**、docs 平面最大 v1085，前沿取 **v1094**。合并进来的那条线
-  早就用过 v872/v873/v874（`docs/CURRENT-STATE.md:5858` 是 v872、`:5873` 是 v874、
-  `docs/evidence/paid-provider-e2e-2026-11-17.md:387` 是 v873），所以本批不用 v872 而取两侧皆空的 **v1095**。
-- **它不是**：不是把 `.scratch/` 重新变成可提交的目录——只有被文档点名的才入册，其余照旧忽略；
-  也不是给门加豁免——第五腿让「声明失踪」比原来的「点名即须存在」更难被滥用。
-- **接线**：无新脚本；`doc-evidence` 仍在 `verify:fe-gates` 收的那族里，census 人口不变。
+**修掉的（都是高度 22–23px 的小按钮，纯 CSS 最小尺寸，不改布局语义）**
 
-## v1096 — 接手那条没人做的 apps/web 闸口批：CSRF 补完 + 四道 HEAD 红各自回到根因（2026-11-23 · amendment 582）
+- 390：AI 建议 chip ×5（`.cb-suggestionChip` 23px 高）→ `min-height` 24px
+- 768：视图切换 ×5（`.se-viewBtn` 22px 高）→ `min-height` 24px
+- 1024：图层「+」×2（`.ly-addBtn` / `.ly-pageAdd` 23.6px）→ `min-width/min-height` 24px 方形
 
-- **缺口**：v871 的 HEAD 上把这族相关套件单独拎出来跑（10 个文件），红在 4 个套件 6 个用例
-  （`Test Files 4 failed | 6 passed`，原始读数存 `.nexus-tmp/v872-reds-root.txt`；整仓的读数在下面「实测」里）。同时工作副本里躺着一批**没人提交的 apps/web 改动**（CSRF 双提交、
-  a11y、两条 Java 门跟随 ADR-0237 改名）——按 §二「并轨过来的内容如果那边已经没人在做，直接接手把剩下的做完」，
-  这批一起收：先替它把门修到能验，再逐条留证。
-- **CSRF 补完（那批的主体）**：5 个写形接口 `/api/admin/canon/review`、`/api/admin/observer/digest`、
-  `/api/admin/visitor-sim`、`/api/discover/interest`、`/api/notifications/digest` 在鉴权之后、花钱之前加
-  `csrfOk(req)`；对应 5 个客户端组件在 fetch 上带 `csrfHeaders()`。口令进观察站的人**没有 session**，
-  所以 `/api/admin/observer` 的 POST 自己铸一枚 `nexus_csrf`（非 httpOnly，页面要读它）——否则门开了、
-  门后每个动作都 403。`canon-review-route.test.ts` 因此补一个 `next/headers` 的 cookie jar 桩并带上请求头。
-- **`rate-limit-rules`（红因：表是手抄的，抄漏了）**：`IP_RATE_RULES` 实际 18 条、门上的表只有 11 条。
-  新增一条**派生**腿：扫 `apps/web/src` 里的 `ipWriteGate('<key>'` 得调用点集合，与表做双向差集——
-  表里每条都得有调用点，调用点每条都得在表里；`auth/register` 是直读 `IP_RATE_RULES` 的那一个，
-  显式记账（`IpGateRoute` 类型把这一族标注出来）。7 条被追加成顶格缩进的规则重新缩进并补了档位理由。
-  实测 4 passed；桩 R1（表里删一条）/R2（造一个没登记的调用点）各自 refused+named+restored。
-- **`jsx-text`（红因：51 字符的英文漏进了可见文本）**：`CanonReviewPanel` 的标签把 `**锚句**：` 原样写进
-  label，星号遂印在页面上。页面侧改成「含以「锚句」开头的行」；同时这条腿的正则 `[^*\n/]{1,400}` 原先只到 40，
-  是门自己的盲区（一条 41 字的加粗漏得无声无息）——放开到 400 并在文件头写清为什么。`/admin/observe` 两条
-  lede 也去掉手写星号。实测 2 passed；桩 J1 让超长加粗重新红。
-- **`notify-producers`（红因：门读的是写法不是事实）**：收件箱那一列早就按 locale 在
-  `NOTIFICATION_TERMINAL_STATE{,_EN}` 之间选（`page.tsx:166` 选、`:249` 用），门却断言页面里出现某段字面量，
-  一重构就假红。改成结构断言：认出那条 const、确认它真被索引——「这一列又变回手写的」才红。
-  实测 4 passed；桩 N1（换成手写常量）红、N2（选了却不索引）红。
-- **`style-tokens`（红因：那批用了没发布的 token）**：`--nexus-color-line/-border/-accent/-fg-on-accent/
-  --nexus-radius-3` 在 `:root` 里一个都不存在，靠 `var(x, fallback)` 蒙过渲染。改指已发布的
-  `--nexus-color-border-subtle`、`--nexus-color-brand`、`--nexus-color-accent-fg`、`--nexus-radius-md`。
-  并且把那条**被这批改松的语法**收回去：`var(--nexus-…)` 带兜底值也不能豁免未定义的名字，正则恢复成只认
-  真 token 位置；`(?<![-\w])color:` 那条误报修正留着。实测 29 passed；桩 S1（新造一个假 token 带兜底）红，
-  S2 确认对比度腿仍抓住 `text-success` 压在 `bg-success` 上 = 1.00。
-- **两条 Java 门跟随 ADR-0237**：`infra/config/` 与 java-config-server/gateway/registry 一起删了，
-  共享默认值改由 `services/nexus-config/src/main/resources/nexus-config/application.yml` 出。
-  部署单元从 8 个改名成盘上真实的那 5 个（`ls services/` 对上），`TRAFFIC_HOPS` 里 java-gateway→nexus-gateway，
-  共享门从「与业务门同样四个端点」改成「刻意只 `health,info`」——窄一档，共享文件手滑就不可能一次放宽全部署。
-- **label 的来源**：与 v1095 同一把尺（两个平面都扫到 v1094），这一批取 **v1096**。
-- **接线**：无新脚本；这一族的套件由 `verify:fe-gates` 与根 `npx vitest run` 各自收到。
+**复跑读数（修后，全部 0 个 <24px）**
 
-## v1097 — 库不按迁移长：8 条被抹掉的外键补回来，并装一道 parity 门（2026-11-23 · ADR 0308 · amendment 583）
+| 面 | 390 | 768 | 1024 | 1279 | 1280 |
+|---|---|---|---|---|---|
+| 发现 | 0 溢出 / 0 横滚 / 0 裁切 | 同 | 同 | 同 | 同 |
+| 市场 | 0 / 0 / 0 | 同 | 同 | 同 | 同 |
+| 市场·登录态 | 0 / 0 / 0 | 同 | 同 | 同 | 同 |
+| Studio | 0 / 0 / 3 裁切（画布帧） | 0 / 0 / 3 | 0 / 0 / 4 | 0 / 0 / 3 | 0 / 0 / 3 |
+| 管理台 ×7 页 | 0 溢出 / 0 <24 | 同 | 同 | 同 | 同 |
 
-- **缺口**：v871 全量跑（`Test Files 2 failed | 654 passed | 2 skipped (658)` / `Tests 1 failed | 8429 passed (8442)`）
-  剩的两条红，根因是同一个：**本机开发库丢了 8 条迁移声明过的外键**。
-  `credits` 那条「删任务 → 账本 `task_id` 置空」红成 `expected '7349d46e-…' to be null`，读起来像只追加触发器
-  把外键动作挡了；`visual-benchmark` 在 `beforeAll` 就撞 `sessions_token_hash_key`。实际是
-  `credit_ledger_task_id_agent_tasks_id_fk` 与 `sessions_user_id_users_id_fk` **根本不在**（表在、触发器在、
-  索引在，独独外键没了），另 6 条同批失踪（`branches` / `design_nodes` / `knowledge_chunks` / `pages` /
-  `sessions` / `credit_ledger.user_id`）。
-- **怎么丢的、为什么一直没人知道**：`npm run db:push` 按 `schema.ts` 把库**推平**、不看迁移史；
-  `scripts/db-migrate.mts` 只认 `nexus_meta.schema_migrations` 的版本号，0000/0016 早记成"已应用"，
-  永远不自愈。两边都没钉住"库 = 这些迁移的结果"这句话——同容器里从零建的 `nexus_regress` 99 条一条不差，
-  坏的只有日常在测的那一台。
-- **新增的门（派生，不手填）**：`apps/web/test/db-fk-parity.integration.test.ts` 从
-  `infra/migrations/*.sql` 解析外键名单——两种写法都读（`ALTER … ADD CONSTRAINT … FOREIGN KEY` 77 条 +
-  `CREATE TABLE` 列内 `REFERENCES` 自动命名的 `<表>_<列>_fkey` 22 条，合计 99，与 `nexus_regress` 实测
-  **两侧完全相等**），再比 `pg_constraint`：缺 / 多 / 删除动作不一致 / 同名挂错列，各一条腿，
-  外加一条人口下限腿（解析器瞎了就得红，不许"比了个空"假绿）。库不在整族跳过。
-- **修复的迁移**：`infra/migrations/0048_dropped_foreign_keys_restored.sql` 照 `0038` 已有的
-  `DO $$ IF NOT EXISTS (SELECT 1 FROM pg_constraint …) $$` 守卫把 8 条补回来。
-  **一律 `NOT VALID`**：这台库面积累了指向已删父行的旧行（实测 `branches` 4947/6197、`knowledge_chunks`
-  9253/12621、`pages` 4799/6045、`sessions` 365/3295、`credit_ledger` user 1314 / task 702 / project 695），
-  直接 ADD 会 23503，要清就得删别人的开发数据——那条决定不归这次修 bug。`NOT VALID` 仍旧管住之后的写入，
-  **也照旧执行删父行时的 SET NULL / CASCADE**，所以两条红确实是它治的。
-- **出处归第一次声明**（门自己的缺陷，被 P1 抓出来后修的）：让 0048 覆盖 0016，缺失清单就会把责任报给
-  "修复它的那条迁移"而不是"当初立它的那条"；同名两种声明于是也升格成一条腿。
-- **fixture 自己扫自己的尸体**：`visual-benchmark` 的 token 从写死的 `'vb-token'` 改成每次运行一枚
-  `vb-token-<uuid>`，`afterAll` 先删 session 再删用户——一条用例的清洁不该依赖另一条迁移有没有跑过。
-- **实测**：从零建 `nexus_fk048_proof`（49 条迁移全跑）→ 99 条外键、0 条未验证、门 **6 passed**，
-  这是"0048 在正确库上是 no-op"的证明；对 `nexus` 跑 `npm run db:migrate`（补 0047+0048）→
-  门 6 passed，`npx vitest run apps/web/test/{db-fk-parity,credits,visual-benchmark}…` →
-  **Test Files 3 passed / Tests 23 passed**（修复前分别是 1 failed / 1 failed / 1 failed）。
-  落库后的全树复跑：`npx vitest run --reporter=dot` → **`Test Files 657 passed | 2 skipped (659)` /
-  `Tests 8443 passed | 5 skipped (8448)`，exit 0**（719s）。文件数 658→659 与用例 8442→8448 都是这道新门
-  自己带来的；新受管的 8 条外键没有让别的套件变红。
-  复测的两台参照库仍是好的：`nexus_regress` 与 `nexus_two_instance_b` 各 99 条、0 条未验证，
-  `credit_ledger` 三条外键都在；`nexus` 修后 99 条、其中 8 条 `NOT VALID`。
-- **走查桩**：P1 少一条（并验点名指的是 `0000_init.sql` 这个出处）、P2 动作被换、P3 同名挂错列、
-  P4 库里多一条没声明的、P5 解析器改瞎、P6 同名声明动作不一致——6 条全部 refused / named / restored 齐过，
-  桩全打在一次性库上，`nexus` 没被拿来当靶子。
-- **接线**：`0048` 由 `scripts/db-migrate.mts`（`npm run db:migrate`）自然收；门在 `apps/web/test/` 族里，
-  根 `npx vitest run` 收到；无新脚本。
-- **它不是**：不是把 `db:push` 禁掉（禁不掉，别的 lane 要用）——门是它的对照物：推平一次，只要结果不等于
-  迁移史，下一次测试就跑不掉。
+- 管理台七页（复核台/账号/审计/实时/访问账/市场工单/观测）全部进读数；观测页的横滚
+  是给两张宽表用的**有意容器**（390 下 4 处、768 起 2 处），不是页面溢出。
+- Studio「适应窗口」五档都装得进：390 21%（298×186 → 346×550）· 768 47% · 1024 26% · 1279 43% · 1280 43%。
+- 裁切数是画布帧在视口外的部分（ADR-0069 允许平移），不是外壳缺陷；测试只记录、不当门。
 
-## v1098 — 并回 `origin/main`：94 个提交汇成一条主线，冲突逐文件解、生成物重导、四处显式重钉（2026-11-23 · ADR 0313 · amendment 584）
+**管理台这一轮抓到的两个真问题（都已修）**
 
-- **缺口**：两条线从 `3433207c` 分叉之后，`master` 独有 56 个提交、`origin/main` 独有 94 个，
-  两边都在动同一批门面（`globals.css`、`/search`、`/bible`、角色对话、guideCopy、ROADMAP/CURRENT-STATE 台账）。
-  日常代价不是"合并有冲突"这一分钟，而是此后每一句都要先问"这话在不在另一条线上"——
-  并线就是把这个问题问掉。取 C 方案（一次 merge commit），不 rebase、不 cherry-pick 碎片：
-  两条线各自都被 CI 量过，改写它们的历史等于毁掉那些读数（ADR 0313 背景与选项段）。
-- **合并树**：相对 `22c0995b` 冲突解完时是 **155 个文件 / +9700 / −278**，落地提交是
-  **157 / +9875 / −288**（多的两处：`db-fk-parity` 的 tsc 修 + 台账 amendment 584）；
-  `merge-tree` 预报的冲突逐个解，
-  判据写在 ADR 0313 决定 1–12（`lineages-alt/**` 不进 canon 的先例、guideCopy 取并集、
-  `globals.css` 取并集并删掉 6 个零引用的 `.et-*` 死类、两边各自追加的记录都留）。
-- **生成物一律重导，不手工合并**：`npm run gen:bible-snapshot` 取两边并集之后重导并 `verify:bible-snapshot` ✓；
-  `docs/latest.json` 里那些"从 HEAD 数出来"的字段留到合并提交落地之后按新 HEAD 重跑 `npm run gen:latest`，
-  免得出一个描述不出自己的文件。
-- **四处显式重钉 + 一处拒钉**：`/search`（并回 §EXT-SEARCH 站外检索段，字面量 20 → 31 且逐条核过都是
-  已定义的 `se-*`）、bible 目录页（多了 `/bible/threads` 出口）、bible 阅读页（多了「回响线索」段）、
-  角色对话（并回 `canonPrefixChars` 徽章）。`/admin/savings` 对面那份钉**拒绝**——它在这台仓库的
-  任何 ref 的任何提交里都对不上那份页面字节，钉一个对不上历史的哈希等于把红伪装成绿（决定 5）。
-- **并线新造的三条红，各回各的根因**（决定 11）：① main 侧新加的 `api/admin/observer/advice` 写路由
-  用 cookie 身份却没有 `csrfOk`——本线的 CSRF 收口批（v1096）立了闸，对面按立闸前的世界写了代码；
-  照同族 `observer/digest` 补上门、客户端按钮展开 `csrfHeaders()`，并在 `observer-advice-audit` 加一条
-  "两头都接上"的源码级腿。② `globals.css` 里 `var(--nexus-color-border-subtle, var(--nexus-color-border))`
-  的兜底那半在本线 `tokens.css` 里从来不存在——删掉，字节变了渲染不变。③ `npm run typecheck` 红 9 处，
-  全在 v1097 那份 parity 测试里，而它**不在合并差异里**：那是本线自己躺了一次提交的 HEAD 红，
-  因为 `verify:fe-gates` 不含 typecheck、vitest 也不做全量类型检查。
-- **实测**：`verify:census` → **3197 个类全部有引用方**；`verify:fe-gates` → **154 files / 1410 tests passed**（修前修后各一次）；
-  `verify:evidence-census` → exit 0；`verify:bible-snapshot` → ✓；`doc-evidence` → 5 passed；
-  三条修的单独复跑 → **3 files / 48 tests passed**；`apps/web` `tsc --noEmit` → **exit 0**（修前 9 处）；
-  第一次整树 → `2 failed | 669 passed | 3 skipped (674)` / `2 failed | 8600 passed | 6 skipped (8608)`；
-  `verify:ci-wiring` → exit 0（人口 124 闭合为 124+0）、`verify:table-recount` → 1005 用例 / 57 文件逐行对上、
-  `verify:tree-guard` → 9/9 arms MATCHED、`verify:no-raw-tailwind` → 零裸原子；
-  **两道如实留下的红**：`verify:arms-freshness` → exit 1（合并带进派生人口的 4 条 M9 证明让收据过期，
-  要用 `npm run verify:arms` 重出，处置记 ADR 0313 决定 12）、`i18n:audit` → exit 0 但它报的
-  "总差异 28 项"逐条都是 `未配置 NEXUS_AI_SERVICE_URL` 的调用失败——**那是检查器自己没跑成，不是翻译差异**，
-  在 API 已关闭的今天必须先让它区分这两种出口，28 这个数字不作为 i18n 读数引用；
-  修后整树（第二次，`--maxWorkers=4`，2699.71s）→ exit 1：`2 failed | 669 passed | 3 skipped (674)` /
-  `2 failed | 8601 passed | 6 skipped (8609)`——上一轮那两条真红（CSRF 结构门、失效 token）已不在失败名单，
-  这一轮两条同为 `Test timed out in 30000ms`（`ai-approvals.integration` 的一条真库腿 +
-  `credits-why-guards` 的一条同步源码扫描），单独复跑 **2 files / 53 tests passed（24.39s）**，
-  连同一次 `Timeout calling "onTaskUpdate"` 的 worker RPC 超时一起归到同机争抢的测量面；
-  判据因此是"断言面全绿、超时另有单跑复证"，既不写成整树绿，也不写成门没牙（读数全文见 ADR 0313 验证格）。
-- **还有第三条线，P1 到那儿才算完**：`local-clone/main` = `6218077d`（第二份工作副本 `D:\内容创作平台`，
-  它的 `next dev -p 3100` 正占着本仓库的默认端口），相对并线前的 `master` 独有 **137 个提交**，
-  其中 **90 个**在 `origin/main` 之外，`git cherry` 判 **133 条非补丁等价**；
-  **v1098 落地后重量一次**：相对新 `master` 只剩 **43 个独有 / 落后 10**，几分钟后再次 fetch 它又推到
-  `11efbc1c`（**45 个独有**，它那个工作树还有 16 个未提交路径）——这是一条活的线，动手前必须当场重量；
-  只读 `merge-tree` 的冲突面从 4 个文件长成 **16 个文件**（生成物一族 5 份 + `globals.css`/`guideCopy.ts`
-  取并集 + 5 份字节钉/行为测试 + 两份追加记录 + `simulated-user-behavior-2026-11-22.md` +
-  `.scratch/gateway-rate-lua-live/readings.json` 的 add/add），判据与逐族处置记 ADR 0313 决定 9；ADR 号还与本线**连撞两处**
-  （它的 0307 是观察站 AI 清单、0308 是世界委托，本线的同号是证据名册与外键 parity）。
-  规矩写在决定 10：并它时把来客改到当时下一个空号并在文首留一句，本线文件不迁就。
-- **不 push**：远端 `origin` 仍是合并前的样子（业主没要求推）。
+- 夹具脚本的库指错了：`scripts/e2e-admin-fixture.mts` 默认 `55100/nexus`，而产品
+  （`apps/web/.env.local`）跑在 `5433/nexus_dev`——脚本报"已经是 admin"，管理台 e2e 却永远
+  "没有夹具"。现在默认跟产品同库，并在本地库校验里同时接受 `nexus` / `nexus_dev`。
+- `/admin/observability` 在 390 下自报 905px（不是测试坏了）：AI 就绪表
+  （`.am-tableNarrow`，min-width 520px）没有横滚容器，把 `.am-ledgerGrid` 的单列轨撑到
+  880px；外层 flex/grid 的 `min-width:auto` 又把它漏到页面。修法是三处一起：
+  `.tl-tableScroll { min-width:0; max-width:100% }`、`.am-stack { min-width:0 }`、
+  `.am-ledgerGrid` 窄档 `minmax(0,1fr)`，并把 AI 就绪表包进带 `role=region/tabIndex=0`
+  的横滚区。修后 390 页面 390/390/390，观测页 0 溢出。
+
+**诚实边界**
+
+- 数字是本机 Playwright 仿真（`isMobile` + touch），不是真机。
+- 管理台读数依赖一个被提升为 admin 的 e2e 夹具账号；这是本地开发数据的动作，
+  产品里的登录 + role + CSRF 一条都没少。
+
+## §I18N-EN-PURITY 英文模式零中文：全 src 静态门 + 7 处漏翻修掉（2026-11-22）
+
+- [x] 新门 `apps/web/test/i18n-en-purity.test.ts`：TypeScript AST 找全部 `en: { … }` 文案块，
+      只扫值（查表键不误判），CJK 字符与中文标点零容忍；`·` `—` `…` 放行；
+      BibleQuiz 的汉字题面明确豁免（理由写进门里）。扫描面 300+ 文件，变异臂实测能红。
+- [x] 修掉真实漏翻 7 处：world 的 quests / digest / integrity / network / tide 与
+      ChronicleView / ConstellationPanel 的 en 文案把中文书名号 `「名」` 改成英文引号 `“名”`。
+- [x] 修掉英文挂牌 3 处：`THE ATLAS · 世界全图` → `THE ATLAS · WORLD MAP`、
+      `THE TIDE WIRE · 今日潮声` → `THE TIDE WIRE · TODAY’S TIDE`、
+      `THE TIDE ORACLE · 潮语` → `THE TIDE ORACLE`；对应中文挂牌改成纯中文（`世界全图` / `今日潮声` / `潮语`）。
+- [x] CharacterPanel en 全角 `＋` 改半角 `+`；LocaleToggle 提示语跟随当前语言
+      （中文界面 `切换到英文`、英文界面 `Switch to Chinese`），删 discover / search 的
+      `localeToggleHint` 死键（中英各一，从未被引用）。
+- [x] 5 个视觉门 SHA 因真实文案变更重钉并注明原因：CharacterPanel / ChronicleView /
+      ConstellationPanel / discover / search。
+- [x] 验证：新门 3/3 + 受影响 11 文件 73/73 全绿；`tsc -p apps/web` EXIT=0；eslint 14 文件 EXIT=0。
+      ADR 0309。诚实边界：本轮是文案与判据，未起浏览器；像素/截图未做。
+
+## §WORLD-QUEST-2 第九类委托「星图独行」：星图上一条线都没有的人（2026-11-22）
+
+- [x] `worldQuests.ts` 新增 `charactersWithNoDrawnLink(characters, nodes)`：只把**画得出来**的线
+      算作连线（目标须解析到角色或世界条目）；指向不存在名字的关系不画线，那笔账仍归 unresolved。
+- [x] 第九类 `lonely-character` 进 `WORLD_QUEST_KINDS`：有角色但星图无线才计数；无角色落
+      notStarted（不冒充完成），人人有连线落 closed（真的了结）。样例是真实人物名。
+- [x] `/quests` 新增 zh/en 两张卡（三步怎么做 + 直达 Studio 人物面板）；`/integrity` 新增
+      第九项「星图独行 / Lone on the map」卡，与委托板共用同一 helper，两页数字不会互相矛盾。
+- [x] 判据：`world-quests` 新增独行三种边界（互为连线的两人不算 / 指向幽灵的算 / 无角色不算完成）；
+      `quests-visual-style` 九类字典齐全；两处 SHA 重钉（quests 加卡、integrity 加卡）。
+- [x] 验证：5 文件 33/33 全绿；`tsc -p apps/web` EXIT=0；eslint 6 文件 EXIT=0。
+- [x] 浏览器复跑（`e2e/world-quests.spec.ts`，系统 Chrome）：8.7s 通过——今日仍恰好 3 卡、
+      三步与真样例、1440/390 无横向溢出、英文模式零中文、0 pageerror；第九类在无人物夹具里
+      如实落 notStarted，不冒充完成。ADR 0308 补记 1。
+- [~] **像素目验仍缺席**：截图已重新产出（`.scratch/world-quests-{desktop,mobile,en}.png`），
+      但图像上传工具本次仍报 Backend error；只能以 Playwright 几何读数 + a11y 快照为准。
+
+## §I18N-DEMIX-2 中文模式去夹杂：kicker / 页脚 / 世界全图只留一种语言（2026-11-22）
+
+- [x] `/map` 28 条 zh 标签去掉「· English」并列后缀（典籍室、潮汐挑战、七口井……），
+      metadata 标题改单语；每格仍是真实路由，中英两份标签仍齐。
+- [x] `/guide` 页脚「世界全图 · The Atlas →」→「世界全图 →」；`/bible` 中文
+      `echoTitle`「回响 · Echoes」→「回响」；BibleSearch 按钮 `StateGraph` → `状态图`。
+- [x] kicker 收口：问典 / 答问者 / 大模型解读 / 正典深问 / 潮汐签 / AI 深读 / 公开试跑 /
+      潮汐见证 / 潮候步进（含「世界状态」「这一步」「潮回」）；shell-i18n 的
+      viewer/editor/owner 提示改中文角色名，说明书提示改「中文与英文」。
+- [x] 4 个视觉门按各自 redactClasses 重钉并写明原因（bible-ask component、bible index、
+      guide page、observer-deepread component）。
+- [x] 验证：12 文件 92/92；tsc web EXIT=0；eslint 18 文件 EXIT=0。
+- [~] 静态 metadata 仍是单语中文（英文模式标签页标题未本地化）；后续用
+      `generateMetadata + getLocale` 统一处理。world-bible appendix 的双语词条属 Ask 语料，
+      不在本轮范围。
+
+## §SHOWCASE-SYNC-TRUTH 事实包不再钉不存在的 master（2026-11-22）
+
+- [x] 事故：并轨后本地只剩 `main`，`master` 只在远端；旧 `sync-showcase` 仍钉
+      `NEXUS_FACT_REF=master`，解不开 → head 空串、total_commits null，15:49 那次
+      同步把空数字推上了个人主页。
+- [x] gen-latest 的「解不开就回退 HEAD 并警告」护栏已存在；本次把 sync-showcase 的调用
+      也改成默认 HEAD，注释写明真实事故与原因。
+- [x] 实跑：Clash Verge 未启动导致首次 fetch 失败；启动代理后重跑，事实包 →
+      main @ 83cf9f2 · 4043 commits · 372 ADR · 616 test files，
+      已 push 至 `xiaodernan/xiaodernan.github.io`（65d339f..0fa96c8）。
+- [x] 频控：本轮是坏数据纠正，不是例行刷新；日常仍按「有大提升再同步」。
+
+## §WORLD-BIBLE-E218 E218《页边空出来的那一格》· 锚句回放补回 E100–E218（2026-11-22）
+
+- [x] 新回响 E218（中英双语，6 节 6 对锚句）：接 E217 的页边纸条弧线——取走一张后
+      留下的空位本身成为页边的一部分；账上不记空格，抄本师在页数旁点一个点。
+- [x] 真缺口：`gen-anchor-echo.mts` 旧正则只认两位编号（`^E\d{2}-`），E100–E218 整段
+      没进 `/bible/anchors` 题库；修为 `^E(\d{2,3})-` 后 632 → 1317 句中英锚句。
+- [x] 重新生成 generated.ts（14 章 · 218 回响 · 4 附录）、anchors.generated.ts（1317）、
+      canon_digest.txt/sha256（274,028 chars · db9b995c…）；guideCopy 中英回响数
+      217→218、锚句数 1311→1317。
+- [x] 验证：verify:world-bible 1322/1322；verify:bible-snapshot 一致；
+      bible/canon 12 文件 107/107；canon_digest pytest 4/4；tsc web 0；eslint 0。
+- [~] 本轮未起浏览器；E218 阅读页与 anchors 题库的像素/几何读数留给下一轮 e2e。
+
+## §I18N-SSR-META 语言按钮首帧 + metadata 跟随语言（2026-11-22）
+
+- [x] 真缺陷：`LocaleToggle` 的 `useState('zh') + useEffect 读 document.lang` 让英文模式首屏
+      先画「EN / 切换到英文」，水合后才翻成「中 / Switch to Chinese」——闪烁且英文首屏短暂夹中文 ARIA。
+      改为 layout 把服务端已读出的 `locale` 作为 prop 传入；SSR 与首帧同语言。
+- [x] metadata 本地化样板：`/bible/anchors`、`/map`、`/guide` 改 `generateMetadata + getLocale`；
+      英文标签页分别是 `Anchor Echo · The Whispers’ Kings` / `World atlas — NEXUS` / `User guide — NEXUS`。
+- [x] 实测（dev :3100 + curl 带 `NEXUS_LOCALE=en`）：
+      `/bible/anchors` 英文 HTML 去 script/style 后 CJK 字符 **1 个**（语言按钮的目标字「中」，有意保留）；
+      `/map`、`/guide` 中英 title 各归其位；E218 `/bible/echo-218-the-gap-left-behind` 中英均 200。
+- [x] 门：`anchor-echo` / `map` / `guide` / `root-layout` 四处钉按当前字节重钉并注明原因；
+      `verify:fe-gates` **155 文件 / 1419 条全绿**。
+- [x] 第二批（典籍室全线）：`/bible`、`/bible/margins`、`/bible/ask`、`/bible/quiz`、
+      `/bible/search`、`/bible/well` 也改 `generateMetadata`；英文 title 分别为
+      World Bible / Margins of the Canon / The Tidal Inquiry / The Tidal Trial /
+      The Canon Search / The Seven Wells。
+- [x] 顺带修真数据：问典描述「十三章 + 一百六十三回响」→ 真实的「十四章 + 二百一十八回响」；
+      正典检索「四章 + 四回响」→「十四章 + 二百一十八回响」；潮汐挑战「five canonical chapters」→ 十四章。
+- [x] 门：ask（page）、quiz（page）、seven-wells（page）三处钉按当前字节重钉；`fe-gates` 1419 全绿。
+- [~] 其余页面（daily / tide-oracle / tide-wire / tidewatch / observatory / stategraph /
+      world / threads / analytics / api-tokens 等）仍是静态 metadata；按同样样板逐页迁移。
+      world-bible appendix 的双语词条属 Ask 语料，不在渲染面。
+
+## §WORLD-BIBLE-E219 E219《点账》· 219 回响 · 1323 锚句（2026-11-22）
+
+- [x] 新回响 E219（中英双语，6 节 6 对锚句）：接 E218 的空格——页数旁的点被抄成一行，
+      点加起来不等于任何一张纸条；孩子说一个点是一个地方，不是数目；账上不多不少一行。
+- [x] 登记 `echo-219-the-ledger-of-dots`；重新生成 generated.ts（14 章 · 219 回响 · 4 附录）、
+      anchors.generated.ts（1323）、canon_digest.txt/sha256（274,304 chars · e396c4e1…）。
+- [x] guideCopy 回响数 218→219、锚句数 1317→1323；canon-answer-graph 219、bible-ask-behavior 1323。
+- [x] 验证：verify:world-bible 1328/1328；verify:bible-snapshot 一致；bible/canon 72/72；
+      canon_digest pytest 4/4；fe-gates 155/1419 全绿。
+
+## §STRESS-WEB-2 / §STRESS-AUTH-2 本仓 HEAD 生产构建压测复跑 + 撞库门实测（2026-11-22）
+
+- [x] 3100 换成本仓 HEAD `310e01a7` 的 `next build` 产物（上一份证据打的是并行线检出、DB 不可达）。
+- [x] web burst（`--n 100`）：四条路由各 100 全 200（p50 0.48–3.57s），`/` 200 并发瞬间 200/200；
+      **0 个 5xx、0 个掉连接**；比上一轮 DB 在线时快一个数量级，`/bible` 仍最重（p50 3.57s）。
+- [x] 撞库复压（`--n 14`）：注册 200；错误口令 1–10 回 401，第 11 次 429 且 `retry-after=900s`，
+      之后不放行；第二个邮箱同 IP 不连坐；p50 88ms。
+- [x] 修真缺陷：`stress-auth-brute-force.mts` 注册请求漏传 `x-csrf-token`（旁边的 `void token;`
+      掩盖了它），脚本恒报 "register FAILED"；现在注册/第二账号都带 token，失败打印状态与正文。
+- [x] 诚实登记非确定性崩溃：冷进程上两次 `0xC0000409` fail-fast（无 JS 堆栈/dump，RSS 500MB，
+      提交内存空闲 8.8GB → 非简单 OOM）；其后 160/200/240 并发均通过。归因未定，缓解走多副本 + 网关分流；
+      复现方法（阶梯 burst + 唯一访客 cookie + 内存采样）写在证据文档，未提交探针脚本。
+- [x] 纠正旧证据里"`/` 不碰业务库"的说法：`/` 走 `requireUser()`，首次访客会建 guest 用户 + 会话行。
+- [x] 证据：`docs/evidence/stress/web-burst-2026-11-22.md`（第二节）、
+      `docs/evidence/stress/auth-brute-force-2026-11-22.md`（第二节）、`docs/evidence/stress/web-burst-2026-11-22.json`、
+      `docs/STRESS-TESTS.md`（§STRESS-WEB-2 段）。
+
+## §I18N-SSR-META-2 剩余十页 metadata 中英分家（2026-11-22）
+
+- [x] 按 `/bible/anchors` 样板迁移：`/daily`、`/tide-oracle`、`/tide-wire`、`/tidewatch`、
+      `/observatory`、`/world`、`/bible/threads`、`/analytics`、`/api-tokens`、`/stategraph`
+      全部改 `generateMetadata + getLocale`；中文标题不再夹英文（「潮语 · The Tide Oracle」→「潮语」），
+      英文标题不再夹中文（`Tidewatch — the tide records your step — NEXUS`）。
+- [x] 描述同步去夹杂：原「中文。/ English.」双写全部拆成两语言各一份；`robots` 守住原值。
+- [x] 门：`stategraph-visual-style` 的骨架断言从 `export const metadata` 改为
+      `export async function generateMetadata`，SHA 按新字节重钉；`analytics-visual-style`
+      的段 A / 剥类整文两个常量按新 metadata 重钉（段 B 取数链逐字节未动，仍绿）。
+- [x] 验证：`verify:fe-gates` 155 文件 / 1419 条全绿；`tsc -p apps/web` 0；eslint 0。
+- [~] 之后新增页面仍须用 `generateMetadata`；静态 `export const metadata` 只剩账号/工作台等未迁移页。
+
+## §WORLD-BIBLE-E220 E220《照着点走一遍》· 220 回响 · 1329 锚句（2026-11-22）
+
+- [x] 新回响 E220（中英双语，6 节 6 对锚句）：接 E219 的点账——孩子把七页点铺在地上用粉笔连成线，
+      沿点走十九步停在没有点的地方；抄本师也走一遍，把灯放在空白这一头；后来的人把线叫「走法」不叫「数法」。
+- [x] 登记 `echo-220-walking-the-line-of-dots`；重新生成 generated.ts（14 章 · 220 回响 · 4 附录）、
+      anchors.generated.ts（1329）、canon_digest（274,590 chars · d5e3a147…）。
+- [x] guideCopy 回响数 219→220、锚句数 1323→1329；问典/检索描述把会漂移的计数改成「全部回响」。
+- [x] 验证：verify:world-bible 1334/1334；verify:bible-snapshot 一致；canon_digest pytest 4/4；
+      fe-gates 155/1419 全绿；tsc 0；eslint 0。
+- [x] 浏览器复跑 `/bible/anchors`：客户端题组正常（第 1/8 句、四选项可点），无错误态；
+      E219 阅读页 HTTP 200 且标题/上一回响链接真实渲染。
+
+## §DOT-ROAD 新玩法「点路」/bible/dot-road（2026-11-22）
+
+- [x] 把 E220《照着点走一遍》的十九步做成真的可以走一遍的页面：十九个点、六个站（第 2/5/8/11/14/17 步）、
+      第十九步面朝一格空白；六句锚句逐字来自 `generated.ts` 的 E220 原文（不手写、不占位）。
+- [x] 交互：点任意点跳步 / 向前 / 退回 / 重走；键盘 ← →、Home、End；`aria-current="step"`；
+      进度只写本机 `localStorage`（nexus.dotroad.v1），没有云端假计数。
+- [x] 双语：中文模式只出中文、英文模式只出英文（含站名、提示、结尾），不并排混写。
+- [x] 发现入口：/bible 玩法门新增「点路」链接（中英）、guideCopy 双语补第 5 个角落、sitemap 收录。
+- [x] 门：新 `dot-road-behavior`（19/6/空白三态、clamp、锚句逐字回读原文、结尾两句防漂移、组件不手写锚句）
+      + `dot-road-visual-style`（RSC/client 边界、dr- 类全定义、零 hex + token 实名、forced-colors / reduced-motion、SHA）。
+      样式段放在 §WORLD-NET 之前（那张门切片到文件尾），network 门未改一字。
+- [x] 验证：fe-gates 157 文件 / 1433 条全绿；tsc 0；eslint 0；verify:census 3270 类全有引用。
+
+## §AILIVE-4 收尾：llm 能力行改读探测结论 + 401/403 按网关原话分类（2026-11-22 / ADR-0310）
+
+- **先量**：`Registry(load_settings()).llm_prober().probe()` 打真网关，拿到
+  `403 insufficient_user_quota`（余额 `$-0.001488`），同一份 `providers()` 里 llm 行仍写
+  `status=real models=['gpt-6.2-sol']`，而 `llmLive.state` 已是 `failed`——一次 payload 两套话。
+  当天还先后撞到 `401 Invalid token`（wkapi 令牌失效）与 `403 本站不对您所在的国家及地区…`（地理封锁），
+  四种死法在界面上是同一句"检查 NEXUS_OPENAI_API_KEY"。
+- **改了什么**：① `text_status()`/`providers()` 的 llm 行只认 `LlmLiveness.state=="ok"`，
+  理由与状态成对（`text_reason()`），非 real 不列模型名——与 §AILIVE-3 embeddings 同一条判据；
+  ② 新增 `describe_auth_failure(status, body, subject=…)`，按网关自己的 code/message 分
+  额度耗尽 / 没有这条模型 / 地理封锁 / 其余四类，同步·流式·embeddings 三条出站路径共用；
+  ③ `capability()` 汇总跟着落，没有真链路时不许站 real。
+- **门**：新增 `test_auth_failure_classification.py`（7 条，含"同步与流式对同一次 403 说法必须逐字相等"）；
+  `test_llm_liveness.py` 补"死 key 不能保住 real"一臂；`test_health.py` 把
+  `test_healthz_reports_configured_provider_as_real` 改成"探过的才算"，另加
+  `test_healthz_does_not_call_an_unprobed_llm_real` 钉冷启动窗口。变异验证：把 `text_status`
+  退回 `if self._llm` → 2 臂红；把分类器退回塌成一句 → 9 臂红；两处均已还原并复跑全绿。
+- **真线路复跑（`NEXUS_LIVE_LLM=1`，7 passed）**：`test_live_healthz_reports_embedding_honestly` 先红了一次
+  ——它对着冷进程断言 `llm=real`，而这正是本片改掉的行为。改成量这个窗口：冷读必须写"未验证"，
+  轮询到落地为止，**实测 3.84s**（`ping` 单次往返 2.5–3.3s）。窗口只在进程启动付一次：
+  TTL 到期时 `text_status()` 读的还是上一次 `ok`，不会每 15 分钟黑一次。
+  顺带量到本网关对 `ping/ping` 计 `prompt_tokens=4389`、第二次 `cached_tokens=4180`
+  ——一次探测约等于一次缓存读，TTL 900s 下可忽略（§〇"珍惜 token"）。
+- **诚实边界 / 未 push**：`costUsd=0` 真计费读数未解；桩 provider 要 real 必须显式喂探测结论，
+  已在两条旧臂上改出；`ruff` 在 apps/ai-service 有两处 HEAD 既存的告警（registry E402、
+  test_llm_liveness 两个 F401），不是本片引入、未顺手改。全量 `pytest` 515 passed / 18 skipped，
+  `turbo lint --force` 7/7。
+
+## §COST-2 收尾：两条路由自造的 `costBasis: 'usage'` 改成透传 provider 真读数（2026-11-23）
+
+上一片结尾记的"`costUsd=0` 真计费读数未解"，这一片把**为什么解不了**读出来了：
+`/api/bible/q` 与 `/api/insight/chat` 在 `cachedTokens`、`cacheReported` 旁边写死
+`costBasis: 'usage'`——`UsageSchema` 的 enum 只有 `unknown | configured`，`'usage'` 是
+一个字典里根本没有的值。而 provider 算出的那一档就在同一条 usage 上，被这个字面量顶掉了。
+同族事故：ADR-0262「没报 ≠ 报了 0」、ADR-0310「两个读数各说各话」。
+
+- **先量（真线路，`gpt-6.2-sol`）**：`/v1/ai/chat` 一发真调用回来
+  `capability=real · costBasis="unknown" · costUsd=0 · tokensIn=4397 · cached=0 · reported=false`。
+  读数本身没错——**`.env` 没配 `NEXUS_LLM_PRICES`**，价目表是空表（`config.py:282` 只在 env 存在时建表）。
+  所以 173k token 的大典调用在成本账上是黑的；这不是 bug，是**没配置**，但界面必须说对是哪一种。
+- **改了什么**：
+  `canonGraph.ts` 把 `costUsd/costBasis` 穿过 `usageOf()` 与 `nextUsage()` 累加——金额**无条件相加**
+  （analyze 不复用 KV 前缀但照样花钱），`allRoundsPriced` 逐轮 AND：有一轮算不出价，总额就不成立，
+  与 ai-service `execution.py:271` 同一条规则；圆整到 1e-8 同 `_cost_of` 口径。
+  两条路由改为透传（`insight/chat` 无 usage 时回落 `unknown`，不自造字面量）。
+  `usageOf` 在收口处把"报 configured 但金额为 0"判回 `unknown`——那是"价目表其实没工作"的假绿
+  （ai-service 侧 `test_pricing.py:262` 早有一条同义回归钉）。
+- **门（`apps/web/test/cost-basis-domain.test.ts`，5 臂）**：判据用**契约自己**
+  （`UsageSchema.shape.costBasis.safeParse`），不在测试里再抄一份清单；扫描 `app/api/**/route.ts`
+  里所有赋字面量的 `costBasis`，逐个问契约答不答应。另有一条"空门自检"：同一 oracle 必须判
+  `'usage'` 为非法，否则扫描臂可能永远绿。
+- **变异验证**：装回 `costBasis: 'usage'` → **4/5 臂红**（扫描臂直接点名文件与字面量）；
+  换成合法但写死的 `'unknown'` → 扫描臂**如实放行**、直通臂 1 红（两者分工正确）；
+  两次都按 md5 还原（`5f96c829…` 匹配）后复跑全绿。
+- **诚实边界 / 未 push**：`'usage'` 从未进过库（两条路由都不写 usage 表），所以没有历史脏行要迁；
+  `costLedger.ts:94` 那个"不认识就归 unknown"的三元仍在——**若将来真加第四档**，它会产出两行同 key
+  并重复计数，届时要一起改；本片不加档（那是另一个决策）。真金白银的单价仍需用户决定
+  （我不知道这个转售网关的批发价，编一个数就是 §159 禁止的那种假账）。
+  `vitest` 相关 5 文件 40 passed、`tsc -p apps/web --noEmit` 与 eslint 4 文件全清。
+
+## §COST-2 后续：`pricing` 第五本账——把"没配价目表"与"改模型名后静默归零"分开报（2026-11-23 / ADR-0311）
+
+上一片把 `costBasis: 'usage'` 修成透传，顺带量到本网关的真读数是
+`costBasis=unknown · costUsd=0 · tokensIn=4397`。这暴露出一件比"界面写错字符串"更大的事：
+**两种黑法在同一个数字上重合**——价目表压根没配，以及价目表配了但 `NEXUS_MODEL_*`
+改名后一条都对不上。后者调用照常 200、探测照常 `ok`，只有钱静默归零，而 0 会被读成免费。
+
+- **改了什么**：`Registry.pricing_state()` 只用已有的 `PriceTable.price_for()` 问一句
+  "每个在用的模型名匹配得上吗"，`state ∈ {unconfigured, model-drift, ok}`；
+  空表判 `unconfigured`（根因优先），表非空但有档对不上判 `model-drift` 并**点名那几档**。
+  `PriceTable.__len__` 只数键不露键名（表仍是只读的）。挂在 `/v1/ai/cache-stats`，
+  不进 `/healthz`——沿用既有四本账的运维面纪律（healthz 有 1.5s 预算、被 web 每次探测）。
+- **判据选型**：用 `price_for()` 而不是字典键相等，好让 `gpt-6*` 这种前缀兜法算作匹配
+  （专门有一臂钉这件事）；一个天天误报的门等于没有门。
+- **门（`tests/test_pricing_state.py`，7 臂）**：空表 / 全匹配 / 改名漂移 / 前缀算匹配 /
+  部分漂移只点名对不上的那一档 / 端点报文带这本账且键形固定 / 空模型清单不许说 ok。
+  变异验证：把 `elif unpriced` 改成 `elif False`（drift 塌成 ok）→ **3 臂红**，
+  按 md5 `790f0443…` 还原后复跑全绿。
+- **不做什么（刻意的）**：本片**不**填单价。这个转售网关的批发价我不知道，编一个数就是
+  §159 禁止的假账；`state=unconfigured` 会一直亮着，直到用户提供真实单价。
+  也没给 `costBasis` 加第四档——`costLedger.ts:94` 那个"不认识就归 unknown"的三元
+  会在加档那天产出两行同 key 并重复计数，那是另一个决策，已在 ADR-0311 记为已知未完成。
+- **复跑**：`npm run test:ai-service`（canonical venv）522 passed / 18 skipped；
+  `vitest` web 侧相关 5 文件 40 passed；`tsc -p apps/web --noEmit` 与 `turbo lint --force` 7/7
+  （0 cached——pre-commit 那一次是 FULL TURBO 回放，不算真跑，已强制复跑）。
+  `tools/ci/lint-tree.mjs` 的 14 条 UNDECLARED/PARSE 全在并行会话的脏文件里，本片触碰的
+  七个文件一条都没进名单。
+
+## §COST-2 后续二：`requirements.txt` 只准 ASCII——文档里那条重启路径在中文 Windows 上是断的（2026-11-23 / ADR-0312）
+
+读第五本账要 ai-service 起着，照 README「重启 = `bash infra/dev-ai.sh`」跑，直接死在
+`UnicodeDecodeError: 'gbk' codec can't decode byte 0x84 in position 109`；脚本 `set -euo pipefail`
+让它在 `exec uvicorn` **之前**退出，3200 空响。根因不在我们的代码：pip 的 `auto_decode`
+在没有 BOM、前两行也没有 coding 声明时，用 `locale.getpreferredencoding(False)` 解码
+`requirements.txt`——本机是 `cp936`，而文件里写的是 UTF-8 中文注释。同一份文件在英文机器上一直好，
+只在中文 locale 的主力开发机上坏。
+
+- **改了什么**：`requirements.txt` 注释改成纯 ASCII（pin 一个没动），并把这条约束钉进门
+  `tests/test_requirements_ascii.py`（4 臂：字节判据 / cp936 与 utf-8 解出同一份文本 /
+  拿中文注释重演一次逼它真抛 / 非注释行仍是 `name==version` 且等于本机 venv 实装版本）。
+  第 3 臂不读文件、永远绿，作用是「如果哪天非 ASCII 不再会炸，前两臂就成装饰」；
+  第 4 臂用 `importlib.metadata` 取真值，不抄清单，所以加依赖不需要改门。
+- **第一次修复没修干净，是门抓出来的**（本片最值得留的一条）：我按「ASCII only」改完并记下重启成功，
+  但注释里留着 `§162`。`§` 的 UTF-8 是 `0xC2 0xA7`，**恰好是合法的 GBK 双字节序列**——pip 不再报错，
+  只是解出另一个字符。那份文件当时是「靠运气不炸」而不是「按设计不炸」，再补一个三字节中文就回到原事故。
+  第 1 臂当场红两次：一次抓到 `§162`，一次抓到我为解释这个坑而写进注释的字面 `§`。
+- **验证走崩溃那一步本身**：`pip install -q -r requirements.txt` 在 `locale=cp936` 实测通过，
+  服务 `Application startup complete`，`/healthz` 回 `capability: real`；没有为了一个注释重启整个服务。
+  变异 + md5 还原：往文件尾追加一个 `§` → 4 臂里 3 臂红（第 3 臂按设计免疫），还原后字节
+  md5 `ece99f33…` 一致、复跑全绿。
+- **不做什么**：不设 `PYTHONUTF8=1`（改的是整个解释器的默认编码，爆炸半径不对，且手敲 pip 的人不经过脚本）；
+  不加 `# -*- coding: utf-8 -*-`（只护住 pip 这一条读径，把「内容随便写」的口子留着）；
+  不顺手做全仓 `open()` 不传 `encoding=` 的审计——那是另一份决策，已在 ADR-0312 记为已知 hazard。
+- **复跑**：`npm run test:ai-service` 526 passed / 18 skipped（原 522 + 本片 4 臂）。
+
+## §SC 配置中心操作面：一个空源与一个抛错的源，都不许冒充"这一版就是没键"（2026-11-23 / ADR-0313）
+
+`nexus-config` 起了 `native` 模式之后一直只回答"打进 jar 的那份对不对"（§SC-71c 的探针），
+"现在供的是哪一版、动没动、动了什么"三件事没有任何地方能说。补了 `/nexus/config/ops`
+三个只读端点（`version` / `refresh` / `audit`），指纹取自构造 `GET /{app}/{profile}` 报文的
+**同一个** `EnvironmentRepository`，不是另算一份——否则面板与客户端各说一套，正是本片要避免的那类假。
+
+- **名字**：这一片最初在代码注释里叫 `SC-19`，落地前发现 `docs/ROADMAP.md:12575` 早就把 SC-19 用给了
+  2026-11-10 的拓扑实跑（`docs/evidence/sc19-topology-live-proof.md`），而 `SC-64` 又被并行会话占住
+  （`/actuator/circuitbreakers`）。两个编号空间都已经不够用，所以注释、测试、README 一律改挂 **ADR-0313**，
+  不再新造一个会撞的号。改名本身不值一节，值得记的是"编号不够用时挂 ADR，而不是接着排队"。
+- **`keyCount: 0` 是两件事**（本片的真发现，不是设计时想到的）：打包 jar 用 `file:///$TEMP/...` 起在 18889，
+  Windows JVM 把它落成一个不存在的目录，`/version` 回 **HTTP 200 + propertySources `[]` + keyCount 0**。
+  客户端那边只会退回自己打包的默认值，还以为中心答过。于是 `/version` 加 `servedEmpty`，`/refresh` 对空源
+  回 **503 `empty-source` 且不建基线**——把空版本当基线记下来，源修好之后第一次刷新就会把"每个键都是新增"
+  报成一次真实变更，一次拼写错误被洗成一串假变更，账本里还留着证据。
+- **源抛错也要指名**（同一次实跑里撞出来的第二种）：`file://C:\Users\…`（反斜杠没转 URL）和被重复键搞坏的
+  YAML，都是服务照常起、每次读都抛。默认那个 500 页只把 `path` 交给 caller，原因留在日志里；现在回
+  503 `source-error` + `cause=FailedToConstructEnvironmentException`（只有短类名，不带路径与堆栈，
+  与 §SC-71c 探针同一条规矩），并且**不写账、不动基线**：修好文件后第一次是 `established`。
+- **health 看不见空源**——这一条是为什么这面必须存在的硬理由：同一个进程 `/actuator/health` 回
+  `{"status":"UP"}`，而 `/version` 同时是 `keyCount: 0`。健康探针管"服务活着"，管不了"活着但什么都没供"。
+- **真机六步**（端口 18892，`search-locations` 指向真目录，`NEXUS_CONFIG_ADMIN_TOKEN` 已配）：
+  `keyCount 6 / servedEmpty false` → `established`(seq 1) → 把 YAML 弄坏 = **503 source-error 且不落账** →
+  还原 = `unchanged` → 改 `rate-per-second 50→999` = `changed`，`modified: [nexus.gateway.rate-limit.rate-per-second]`、
+  `from "50" to "999"`、digest `54ec9763…→d3a9a22e…` → `/audit` 两条、新的在前。全过程零写入配置。
+- **臂与变异**：模块 31 条全绿（新增 25 条：`ConfigOpsRefreshAuditTest` 9 + `ConfigOpsGateTest` 9 +
+  `ConfigChangeAuditTest` 7）。本片新增的三条判断各有一处定向变异，每处只红该红的那条臂：
+  `servedEmpty` 写死 `false` → 1 臂；空源守卫短路 → 1 臂（503 变 200）；`cause` 换成异常 message → 1 臂
+  （内部路径漏给 caller）；`/version` 的 try/catch 去掉 → 1 臂（异常直接逃出方法）。
+  第一次变异尝试用 `if(false)` 包住整块守卫，括号不配平直接编译失败——那次 BUILD FAILURE 不是证据，
+  重做成 `if (false && …)` 才算。
+- **刻意不做**：客户端侧 `@RefreshScope` 传播（服务端说"变了"，跑着的客户端仍要重启才吃到——已在 ADR-0313
+  写成已知未完成，而不是暗示成特性）；可写配置源（会把机密值请进数据库，撞 `docs/SECURITY.md`）；
+  持久审计（账本在进程内、有上界、重启清零，面板与文档都不许叫它"持久审计日志"）。
+
+## §STRESS-5 队列读数换成带租约的账 + 推翻 §STRESS-1 的归因（2026-11-23 / ADR-0314）
+
+`scripts/stress-ai-service.py` 在本机彻底发不出请求（`NO_PROXY` 里的 `[::1]` 让 httpx 在构造阶段就抛
+`InvalidURL: Invalid port`）。修好仪器之后重量，两件事同时翻案。
+
+- **仪器先于结论**：单进程 60 并发打一个只返回 404 的空路由 = 56.7 rps / p95 3527ms；同样的总并发
+  拆 4 个进程 = 243.9 rps / p95 1046ms。**4.3 倍全是发压端自己的事件循环 + 纯 Python h11**。
+  于是 §STRESS-1 那句"health p95 退化到 1531ms（单 worker + 同步 access log 的代价）"量的不是服务：
+  分片改造后 access log 开关对 `/healthz` 无可测影响，只影响 404 对照腿。原条目已就地划掉并写明推翻理由，
+  不悄悄改（同一份 env 的租约读数也一样不能替被测进程报配置，见下）。
+- **新判据（脚本第 4 条）**：每轮先跑一条**对照腿**（`--control-path`，默认一个不存在的路由，只走 ASGI 栈），
+  `对照 p95 ≥ health p95 × 0.67` 就打印 WARN 并禁止把这一轮写进 ROADMAP 当服务读数。
+- **真 O(N) 缺陷（与并发无关，与吞吐有关）**：旧 `RedisJobStore.counts()` 是 `SCAN(prefix:job:*) + 每命中一次 GET`，
+  MATCH 是**先遍历再过滤**，所以代价随整个键空间涨；独立 oracle 数**命令条数**（不数时间——这台机器上有并行会话）：
+  100 个作业键 → 102 条 / 213ms；1000 → 1007 条 / 2.28s；5000 → 5026 条 / **21.3s**；
+  20000 个**别的前缀**的键 + 1 个作业 → 102 条 / 221ms。而 `/healthz` 只给这次读数 0.35s，
+  作业本体 TTL 3600s ⇒ 代价随**吞吐 × TTL**积累：跑过几十件之后队列读数永久退化成
+  `counts-unavailable:TimeoutError` 并报 0/0，恰好在用户最多的时候。
+- **改法**：`{prefix}:jobs:running` ZSET，score 是租约到期时刻；`counts()` = LLEN + ZREMRANGEBYSCORE + ZCARD
+  三条命令、常数代价；`save()` 是唯一收口点（running→ZADD，其余→ZREM，requeue/dead-letter 也改走 save，
+  不再一件事记两次）；`renew_lease()` 用 `xx=True`，迟到的心跳不能把已落终态的作业复活；
+  worker 心跳按 `lease/3` 续，于是虚报上界从"到 TTL 之前一直算在跑（3600s）"缩到一个租约。
+  构造期钉 `0 < lease_s < ttl_s`（违约抛异常，不夹值），新增运维项 `AI_SERVICE_JOB_LEASE_S`。
+- **测试自己抓到的两个 bug**：① 心跳下界原先写 `max(1.0, lease/3)`，任何**租约短于 3s** 的配置都永远续不上，
+  第一拍落在到期之后——还在跑的作业被报成 0，数字看着正常只是少了；② `_lease_note()` 第一版把**发压进程**
+  env 算出的 180s 打成目标的租约（目标当时是 20s 起的），并把"三条命令"这个代码事实当成被测事实——
+  现在它只说"按本机 env 推、服务未上报"，`backend` 非 redis 时拒绝给口径。两处都是先红后修，不是事后补的漂亮话。
+- **变异验伪**（每处只红该红的臂，全部已还原）：`xx=True`→`False` 只红"迟到心跳不许复活"；
+  去掉 `save()` 的 else 分支 → 4 臂红（终态没摘账 / 重试记两次 / 内存与 Redis 分叉）；
+  去掉 `ZREMRANGEBYSCORE` → 3 臂红，其中"命令条数=3"那条红的是**形状**不是数值；
+  心跳下界退回 `1.0` → 只红"心跳把长跑作业续过到期点"。
+- **真机复跑**（私有实例 127.0.0.1:3213，`NEXUS_REDIS_URL=…/9`、`AI_SERVICE_JOB_LEASE_S=20`，
+  600 发 / 60 并发 / 4 进程）：对照 285.7 rps · p95 331.4ms（全 404）；health 144.8 rps · p95 668.9ms ·
+  p99 993.2ms · **600/600 全 200、零网络失败**；畸形 150 发 **全 400、零 5xx**；恢复探活 p95 110.7ms。
+  归因：668.9 − 331.4 = **337.5ms** 才是这条路由自己的账。判据四条全 PASS，退出码 0。
+- **门**：新增 `tests/test_running_index.py` 11 臂（命令条数 oracle、租约到期出账、迟到心跳、心跳续命、
+  内存/Redis 口径逐拍对齐、终态与重试不重记、构造期违约、索引键不混进 `job:*` 命名空间、跨连接可见、
+  过期条目被真回收、`start()` 只在有租约的后端起心跳）+ `tests/test_stress_harness_env.py` 15 臂
+  （本地/远程 trust_env、清洗只用服务端那一份、对照腿不是路由、畸形轮转碰不到 provider + 反证、
+  口径行不许报它没有的数据）。全量 `pytest` 551 passed / 18 skipped，`ruff` 净零告警。
+- **刻意不做**：不给 `counts()` 加 Lua（两条命令换一次往返，省下的往返不值让每个测试替身模拟脚本）；
+  不把租约调大来"减少心跳开销"（虚报上界与心跳开销是同一个数的两端，默认 `min(180, ttl/4)` 已经把上界压到分钟级）；
+  不在这轮加 worker 数（先证明墙是谁的，再谈调参数）。收尾：私有实例只杀自己起的，`db9` 清空。

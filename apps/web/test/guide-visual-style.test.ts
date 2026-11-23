@@ -55,7 +55,8 @@ describe('§FE-Guide /guide 使用指南', () => {
   it('RSC + metadata + force-dynamic + locale-aware skeleton', () => {
     expect(code).not.toContain('use client');
     expect(code).toContain('export const dynamic');
-    expect(code).toContain('export const metadata');
+    // 2026-11-22：metadata 跟随 cookie 语言（英文标签页不再挂中文标题）。
+    expect(code).toContain('export async function generateMetadata');
     expect(code).toContain("import { getLocale");
     // 说明书正文已抽离为共享字典（v788：/guide 页与 Studio 内置 Help Drawer 共用同一个真值）
     expect(code).toContain('GUIDE_COPY');
@@ -148,9 +149,12 @@ describe('§FE-Guide /guide 使用指南', () => {
     }
   });
 
+  // 2026-11-22 重钉：页脚「世界全图 · The Atlas →」→「世界全图 →」；
+  // metadata 改 generateMetadata 跟随语言（英文标签页 'User guide — NEXUS'）。
+  // 中文模式不再中英夹杂；正文仍在 lib/guideCopy（未动）。
   it('SHA256 钉死（瘦壳 · v788，正文已抽进 lib/guideCopy）', () => {
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      '1b907a3861762e238402ce0753adeaf5a52e416ebb9384474e697518005b54da',
+      '6284242d39bb9584cb2fd0e8ed214e52754235860842dc1073ad2153506f1c20',
     );
   });
 });
