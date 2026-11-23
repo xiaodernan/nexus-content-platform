@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { loadWorld } from '@/server/domain/worlds';
@@ -10,10 +11,18 @@ import { buildQuestBoard, THIN_BODY_LIMIT, type WorldQuestKind } from '@/lib/wor
 
 export const dynamic = 'force-dynamic';
 
-export const metadata = {
-  title: '世界委托 · NEXUS',
-  description: '每天从世界真值里挑三件可以动手的事——没有编出来的任务，没有假进度，做完一件就真的从板上消失。',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  return locale === 'zh'
+    ? {
+        title: '世界委托 · NEXUS',
+        description: '每天从世界真值里挑三件可以动手的事——没有编出来的任务，没有假进度，做完一件就真的从板上消失。',
+      }
+    : {
+        title: 'World Quests — NEXUS',
+        description: 'Three doable things picked each day from your world’s true state — no invented tasks, no fake progress; finish one and it really leaves the board.',
+      };
+}
 
 /**
  * 「世界委托」——/world/<id>/quests。

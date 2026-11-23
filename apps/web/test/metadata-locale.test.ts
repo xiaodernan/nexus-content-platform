@@ -14,6 +14,15 @@ const PAGES = [
   'pulse',
   'insight',
   'preview',
+  'world/[projectId]/tide',
+  'world/[projectId]/quests',
+  'world/[projectId]/digest',
+  'world/[projectId]/chronicle',
+  'world/[projectId]/codex',
+  'world/[projectId]/codex/[nodeId]',
+  'world/[projectId]/integrity',
+  'world/[projectId]/ephemeris',
+  'world/[projectId]/network',
 ] as const;
 
 const cjk = (s: string): boolean => /[\u3400-\u9fff]/u.test(s);

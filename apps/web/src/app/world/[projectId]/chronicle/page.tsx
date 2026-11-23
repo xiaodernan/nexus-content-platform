@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { loadWorld } from '@/server/domain/worlds';
 import { listCharacters } from '@/server/domain/characters';
@@ -11,10 +12,18 @@ import { ChronicleView } from '@/components/ChronicleView';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata = {
-  title: '世界编年 · NEXUS',
-  description: '世界的年表：只读的文字投影。只有 story/history 进编年，时代来自作者 lore，不做历史感算法。',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  return locale === 'zh'
+    ? {
+        title: '世界编年 · NEXUS',
+        description: '世界的年表：只读的文字投影。只有故事与历史两类条目进编年，时代来自作者写下的设定字段，不做历史感算法。',
+      }
+    : {
+        title: 'World Chronicle — NEXUS',
+        description: 'The world’s timeline, a read-only textual projection. Only story and history entries enter it; eras come from the author’s lore, not a historical-feeling algorithm.',
+      };
+}
 
 /**
  * 「世界编年」—— 世界的年表。只有项目作者能进（与 /world 同一道门）。

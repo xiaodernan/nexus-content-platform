@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { loadWorld } from '@/server/domain/worlds';
@@ -13,10 +14,18 @@ import { type WorldNode } from '@nexus/world-model';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata = {
-  title: '世界速览 · NEXUS',
-  description: '世界的四象限总览：星图 / 编年 / 设定集 / 切片，全部真实计数，纯投影、零 provider。',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  return locale === 'zh'
+    ? {
+        title: '世界速览 · NEXUS',
+        description: '世界的四象限总览：星图 / 编年 / 设定集 / 切片，全部真实计数，纯本地投影、不依赖任何外部模型。',
+      }
+    : {
+        title: 'World Digest — NEXUS',
+        description: 'A four-quadrant overview: constellation, chronicle, codex and slices — all true counts, pure projection, zero provider.',
+      };
+}
 
 /**
  * 「世界速览」(digest)——v710 §A 展望的落地（2026-11-14）。中英双语（v723）。

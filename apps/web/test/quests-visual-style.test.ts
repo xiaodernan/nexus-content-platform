@@ -123,7 +123,7 @@ describe('§FE-WQ /world/<project>/quests 世界委托', () => {
 
   it('SHA256 钉死（本线字节；2026-11-22 第九类「独行人物」新增中英两张卡）', () => {
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      'c60ba88de13c73f109c678d345c6c391a92d203742b5b3db2697fdd3973e1e2e',
+      '4994c6c04d86c5ff403ffe5067ef9e89defcc9c1f4c1aaf16285a30210a52606',
     );
   });
 });

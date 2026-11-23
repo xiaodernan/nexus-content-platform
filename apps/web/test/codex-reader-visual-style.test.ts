@@ -53,7 +53,7 @@ function redactClasses(source: string): string {
 describe('§FE-Cdr /world/<project>/codex/<nodeId> 一页书', () => {
   it('RSC + 只作者可见 + 零 provider + 零写库', () => {
     expect(code).not.toContain('use client');
-    expect(code).toContain('export const metadata');
+    expect(code).toContain('export async function generateMetadata');
     expect(code).toContain('export const dynamic');
     expect(code).toContain('requireUser()');
     expect(code).toContain('projectVisibleTo(projectId');
@@ -67,7 +67,7 @@ describe('§FE-Cdr /world/<project>/codex/<nodeId> 一页书', () => {
     for (const hook of ['data-codex-chapter-root', 'data-codex-chapter-kicker', 'data-codex-chapter-kind', 'data-codex-chapter-title', 'data-codex-chapter-foot']) {
       expect(code, `cdr 丢了钩子 ${hook}`).toContain(hook);
     }
-    expect(code).toContain('metadata: Metadata = {');
+    expect(code).toContain('const locale = await getLocale()');
   });
 
   it('字面 className 只认 .cdr-* 与 .am-linkImplicit', () => {
@@ -101,7 +101,7 @@ describe('§FE-Cdr /world/<project>/codex/<nodeId> 一页书', () => {
 
   it('SHA256 钉死（本线字节）', () => {
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      '96c6c692e70d0a25e23b537fe9515b890ce9433b07d984d0bf5021d6b60db4fb',
+      '6352ecf21d90815d75ab1f9a2edf298efd8de654cfb220fbb8e826d249ca8436',
     );
   });
 });

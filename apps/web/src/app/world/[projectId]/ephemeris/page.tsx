@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { loadWorld } from '@/server/domain/worlds';
 import { loadDocument } from '@/server/domain/projects';
 import { projectVisibleTo } from '@/server/domain/team';
@@ -10,10 +11,18 @@ import { type WorldKind } from '@nexus/world-model';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata = {
-  title: '世界切片 · NEXUS',
-  description: '世界切片：按确定性投影读出这个项目的「这一年的每一天」。',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  return locale === 'zh'
+    ? {
+        title: '世界切片 · NEXUS',
+        description: '世界切片：按确定性投影读出这个项目的「这一年的每一天」。',
+      }
+    : {
+        title: 'World Ephemeris — NEXUS',
+        description: 'The world projected as a deterministic daily folio — “every day of this year” read straight from the data.',
+      };
+}
 
 /**
  * 「世界切片」——把这个世界按「创世纪」投影成一册 daily folio。

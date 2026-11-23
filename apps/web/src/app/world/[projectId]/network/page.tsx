@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { WORLD_KIND_LABELS, WORLD_KIND_LABELS_EN, type WorldKind } from '@nexus/world-model';
@@ -10,10 +11,18 @@ import { buildWorldNetwork } from '@/lib/worldNetwork';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata = {
-  title: '万象脉络 · NEXUS',
-  description: '把世界的节点与关系投影成权力骨架：枢纽、势力团、割边与跨类关系——全部从真实数据算出。',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  return locale === 'zh'
+    ? {
+        title: '万象脉络 · NEXUS',
+        description: '把世界的节点与关系投影成权力骨架：枢纽、势力团、割边与跨类关系——全部从真实数据算出。',
+      }
+    : {
+        title: 'World Network — NEXUS',
+        description: 'The world’s nodes and relations projected as a power skeleton: hubs, factions, bridges and cross-section relations — all computed from real data.',
+      };
+}
 
 /**
  * §WORLD-NET「万象脉络」——九类条目与有向关系构成的骨架。

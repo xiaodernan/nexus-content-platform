@@ -110,7 +110,7 @@ describe('§FE-IC /world/<project>/integrity 世界体检', () => {
 
   it('SHA256 钉死（本线字节；2026-11-22 新增第九项「星图独行」卡）', () => {
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      '57c26d1f4223256d57e9c0602a8707d2a301c2028f40dbdccbb84530dfc8fa95',
+      '7b2d0c036c3c7dd7a4c4ef4052b0d58537bed854bf971d8fa56cafe2a94460a8',
     );
   });
 });

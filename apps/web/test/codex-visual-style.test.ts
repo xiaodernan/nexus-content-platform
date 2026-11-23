@@ -54,7 +54,7 @@ describe('§FE-CODEX /world/<project>/codex 设定集', () => {
   it('RSC + metadata + 只作者可见 + 不写库', () => {
     expect(code).not.toContain('use client');
     expect(code).toContain('export const dynamic');
-    expect(code).toContain('export const metadata');
+    expect(code).toContain('export async function generateMetadata');
     expect(code).toContain('requireUser()');
     expect(code).toContain('projectVisibleTo(projectId');
     expect(code).toContain('notFound()');
@@ -113,7 +113,7 @@ describe('§FE-CODEX /world/<project>/codex 设定集', () => {
 
   it('SHA256 钉死（本线字节）', () => {
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      'd3d0f78c8cecf774b8becd105ca2652d38ec971ea95938c3376264e43a6410f2',
+      '3401fb7aa28306856f52fcd4d18a99c1cfa79dbcc5a8ace5d4cee04b556f8482',
     );
   });
 });
