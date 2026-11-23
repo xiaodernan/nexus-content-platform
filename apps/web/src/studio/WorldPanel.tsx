@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   WORLD_ELEVATION_MAX,
   WORLD_KINDS,
@@ -33,7 +33,7 @@ import type { Locale } from '@/lib/i18n';
 import { chatWithCharacter } from '@/server/ai/client';
 import { fillableKinds, formatWorldFillError, parseChronicleReply, parseEchoReply, parseLinkReply, parseWorldFillReply, retrieveWorldContext } from '@/lib/worldFill';
 import { rollFate, type FateCard } from '@/lib/worldFate';
-import { worldFileName, worldToMarkdown } from '@/lib/worldExport';
+import { mergeImportedWorld, parseWorldMarkdown, worldFileName, worldToMarkdown } from '@/lib/worldExport';
 import { formatWorldStats, worldStats } from '@/lib/worldStats';
 import { filterWorldNodes } from '@/lib/worldFilter';
 import { sortWorldNodes, type WorldSortMode } from '@/lib/worldSort';
@@ -74,6 +74,10 @@ const COPY = {
     sortTitle: '只改变这一栏的显示顺序，不改文档本体；原序=写入顺序，纪元=按作者写的纪元与序号，标题=按名称。',
     exportMd: '导出 Markdown',
     exportMdTitle: '把这份世界按九类固定顺序导成 .md：节点正文、纪元/序号、记忆回声都在里面，空类也留标题。纯本地投影，不调模型、不联网。',
+    importMd: '导入 Markdown',
+    importMdTitle: '读回本模块导出的 .md，把有正文的条目追加到当前世界（不覆盖、不去重）；纪元/序号/记忆回声一起带回来。格式不对或没有合法条目会明确报错，不会编内容。纯本地解析，不调模型、不联网。',
+    importDone: (added: number, skipped: number) => `已导入 ${added} 条${skipped ? `，跳过 ${skipped} 条不认识的类别` : ''}。只追加、没动原有条目。`,
+    importFail: '这个文件不是本模块导出的 Markdown（缺 # 世界名或没有任何有正文的条目）——什么都没写进去。',
     fate: '掷命运骰',
     fateTitle: '不调模型、不写库：从这个世界已写的条目里抽两条，按确定性的句式重组成一张事件卡。同一个数字出现同一张卡，换一个数字就换一张——无穷来自你写下的细节组合，不是凭空编造。',
     fateEmpty: '至少要有两条写了正文的条目才能掷骰——先用填充或续写补一点内容。',
@@ -184,6 +188,10 @@ const COPY = {
     sortTitle: 'Changes only this list view, never the document: insertion = write order, era = the author’s era and order fields, title = name.',
     exportMd: 'Export Markdown',
     exportMdTitle: 'Export this world as a .md in the fixed nine-section order: bodies, era/order and memory echoes are all included, and empty sections keep their headings. Pure local projection — no model call, no network.',
+    importMd: 'Import Markdown',
+    importMdTitle: 'Read back a .md exported by this module and append entries with bodies to the current world (no overwrite, no dedup); era/order/memory echoes come along. Wrong format or no valid entry reports an error and writes nothing. Pure local parse — no model call, no network.',
+    importDone: (added: number, skipped: number) => `Imported ${added} entr${added === 1 ? 'y' : 'ies'}${skipped ? `, skipped ${skipped} unknown section${skipped === 1 ? '' : 's'}` : ''}. Append-only — nothing existing was touched.`,
+    importFail: 'This file is not a Markdown exported by this module (no # world name, or no entry with a body) — nothing was written.',
     fate: 'Roll fate',
     fateTitle: 'No model call, no database write: pick two entries you already wrote and recombine them into an event card with a deterministic frame. Same number, same card; a different number gives another — the endlessness comes from your own details, not invented ones.',
     fateEmpty: 'Roll needs at least two entries with body text — fill or continue the chronicle first.',
@@ -436,6 +444,23 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
     const doc = worldStore.getSnapshot().world;
     if (!doc) return;
     saveBlob(worldFileName(doc), new Blob([worldToMarkdown(doc, locale)], { type: 'text/markdown;charset=utf-8' }));
+  };
+
+  const importFileRef = useRef<HTMLInputElement>(null);
+  const [importNote, setImportNote] = useState('');
+  const importMarkdown = async (file: File | undefined) => {
+    if (!file) return;
+    const doc = worldStore.getSnapshot().world;
+    if (!doc) return;
+    const text = await file.text();
+    const parsed = parseWorldMarkdown(text);
+    if (!parsed) {
+      setImportNote(c.importFail);
+      return;
+    }
+    const { document: merged, added, skipped } = mergeImportedWorld(doc, parsed);
+    edit(merged, true);
+    setImportNote(c.importDone(added, skipped));
   };
 
   // §44 衍生玩法「命运骰」：纯确定性重组已有条目，零 provider、零写库；seed 递增保证每次换新卡。
@@ -992,6 +1017,26 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
           >
             {c.exportMd}
           </button>
+          <input
+            ref={importFileRef}
+            type="file"
+            accept=".md,.markdown,text/markdown,text/plain"
+            data-world-import-file
+            style={{ display: 'none' }}
+            onChange={(e) => {
+              void importMarkdown(e.target.files?.[0]);
+              e.target.value = '';
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => importFileRef.current?.click()}
+            title={c.importMdTitle}
+            data-world-import-md
+            className="wd-ghostBtn"
+          >
+            {c.importMd}
+          </button>
         </div>
         {aiFillNote ? <p className="wd-body11Mt2" data-world-ai-fill-note>{aiFillNote}</p> : null}
         {chronicleNote ? <p className="wd-body11Mt2" data-world-ai-chronicle-note>{chronicleNote}</p> : null}
@@ -999,6 +1044,7 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
         {linkNote ? <p className="wd-body11Mt2" data-world-ai-link-note>{linkNote}</p> : null}
         {bulkNote ? <p className="wd-body11Mt2" data-world-ai-fill-all-note>{bulkNote}</p> : null}
         {fateNote ? <p className="wd-body11Mt2" data-world-fate-note>{fateNote}</p> : null}
+        {importNote ? <p className="wd-body11Mt2" data-world-import-note>{importNote}</p> : null}
         {fateCard ? (
           <button
             type="button"
