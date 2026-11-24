@@ -65,6 +65,9 @@ export const IP_RATE_RULES = {
   // 所以规则表测试把这一族手工登记——否则代码里装了闸却没人写下来，
   // `/api/admin/rate-limit` 端给管理员的就是半张图。
   'auth/login': { limit: 10, windowMs: 900_000 },
+  // 洞察台（密码 123）的 IP 总闸：30 次 / 5 分钟。这是撞库的主防面——
+  // auth/login 按 (IP, 邮箱) 分桶只挡单账号爆破，换邮箱可绕；这一道不按邮箱分桶。
+  'insight/login': { limit: 30, windowMs: 300_000 },
 } as const;
 
 export type IpRateRoute = keyof typeof IP_RATE_RULES;
