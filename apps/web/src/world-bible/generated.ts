@@ -30409,6 +30409,162 @@ The square is no end — it is a door that opens inward.
 `,
   },
   {
+    order: 222,
+    slug: 'echo-222-someone-asked-about-the-square',
+    titleZh: '有人问起那一格',
+    titleEn: 'Someone Asked About the Square',
+    eraLineZh: '纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E221）。',
+    eraLineEn: 'Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E221).',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 222): Someone Asked About the Square
+
+> 回响不替正典续写——它只是页边另一层长出来的盐。
+> 写在 E221 之后：抄本师说等有人问起这一格再铺。这一篇写的是那个问句终于来了之后的事。
+> 纪律同前：锚句逐字；不新增正典专名，只在既有的抄本院与页边添细节。
+>
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E221: the copyist said to spread the page when someone asked about the square. This one writes what happens when the question finally comes.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail within the copy hall and the margins.
+
+> 纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E221）。
+> Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E221).
+
+---
+
+## 一 · 问句
+
+那天下午，一个抄写学徒问：那一格空位，通向哪里？
+**锚句**：那天下午，一个抄写学徒问：那一格空位，通向哪里？
+**Anchor sentence**: that afternoon an apprentice copyist asked: where does that empty square lead?
+
+---
+
+## 二 · 铺开
+
+最年长的抄本师从袖子里取出那页点，铺在空位上。
+**锚句**：最年长的抄本师从袖子里取出那页点，铺在空位上。
+**Anchor sentence**: the eldest copyist took the page of dots from his sleeve and spread it over the square.
+
+---
+
+## 三 · 挪过的点
+
+点已经不在原来的位置——它们自己挪过，连成的线通向书架上没有的一格。
+**锚句**：点已经不在原来的位置——它们自己挪过，连成的线通向书架上没有的一格。
+**Anchor sentence**: the dots were no longer where they had been — they had moved themselves, and the line they made led to a square the shelves did not hold.
+
+---
+
+## 四 · 没有人写过
+
+那一格里没有正文，只有一行小字：这里还没有人写过。
+**锚句**：那一格里没有正文，只有一行小字：这里还没有人写过。
+**Anchor sentence**: that square held no body text, only a small line: no one has written here yet.
+
+---
+
+## 五 · 第一笔
+
+学徒拿起笔，写下第一个字——那一格从此不再是空的。
+**锚句**：学徒拿起笔，写下第一个字——那一格从此不再是空的。
+**Anchor sentence**: the apprentice took up the pen and wrote the first word — and the square was empty no longer.
+
+---
+
+## 六 · 又空了一格
+
+可在这页的尽头，又出现了一格新的空白——和第一格一模一样。
+**锚句**：可在这页的尽头，又出现了一格新的空白——和第一格一模一样。
+**Anchor sentence**: but at the end of the page a new blank appeared — exactly like the first one.
+
+---
+
+## 七 · Mapping（Echo No. 222 · world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | the question finally comes · the dots move themselves · every first word opens a new blank | 一、三、五、六 |
+| geography | the copy hall · the square the shelves do not hold | 二、三 |
+| characters | the apprentice who asked · the eldest copyist | 一、二、五 |
+| story | after E221: the inward door is walked through; the world grows one square further | 全篇 |
+| items | the page of dots · the pen · the small line "no one has written here yet" | 二、四、五 |
+| history | the 140th year after the 44th Convocation (continues E206–E221) | 纪元 |
+
+> 世界没有写完——每写下第一个字，尽头就再长出一格空白。
+> The world is not finished — every first word writes, and the end grows another blank.
+`,
+    markdownEn: `
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E221: the copyist said to spread the page when someone asked about the square. This one writes what happens when the question finally comes.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail within the copy hall and the margins.
+
+> Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E221).
+
+---
+
+## One · The Question
+
+That afternoon an apprentice copyist asked: where does that empty square lead?
+**锚句**：那天下午，一个抄写学徒问：那一格空位，通向哪里？
+**Anchor sentence**: that afternoon an apprentice copyist asked: where does that empty square lead?
+
+---
+
+## Two · Spread
+
+The eldest copyist took the page of dots from his sleeve and spread it over the square.
+**锚句**：最年长的抄本师从袖子里取出那页点，铺在空位上。
+**Anchor sentence**: the eldest copyist took the page of dots from his sleeve and spread it over the square.
+
+---
+
+## Three · The Moved Dots
+
+The dots were no longer where they had been — they had moved themselves, and the line they made led to a square the shelves did not hold.
+**锚句**：点已经不在原来的位置——它们自己挪过，连成的线通向书架上没有的一格。
+**Anchor sentence**: the dots were no longer where they had been — they had moved themselves, and the line they made led to a square the shelves did not hold.
+
+---
+
+## Four · No One Has Written
+
+That square held no body text, only a small line: no one has written here yet.
+**锚句**：那一格里没有正文，只有一行小字：这里还没有人写过。
+**Anchor sentence**: that square held no body text, only a small line: no one has written here yet.
+
+---
+
+## Five · The First Word
+
+The apprentice took up the pen and wrote the first word — and the square was empty no longer.
+**锚句**：学徒拿起笔，写下第一个字——那一格从此不再是空的。
+**Anchor sentence**: the apprentice took up the pen and wrote the first word — and the square was empty no longer.
+
+---
+
+## Six · Another Blank
+
+But at the end of the page a new blank appeared — exactly like the first one.
+**锚句**：可在这页的尽头，又出现了一格新的空白——和第一格一模一样。
+**Anchor sentence**: but at the end of the page a new blank appeared — exactly like the first one.
+
+---
+
+## Seven · Mapping (Echo No. 222 · world model)
+
+| Dimension | Value | Chapters |
+| --- | --- | --- |
+| lore | the question finally comes · the dots move themselves · every first word opens a new blank | 一、三、五、六 |
+| geography | the copy hall · the square the shelves do not hold | 二、三 |
+| characters | the apprentice who asked · the eldest copyist | 一、二、五 |
+| story | after E221: the inward door is walked through; the world grows one square further | 全篇 |
+| items | the page of dots · the pen · the small line "no one has written here yet" | 二、四、五 |
+| history | the 140th year after the 44th Convocation (continues E206–E221) | 纪元 |
+
+> The world is not finished — every first word writes, and the end grows another blank.
+> 世界没有写完——每写下第一个字，尽头就再长出一格空白。
+`,
+  },
+  {
     order: 23,
     slug: 'echo-023-the-ship-that-appears-only-at-dusk',
     titleZh: '雾港里那艘只在黄昏出现的船',
