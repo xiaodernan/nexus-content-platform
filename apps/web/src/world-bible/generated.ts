@@ -31501,6 +31501,162 @@ The well does not answer, yet it keeps those notes — as the harp keeps the dus
 `,
   },
   {
+    order: 229,
+    slug: 'echo-229-tide-table-without-shore',
+    titleZh: '潮候船上那张不写岸的潮汐表',
+    titleEn: 'The Tide-Table on the Ship That Writes No Shore',
+    eraLineZh: '纪元：铁月纪 · 第四十一次大会之后（同正典第 16 章《潮候船上没有岸》、第 43 章《雾港第九潮汐表》）。',
+    eraLineEn: 'Era: the Iron-Moon Age — after the 41st Convocation (as in canon chapter 16 "No Shore on the Tide Ship" and chapter 43 "The Ninth Tide-Table at Fog Harbor").',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 229): The Tide-Table on the Ship That Writes No Shore
+
+> 回响不替正典续写——它只是页边另一层长出来的盐。
+> 本篇写给第 16 章《潮候船上没有岸》里那张表：它记潮，却从不记岸，因为船工说岸会骗人。
+> 纪律同前：锚句逐字；不新增正典专名，只在既有的潮候船与潮汐表旁添细节。
+>
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written for the table in chapter 16 "No Shore on the Tide Ship": it records tides but never shores, because the boatmen say shores lie.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail beside the tide ship and its tide-table.
+
+> 纪元：铁月纪 · 第四十一次大会之后（同正典第 16 章《潮候船上没有岸》、第 43 章《雾港第九潮汐表》）。
+> Era: the Iron-Moon Age — after the 41st Convocation (as in canon chapter 16 "No Shore on the Tide Ship" and chapter 43 "The Ninth Tide-Table at Fog Harbor").
+
+---
+
+## 一 · 表上只有潮
+
+潮候船上的那张表记满了潮——时辰、高低、涨落，一项不缺。
+**锚句**：那张表记满了潮——时辰、高低、涨落，一项不缺。
+**Anchor sentence**: that table was full of tides — hour, height, rise and fall, nothing missing.
+
+---
+
+## 二 · 没有岸
+
+可整张表上，一个岸名都没有。
+**锚句**：整张表上，一个岸名都没有。
+**Anchor sentence**: on the whole table, not one shore was named.
+
+---
+
+## 三 · 岸会骗人
+
+船工说：岸会骗人——今天的码头，明天可能就不在了。
+**锚句**：岸会骗人——今天的码头，明天可能就不在了。
+**Anchor sentence**: shores lie — a quay that stands today may be gone tomorrow.
+
+---
+
+## 四 · 潮不会
+
+潮不会。你记下的那一涨，它下次还照样涨——表只记不会骗你的东西。
+**锚句**：表只记不会骗你的东西。
+**Anchor sentence**: the table records only what does not lie.
+
+---
+
+## 五 · 新学徒
+
+新学徒忍不住问：那我们往哪里靠？老船工指着表上的潮：往潮去的地方。
+**锚句**：老船工指着表上的潮：往潮去的地方。
+**Anchor sentence**: the old boatman pointed at the tides on the table: toward where the tide goes.
+
+---
+
+## 六 · 海没有边
+
+于是船一直开——表上的潮没有尽，海也就没有边；岸不在表上，也就不在船上。
+**锚句**：表上的潮没有尽，海也就没有边。
+**Anchor sentence**: the tides on the table have no end, so the sea has no edge.
+
+---
+
+## 七 · Mapping（Echo No. 229 · world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | the table records tides not shores · shores lie, tides do not · the sea has no edge | 二、三、六 |
+| geography | the tide ship · the open sea (no shore) · Fog Harbor's table | 一、六 |
+| characters | the old boatman · the new apprentice | 五 |
+| story | a new geography beyond the copy hall: chapter 16's shoreless ship, tied to Fog Harbor's table | 全篇 |
+| items | the tide-table (hour/height/rise/fall) · the unnamed shore | 一、二 |
+| history | the Iron-Moon Age after the 41st Convocation (links ch.16, ch.43) | 纪元 |
+
+> 世界没有写完——海没有边，因为潮没有尽。
+> The world is not finished — the sea has no edge, because the tide has no end.
+`,
+    markdownEn: `
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written for the table in chapter 16 "No Shore on the Tide Ship": it records tides but never shores, because the boatmen say shores lie.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail beside the tide ship and its tide-table.
+
+> Era: the Iron-Moon Age — after the 41st Convocation (as in canon chapter 16 "No Shore on the Tide Ship" and chapter 43 "The Ninth Tide-Table at Fog Harbor").
+
+---
+
+## One · Only Tides
+
+That table on the tide ship was full of tides — hour, height, rise and fall, nothing missing.
+**锚句**：那张表记满了潮——时辰、高低、涨落，一项不缺。
+**Anchor sentence**: that table was full of tides — hour, height, rise and fall, nothing missing.
+
+---
+
+## Two · No Shore
+
+Yet on the whole table, not one shore was named.
+**锚句**：整张表上，一个岸名都没有。
+**Anchor sentence**: on the whole table, not one shore was named.
+
+---
+
+## Three · Shores Lie
+
+The boatman said: shores lie — a quay that stands today may be gone tomorrow.
+**锚句**：岸会骗人——今天的码头，明天可能就不在了。
+**Anchor sentence**: shores lie — a quay that stands today may be gone tomorrow.
+
+---
+
+## Four · Tides Do Not
+
+Tides do not. The rise you wrote down rises again — the table records only what does not lie.
+**锚句**：表只记不会骗你的东西。
+**Anchor sentence**: the table records only what does not lie.
+
+---
+
+## Five · The Apprentice
+
+The new apprentice could not help asking: where do we land then? The old boatman pointed at the tides on the table: toward where the tide goes.
+**锚句**：老船工指着表上的潮：往潮去的地方。
+**Anchor sentence**: the old boatman pointed at the tides on the table: toward where the tide goes.
+
+---
+
+## Six · The Sea Has No Edge
+
+So the ship sails on — the tides on the table have no end, so the sea has no edge; the shore is not on the table, and so not on the ship.
+**锚句**：表上的潮没有尽，海也就没有边。
+**Anchor sentence**: the tides on the table have no end, so the sea has no edge.
+
+---
+
+## Seven · Mapping (Echo No. 229 · world model)
+
+| Dimension | Value | Chapters |
+| --- | --- | --- |
+| lore | the table records tides not shores · shores lie, tides do not · the sea has no edge | 二、三、六 |
+| geography | the tide ship · the open sea (no shore) · Fog Harbor's table | 一、六 |
+| characters | the old boatman · the new apprentice | 五 |
+| story | a new geography beyond the copy hall: chapter 16's shoreless ship, tied to Fog Harbor's table | 全篇 |
+| items | the tide-table (hour/height/rise/fall) · the unnamed shore | 一、二 |
+| history | the Iron-Moon Age after the 41st Convocation (links ch.16, ch.43) | 纪元 |
+
+> The world is not finished — the sea has no edge, because the tide has no end.
+> 世界没有写完——海没有边，因为潮没有尽。
+`,
+  },
+  {
     order: 23,
     slug: 'echo-023-the-ship-that-appears-only-at-dusk',
     titleZh: '雾港里那艘只在黄昏出现的船',

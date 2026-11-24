@@ -3852,6 +3852,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [5] 一袋，就是一个没弹完的音。
 - [6] 井不回答，却收着这些音。
 
+### Echo 229 · 潮候船上那张不写岸的潮汐表 / The Tide-Table on the Ship That Writes No Shore
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 那张表记满了潮——时辰、高低、涨落，一项不缺。
+- [2] 整张表上，一个岸名都没有。
+- [3] 岸会骗人——今天的码头，明天可能就不在了。
+- [4] 表只记不会骗你的东西。
+- [5] 老船工指着表上的潮：往潮去的地方。
+- [6] 表上的潮没有尽，海也就没有边。
+
 ### Echo 23 · 雾港里那艘只在黄昏出现的船 / The Ship That Appears Only at Dusk in Fog Harbor
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 雾港黄昏起雾的时候，码头口总有一艘船不在值守的名册上。

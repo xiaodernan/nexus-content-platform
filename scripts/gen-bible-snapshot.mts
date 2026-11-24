@@ -285,6 +285,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E226-潮候院巡夜人绕开那口井走': 'echo-226-watchman-walks-around-well',
   'E227-潮候院巡夜人数井边的盐': 'echo-227-watchman-counts-salt',
   'E228-潮候院沙厅里那架被灰埋了却还在暗自调音的旧竖琴': 'echo-228-old-harp-in-sand-hall',
+  'E229-潮候船上那张不写岸的潮汐表': 'echo-229-tide-table-without-shore',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');

@@ -8899,3 +8899,9 @@ Reader (post-continuum trace):
 - **重导**：gen:bible-snapshot 重生 generated.ts / digest（277,038 chars, sha 9bbba0f2…）；锚句 1376→1382；回响 227→228。
 - **计数对齐**（repin:echoes 工具）：guideCopy 227→228 / 1371→1377 / two hundred twenty-seven→twenty-eight；bible-ask-behavior pin 1371→1377（quiz 口径，比锚句总数少 5）；canon-answer-graph 227→228（14+228）。问答数 131 保持不变。
 - **验证**：world-bible / bible-snapshot / anchor-echo / record-encoding 全 exit 0；vitest 25 passed；typecheck:main、fe-gates 全绿。
+
+## cont. 489 (2026-11-25) — Echo #229《潮候船上那张不写岸的潮汐表》· 228→229 回响（世界扩展到海上）
+- **新地理（需求六「世界无穷大」）**：此前 228 篇多在内陆抄本院/沙厅，本篇首次把世界扩展到海上——正典第 16 章《潮候船上没有岸》的潮汐表记满潮（时辰/高低/涨落）却一个岸名都不写，因为船工说「岸会骗人，今天码头明天可能没了」，而潮不会；新学徒问往哪靠，老船工指表上的潮「往潮去的地方」；表上的潮没有尽，海也就没有边。接正典第 43 章《雾港第九潮汐表》。6 组锚句 zh/en 逐字对应、全典唯一。
+- **重导**：gen:bible-snapshot 重生 generated.ts / digest（277,328 chars, sha 6386ff32…）；锚句 1382→1388；回响 228→229。
+- **计数对齐**（repin:echoes 工具）：guideCopy 228→229 / 1377→1383 / two hundred twenty-eight→twenty-nine；bible-ask-behavior pin 1377→1383（quiz 口径，比锚句总数少 5）；canon-answer-graph 228→229（14+229）。问答数 131 保持不变。
+- **验证**：world-bible / bible-snapshot / anchor-echo / record-encoding 全 exit 0；vitest 25 passed；typecheck:main、fe-gates 全绿。
