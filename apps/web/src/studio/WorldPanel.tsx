@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   WORLD_ELEVATION_MAX,
   WORLD_KINDS,
@@ -33,6 +33,14 @@ import type { Locale } from '@/lib/i18n';
 import { chatWithCharacter } from '@/server/ai/client';
 import { formatWorldFillError, parseChronicleReply, parseEchoReply, parseLinkReply, parseWorldFillReply, retrieveWorldContext } from '@/lib/worldFill';
 import { rollFate, type FateCard } from '@/lib/worldFate';
+import { mergeImportedWorld, parseWorldMarkdown, worldFileName, worldToMarkdown } from '@/lib/worldExport';
+import { formatWorldStats, worldStats } from '@/lib/worldStats';
+import { filterWorldNodes } from '@/lib/worldFilter';
+import { sortWorldNodes, type WorldSortMode } from '@/lib/worldSort';
+import { auditSuggestion, auditWorld, formatWorldAudit } from '@/lib/worldAudit';
+import { formatSuggestion, suggestWorldLinks, type LinkSuggestion } from '@/lib/worldLinks';
+import { generateSeedChapter } from '@/lib/worldSeed';
+import { saveBlob } from '@/lib/download';
 import { useStudioReady } from './store';
 import { useWorld, worldStore } from './worldStore';
 import { WORLD_KIND_LABELS_EN } from '@nexus/world-model';
@@ -62,6 +70,26 @@ const COPY = {
     aiFillAll: 'AI 补全空节',
     aiFillAllBusy: '补全中…',
     aiFillAllTitle: '一次点击最多补 3 个还没有条目的节（九类里选），每节都是真调用；已有内容的节不动。想补完就再点一次。token 按实际调用计，不偷偷多打。（四个 AI 按钮共用每小时 10 次的额度，超了界面会告诉你要等多久。）',
+    filterAria: '在世界条目里按标题或正文筛选',
+    filterPlaceholder: '筛选题名/正文/纪元/回声…',
+    filterEmpty: '没有条目匹配这个关键词——清空筛选框看全部。',
+    sort: (m: WorldSortMode) => `排序：${m === 'insertion' ? '原序' : m === 'era' ? '纪元' : '标题'}（点一下切换）`,
+    sortTitle: '只改变这一栏的显示顺序，不改文档本体；原序=写入顺序，纪元=按作者写的纪元与序号，标题=按名称。',
+    exportMd: '导出 Markdown',
+    exportMdTitle: '把这份世界按九类固定顺序导成 .md：节点正文、纪元/序号、记忆回声都在里面，空类也留标题。纯本地投影，不调模型、不联网。',
+    importMd: '导入 Markdown',
+    importMdTitle: '读回本模块导出的 .md，把有正文的条目追加到当前世界（不覆盖、不去重）；纪元/序号/记忆回声一起带回来。格式不对或没有合法条目会明确报错，不会编内容。纯本地解析，不调模型、不联网。',
+    importDone: (added: number, skipped: number) => `已导入 ${added} 条${skipped ? `，跳过 ${skipped} 条不认识的类别` : ''}。只追加、没动原有条目。`,
+    importFail: '这个文件不是本模块导出的 Markdown（缺 # 世界名或没有任何有正文的条目）——什么都没写进去。',
+    audit: '世界体检',
+    auditTitle: '纯本地只读检查：量出空正文、重名、没有关系的孤儿条目、指向已删除条目的断链，并给一条可执行的下一步。不写库、不调模型。',
+    linkHints: '串联建议',
+    linkHintsTitle: '只根据你已写的纪元与正文里的共同词，指出哪些条目可能有关；不会替你编造关系。点「连上」才真正写一条关系。已经连过的不重复建议。',
+    linkHintEmpty: '目前没有可建议的串联——至少要两条有正文的条目，且它们同纪元或写到共同词。',
+    linkMake: '连上',
+    seedWorld: '播下世界种子',
+    seedWorldTitle: '从当前世界名确定性地长出一个九类齐全的起始篇章：地名、势力、角色、生物、物品互相引用，读起来是一片连贯的土地。程序生成、只追加、不覆盖，不是作者写的史实；同一世界每次点会得到不同的种子。',
+    seedWorldDone: (titles: string[]) => `已播下 ${titles.length} 条起始条目：${titles.join('、')}。程序生成、可随意改写。`,
     fate: '掷命运骰',
     fateTitle: '不调模型、不写库：从这个世界已写的条目里抽两条，按确定性的句式重组成一张事件卡。同一个数字出现同一张卡，换一个数字就换一张——无穷来自你写下的细节组合，不是凭空编造。',
     fateEmpty: '至少要有两条写了正文的条目才能掷骰——先用填充或续写补一点内容。',
@@ -165,6 +193,26 @@ const COPY = {
     aiFillAll: 'AI fill empties',
     aiFillAllBusy: 'Filling…',
     aiFillAllTitle: 'One click fills at most 3 of the sections that still have no entries (out of nine); each is a real provider call. Sections with content are untouched. Click again for the rest — token cost is what is actually called, never silently more. (All four AI buttons share a 10-per-hour quota; the UI tells you how long to wait if you hit it.)',
+    filterAria: 'Filter world entries by title or body',
+    filterPlaceholder: 'Filter titles / bodies / eras / echoes…',
+    filterEmpty: 'No entry matches that keyword — clear the filter to see everything.',
+    sort: (m: WorldSortMode) => `Sort: ${m === 'insertion' ? 'insertion' : m === 'era' ? 'era' : 'title'} (click to cycle)`,
+    sortTitle: 'Changes only this list view, never the document: insertion = write order, era = the author’s era and order fields, title = name.',
+    exportMd: 'Export Markdown',
+    exportMdTitle: 'Export this world as a .md in the fixed nine-section order: bodies, era/order and memory echoes are all included, and empty sections keep their headings. Pure local projection — no model call, no network.',
+    importMd: 'Import Markdown',
+    importMdTitle: 'Read back a .md exported by this module and append entries with bodies to the current world (no overwrite, no dedup); era/order/memory echoes come along. Wrong format or no valid entry reports an error and writes nothing. Pure local parse — no model call, no network.',
+    importDone: (added: number, skipped: number) => `Imported ${added} entr${added === 1 ? 'y' : 'ies'}${skipped ? `, skipped ${skipped} unknown section${skipped === 1 ? '' : 's'}` : ''}. Append-only — nothing existing was touched.`,
+    importFail: 'This file is not a Markdown exported by this module (no # world name, or no entry with a body) — nothing was written.',
+    audit: 'World checkup',
+    auditTitle: 'Read-only local check: counts empty bodies, duplicate titles, orphan nodes with no relations and links pointing at deleted entries, then gives one actionable next step. No database write, no model call.',
+    linkHints: 'Connection hints',
+    linkHintsTitle: 'Points out entries that may be related, using only the eras and shared words you actually wrote — it never invents a relation. Press “Connect” to really write the edge. Already-connected pairs are not suggested again.',
+    linkHintEmpty: 'No hints yet — you need at least two entries with bodies that share an era or a word.',
+    linkMake: 'Connect',
+    seedWorld: 'Sow a world seed',
+    seedWorldTitle: 'Grow a coherent nine-section starting chapter from the current world name — geography, factions, characters, creatures and items all reference each other. Procedural, append-only, never author-written lore; each press on the same world yields a different seed.',
+    seedWorldDone: (titles: string[]) => `Sowed ${titles.length} starting entries: ${titles.join(', ')}. Procedural — rewrite them freely.`,
     fate: 'Roll fate',
     fateTitle: 'No model call, no database write: pick two entries you already wrote and recombine them into an event card with a deterministic frame. Same number, same card; a different number gives another — the endlessness comes from your own details, not invented ones.',
     fateEmpty: 'Roll needs at least two entries with body text — fill or continue the chronicle first.',
@@ -413,6 +461,71 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
     setBulkBusy(false);
   };
 
+  const exportMarkdown = () => {
+    const doc = worldStore.getSnapshot().world;
+    if (!doc) return;
+    saveBlob(worldFileName(doc), new Blob([worldToMarkdown(doc, locale)], { type: 'text/markdown;charset=utf-8' }));
+  };
+
+  const importFileRef = useRef<HTMLInputElement>(null);
+  const [importNote, setImportNote] = useState('');
+  const importMarkdown = async (file: File | undefined) => {
+    if (!file) return;
+    const doc = worldStore.getSnapshot().world;
+    if (!doc) return;
+    const text = await file.text();
+    const parsed = parseWorldMarkdown(text);
+    if (!parsed) {
+      setImportNote(c.importFail);
+      return;
+    }
+    const { document: merged, added, skipped } = mergeImportedWorld(doc, parsed);
+    edit(merged, true);
+    setImportNote(c.importDone(added, skipped));
+  };
+
+  const [auditNote, setAuditNote] = useState('');
+  const runAudit = () => {
+    const doc = worldStore.getSnapshot().world;
+    if (!doc) return;
+    const a = auditWorld(doc);
+    setAuditNote(`${formatWorldAudit(a, locale)}。${auditSuggestion(a, locale)}`);
+  };
+
+  const [linkHints, setLinkHints] = useState<LinkSuggestion[]>([]);
+  const [hintNote, setHintNote] = useState('');
+  const runLinkHints = () => {
+    const doc = worldStore.getSnapshot().world;
+    if (!doc) return;
+    const hints = suggestWorldLinks(doc);
+    setLinkHints(hints);
+    setHintNote(hints.length ? '' : c.linkHintEmpty);
+  };
+  const acceptHint = (hint: LinkSuggestion) => {
+    const doc = worldStore.getSnapshot().world;
+    if (!doc) return;
+    const result = linkWorldNodes(doc, hint.fromId, hint.toId, hint.evidence);
+    if (result.reason) {
+      worldStore.showNotice(result.reason);
+      return;
+    }
+    edit(result.document, true);
+    setLinkHints((prev) => prev.filter((h) => h !== hint));
+  };
+
+  const [seedCount, setSeedCount] = useState(0);
+  const [seedNote, setSeedNote] = useState('');
+  const sowSeed = () => {
+    const doc = worldStore.getSnapshot().world;
+    if (!doc) return;
+    const generated = generateSeedChapter(`${doc.name}#${seedCount}`);
+    const { document: merged, added } = mergeImportedWorld(doc, generated);
+    if (!added) return;
+    edit(merged, true);
+    setSeedCount((n) => n + 1);
+    setSeedNote(c.seedWorldDone(generated.entries.map((e) => e.title)));
+  };
+
   // §44 衍生玩法「命运骰」：纯确定性重组已有条目，零 provider、零写库；seed 递增保证每次换新卡。
   const [fateSeed, setFateSeed] = useState(1);
   const [fateNote, setFateNote] = useState('');
@@ -617,7 +730,16 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
     if (save) void worldStore.commit();
   };
 
-  const groups = WORLD_KINDS.filter((kind) => counts?.[kind]);
+  const [nodeFilter, setNodeFilter] = useState('');
+  const [sortMode, setSortMode] = useState<WorldSortMode>('insertion');
+  const SORT_CYCLE: readonly WorldSortMode[] = ['insertion', 'era', 'title'];
+  const cycleSort = () => setSortMode((m) => SORT_CYCLE[(SORT_CYCLE.indexOf(m) + 1) % SORT_CYCLE.length]!);
+  const visibleNodes = sortWorldNodes(filterWorldNodes(world.nodes, nodeFilter), sortMode);
+  const visibleCounts = visibleNodes.reduce<Record<string, number>>((acc, n) => {
+    acc[n.kind] = (acc[n.kind] ?? 0) + 1;
+    return acc;
+  }, {});
+  const groups = WORLD_KINDS.filter((kind) => visibleCounts[kind]);
 
   return (
     <div className="wd-rootCol" data-world-panel>
@@ -662,6 +784,28 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
           </button>
           {aiGenError ? <p className="wd-danger11" data-world-ai-error>{aiGenError}</p> : null}
         </div>
+        <p className="wd-body11Mt2" data-world-stats>{formatWorldStats(worldStats(world), locale)}</p>
+        <input
+          type="search"
+          value={nodeFilter}
+          onChange={(e) => setNodeFilter(e.target.value)}
+          placeholder={c.filterPlaceholder}
+          aria-label={c.filterAria}
+          data-world-filter
+          className="wd-growInput"
+        />
+        <button
+          type="button"
+          onClick={cycleSort}
+          title={c.sortTitle}
+          data-world-sort
+          className="wd-ghostBtn"
+        >
+          {c.sort(sortMode)}
+        </button>
+        {nodeFilter.trim() && visibleNodes.length === 0 ? (
+          <p className="wd-body11Mt2" data-world-filter-empty>{c.filterEmpty}</p>
+        ) : null}
         {snapshot.error ? (
           <p className="wd-dangerMt2" data-world-error>
             {snapshot.error}
@@ -674,10 +818,10 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
           <section key={kind} className="wd-mb3" data-world-group={kind}>
             <h3 className="wd-labelMb1">
               {kindLabel(kind, locale)}
-              <span className="wd-end">{counts?.[kind] ?? 0}</span>
+              <span className="wd-end">{visibleCounts[kind] ?? 0}</span>
             </h3>
             <ul className="wd-col2">
-              {world.nodes
+              {visibleNodes
                 .filter((node) => node.kind === kind)
                 .map((node) => (
                   <li
@@ -927,6 +1071,63 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
           >
             {c.fate}
           </button>
+          <button
+            type="button"
+            onClick={exportMarkdown}
+            title={c.exportMdTitle}
+            data-world-export-md
+            className="wd-ghostBtn"
+          >
+            {c.exportMd}
+          </button>
+          <input
+            ref={importFileRef}
+            type="file"
+            accept=".md,.markdown,text/markdown,text/plain"
+            aria-label={c.importMd}
+            data-world-import-file
+            style={{ display: 'none' }}
+            onChange={(e) => {
+              void importMarkdown(e.target.files?.[0]);
+              e.target.value = '';
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => importFileRef.current?.click()}
+            title={c.importMdTitle}
+            data-world-import-md
+            className="wd-ghostBtn"
+          >
+            {c.importMd}
+          </button>
+          <button
+            type="button"
+            onClick={runAudit}
+            title={c.auditTitle}
+            data-world-audit
+            className="wd-ghostBtn"
+          >
+            {c.audit}
+          </button>
+          <button
+            type="button"
+            onClick={runLinkHints}
+            title={c.linkHintsTitle}
+            data-world-link-hints
+            className="wd-ghostBtn"
+          >
+            {c.linkHints}
+          </button>
+          <button
+            type="button"
+            onClick={sowSeed}
+            title={c.seedWorldTitle}
+            data-world-seed
+            className="wd-ghostBtn"
+          >
+            {c.seedWorld}
+          </button>
         </div>
         {aiFillNote ? <p className="wd-body11Mt2" data-world-ai-fill-note>{aiFillNote}</p> : null}
         {chronicleNote ? <p className="wd-body11Mt2" data-world-ai-chronicle-note>{chronicleNote}</p> : null}
@@ -934,6 +1135,28 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
         {linkNote ? <p className="wd-body11Mt2" data-world-ai-link-note>{linkNote}</p> : null}
         {bulkNote ? <p className="wd-body11Mt2" data-world-ai-fill-all-note>{bulkNote}</p> : null}
         {fateNote ? <p className="wd-body11Mt2" data-world-fate-note>{fateNote}</p> : null}
+        {importNote ? <p className="wd-body11Mt2" data-world-import-note>{importNote}</p> : null}
+        {auditNote ? <p className="wd-body11Mt2" data-world-audit-note>{auditNote}</p> : null}
+        {hintNote ? <p className="wd-body11Mt2" data-world-hint-note>{hintNote}</p> : null}
+        {seedNote ? <p className="wd-body11Mt2" data-world-seed-note>{seedNote}</p> : null}
+        {linkHints.length ? (
+          <ul className="wd-col2" data-world-link-hints-list>
+            {linkHints.map((hint) => (
+              <li key={`${hint.fromId}-${hint.toId}`} className="wd-row1" data-world-link-hint>
+                <span className="wd-faint11">{formatSuggestion(hint, locale)}</span>
+                <button
+                  type="button"
+                  onClick={() => acceptHint(hint)}
+                  title={c.linkHintsTitle}
+                  data-world-link-accept
+                  className="wd-ghostBtn"
+                >
+                  {c.linkMake}
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
         {fateCard ? (
           <button
             type="button"

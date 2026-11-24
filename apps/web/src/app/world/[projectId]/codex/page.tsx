@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { loadWorld } from '@/server/domain/worlds';
 import { listCharacters } from '@/server/domain/characters';
@@ -11,10 +12,18 @@ import { WORLD_KINDS, WORLD_KIND_LABELS, type WorldKind, type WorldNode } from '
 
 export const dynamic = 'force-dynamic';
 
-export const metadata = {
-  title: '设定集 · NEXUS',
-  description: '世界设定集：九类设定的落墨版本、世界编年、人物关系谱对账。',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  return locale === 'zh'
+    ? {
+        title: '设定集 · NEXUS',
+        description: '世界设定集：九类设定的落墨版本、世界编年、人物关系谱对账。',
+      }
+    : {
+        title: 'World Codex — NEXUS',
+        description: 'The world’s setting codex: the written versions of all nine sections, the chronicle and a reconciliation of character relations.',
+      };
+}
 
 /**
  * 「设定集」：世界文档的**纸面**投影——只给作者自己看的世界文档精装版。

@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { loadWorld } from '@/server/domain/worlds';
@@ -9,10 +10,18 @@ import { buildTide, EROSION_BODY_LIMIT, TIDE_PRESSURE_KINDS, type TidePressureKi
 
 export const dynamic = 'force-dynamic';
 
-export const metadata = {
-  title: '世界潮汐 · NEXUS',
-  description: '作者声明的扰模如何压向世界——五种扰模各司其职；以下数字全部从你的落笔节点算出的真值。',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  return locale === 'zh'
+    ? {
+        title: '世界潮汐 · NEXUS',
+        description: '作者声明的扰模如何压向世界——五种扰模各司其职；以下数字全部从你的落笔节点算出的真值。',
+      }
+    : {
+        title: 'World Tides — NEXUS',
+        description: 'How the author’s declared pressures bear on the world — five pressures, each with its own role; every number is a true value computed from the entries you actually wrote.',
+      };
+}
 
 /**
  * 「世界潮汐」——作者声明的扰模如何压向这个世界（v710 §B）。中英双语（v722）：

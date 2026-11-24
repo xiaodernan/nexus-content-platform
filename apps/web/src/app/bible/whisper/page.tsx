@@ -5,11 +5,20 @@ import { getLocale, type Locale } from '@/lib/i18n';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: '低语诸王 · 答问者 — Whisper of the Canon',
-  description: '挑一卷《低语诸王》世界大典中的正典，问一句它在书里怎么写的；答不出去就直说答不出来。Ask any chapter of the World Bible its own question; questions answered only from the canon.',
-  robots: { index: true, follow: true },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  return locale === 'zh'
+    ? {
+        title: '低语诸王 · 答问者 — NEXUS',
+        description: '挑一卷《低语诸王》世界大典中的正典，问一句它在书里怎么写的；答不出去就直说答不出来。',
+        robots: { index: true, follow: true },
+      }
+    : {
+        title: 'Whisper of the Canon — NEXUS',
+        description: 'Ask any chapter of the World Bible its own question; questions answered only from the canon.',
+        robots: { index: true, follow: true },
+      };
+}
 
 const COPY: Record<Locale, { crumb: string; back: string }> = {
   zh: { crumb: '世界大典 · 答问者', back: '← 典籍室' },

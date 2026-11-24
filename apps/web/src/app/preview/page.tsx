@@ -5,11 +5,20 @@ import { getLocale, type Locale } from '@/lib/i18n';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: '预览 · Preview — NEXUS',
-  description: '预览和某个具体项目的作品页面——需要 /preview/<projectId> 来访问。Open the preview URL of a specific project via /preview/<projectId>.',
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  return locale === 'zh'
+    ? {
+        title: '预览 — NEXUS',
+        description: '预览某个具体项目的作品页面——需要通过 /preview/<projectId> 访问。',
+        robots: { index: false, follow: false },
+      }
+    : {
+        title: 'Preview — NEXUS',
+        description: 'Open the preview page of a specific project via /preview/<projectId>.',
+        robots: { index: false, follow: false },
+      };
+}
 
 const COPY: Record<Locale, {
   kicker: string;

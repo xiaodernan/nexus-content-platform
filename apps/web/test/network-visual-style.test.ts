@@ -129,9 +129,10 @@ describe('§WORLD-NET /world/<project>/network 万象脉络', () => {
   // 2026-11-22：新增「关节（割点）」面板（cutVertices 纯函数投影），
   // 是真实功能变更，不是样式漂移——重钉一次；className 仍全部脱敏。
   // 同日 f5c5f02c 改英文文案（"World network →"）时漏钉本门；全量复跑后按当前字节补钉。
+  // 2026-11-24 并轨：本地线的 locale metadata 与中文 kicker 是真实功能字节，按合并后全文重钉。
   it('SHA256 钉死（本线字节）', () => {
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      '9c2c2d55a005af5348ba83794f6796480d5a80e6f65c572a8d1f756f4a734d26', // 2026-11-23 §GATE-3 重钉：并轨把「关节（割点）」面板带进来了（+29 行：五条文案 + 面板 + 钩子）
+      '3317d5f97bfd9614ee36a8ab263799e9a56335ead47c626929eac1f9e154673a',
     );
   });
 });

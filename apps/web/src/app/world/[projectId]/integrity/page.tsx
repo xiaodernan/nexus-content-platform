@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { loadWorld } from '@/server/domain/worlds';
@@ -13,10 +14,18 @@ import { type WorldNode } from '@nexus/world-model';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata = {
-  title: '世界体检 · NEXUS',
-  description: '世界文档的全部真值指标——落笔/骨架/薄节点/未标纪元/未解析关系……不编造、不打分，只如实盘点。',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  return locale === 'zh'
+    ? {
+        title: '世界体检 · NEXUS',
+        description: '世界文档的全部真值指标——落笔/骨架/薄节点/未标纪元/未解析关系……不编造、不打分，只如实盘点。',
+      }
+    : {
+        title: 'World Checkup — NEXUS',
+        description: 'Every true metric of the world document — written, skeleton and thin nodes, untagged eras, unresolved relations… no invention, no scoring, just an honest inventory.',
+      };
+}
 
 /**
  * 「世界体检」——作者打开世界时的体检单：
@@ -27,7 +36,7 @@ export const metadata = {
 
 const COPY = {
   zh: {
-    kicker: 'CHECKUP',
+    kicker: '世界体检',
     title: '世界体检',
     lede: '把这个世界的全部真值指标摊开来看一眼——没 magic、没给你打个分。每一行都是真数，每一项都可以点过去消除。',
     footnote: '仅作者可见 · 数字来自 worlds / characters 真表 · 零 provider · 本页零写库',

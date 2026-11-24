@@ -1,0 +1,209 @@
+psql:<stdin>:3: ERROR:  unrecognized configuration parameter "lc_collate"
+ server_encoding 
+-----------------
+ UTF8
+(1 row)
+
+ datcollate |  datctype  
+------------+------------
+ en_US.utf8 | en_US.utf8
+(1 row)
+
+                                     QUERY PLAN                                     
+------------------------------------------------------------------------------------
+ Bitmap Heap Scan on design_nodes (actual rows=511 loops=1)
+   Recheck Cond: (name ~~* '%王城%'::text)
+   Rows Removed by Index Recheck: 335489
+   Heap Blocks: exact=7149
+   Buffers: shared hit=7370 read=345
+   ->  Bitmap Index Scan on design_nodes_name_trgm_idx (actual rows=336000 loops=1)
+         Index Cond: (name ~~* '%王城%'::text)
+         Buffers: shared hit=221 read=345
+ Planning:
+   Buffers: shared hit=131
+ Planning Time: 2.331 ms
+ Execution Time: 284.692 ms
+(12 rows)
+
+                                  QUERY PLAN                                   
+-------------------------------------------------------------------------------
+ Bitmap Heap Scan on design_nodes (actual rows=0 loops=1)
+   Recheck Cond: (name ~~* '%panel%'::text)
+   Buffers: shared hit=7
+   ->  Bitmap Index Scan on design_nodes_name_trgm_idx (actual rows=0 loops=1)
+         Index Cond: (name ~~* '%panel%'::text)
+         Buffers: shared hit=7
+ Planning:
+   Buffers: shared hit=1
+ Planning Time: 0.224 ms
+ Execution Time: 0.045 ms
+(10 rows)
+
+                                                                                                                           QUERY PLAN                                                                                                                            
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit (actual rows=9 loops=1)
+   Buffers: shared hit=7181
+   InitPlan 3 (returns $2)
+     ->  Seq Scan on users (actual rows=1 loops=1)
+           Filter: (handle = 'seed1'::text)
+           Rows Removed by Filter: 2
+           Buffers: shared hit=1
+   ->  Sort (actual rows=9 loops=1)
+         Sort Key: (GREATEST(CASE WHEN (lower(nd.name) = '王城'::text) THEN 6 WHEN (lower(nd.name) ~~ '王城%'::text) THEN 5 WHEN (lower(nd.name) ~~ '%王城%'::text) THEN 4 ELSE 0 END, CASE WHEN (hashed SubPlan 2) THEN 2 ELSE 0 END)) DESC, nd.updated_at DESC
+         Sort Method: top-N heapsort  Memory: 27kB
+         Buffers: shared hit=7181
+         ->  Hash Join (actual rows=3633 loops=1)
+               Hash Cond: (pg.project_id = pr.id)
+               Join Filter: ((nd.name ~~* '%王城%'::text) OR (hashed SubPlan 5))
+               Rows Removed by Join Filter: 197967
+               Buffers: shared hit=7175
+               ->  Hash Join (actual rows=336000 loops=1)
+                     Hash Cond: (nd.page_id = pg.id)
+                     Buffers: shared hit=7167
+                     ->  Seq Scan on design_nodes nd (actual rows=336000 loops=1)
+                           Buffers: shared hit=7149
+                     ->  Hash (actual rows=800 loops=1)
+                           Buckets: 1024  Batches: 1  Memory Usage: 86kB
+                           Buffers: shared hit=18
+                           ->  Seq Scan on pages pg (actual rows=800 loops=1)
+                                 Buffers: shared hit=18
+               ->  Hash (actual rows=60 loops=1)
+                     Buckets: 1024  Batches: 1  Memory Usage: 11kB
+                     Buffers: shared hit=4
+                     ->  Seq Scan on projects pr (actual rows=60 loops=1)
+                           Filter: ((deleted_at IS NULL) AND (owner_id = $2))
+                           Rows Removed by Filter: 40
+                           Buffers: shared hit=4
+               SubPlan 2
+                 ->  Seq Scan on snapshots s (actual rows=3 loops=1)
+                       Filter: (search_text ~~* '%王城%'::text)
+                       Rows Removed by Filter: 97
+                       Buffers: shared hit=2
+               SubPlan 5
+                 ->  Seq Scan on snapshots s_1 (actual rows=3 loops=1)
+                       Filter: (search_text ~~* '%王城%'::text)
+                       Rows Removed by Filter: 97
+                       Buffers: shared hit=2
+ Planning:
+   Buffers: shared hit=659
+ Planning Time: 3.698 ms
+ Execution Time: 396.639 ms
+(47 rows)
+
+                                                                                              QUERY PLAN                                                                                               
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit (actual rows=9 loops=1)
+   Buffers: shared hit=8756
+   InitPlan 1 (returns $0)
+     ->  Seq Scan on users (actual rows=1 loops=1)
+           Filter: (handle = 'seed1'::text)
+           Rows Removed by Filter: 2
+           Buffers: shared hit=1
+   ->  Sort (actual rows=9 loops=1)
+         Sort Key: (CASE WHEN (lower(nd.name) = '王城'::text) THEN 6 WHEN (lower(nd.name) ~~ '王城%'::text) THEN 5 WHEN (lower(nd.name) ~~ '%王城%'::text) THEN 4 ELSE 0 END) DESC, nd.updated_at DESC
+         Sort Method: top-N heapsort  Memory: 27kB
+         Buffers: shared hit=8756
+         ->  Nested Loop (actual rows=277 loops=1)
+               Buffers: shared hit=8756
+               ->  Hash Join (actual rows=511 loops=1)
+                     Hash Cond: (nd.page_id = pg.id)
+                     Buffers: shared hit=7733
+                     ->  Bitmap Heap Scan on design_nodes nd (actual rows=511 loops=1)
+                           Recheck Cond: (name ~~* '%王城%'::text)
+                           Rows Removed by Index Recheck: 335489
+                           Heap Blocks: exact=7149
+                           Buffers: shared hit=7715
+                           ->  Bitmap Index Scan on design_nodes_name_trgm_idx (actual rows=336000 loops=1)
+                                 Index Cond: (name ~~* '%王城%'::text)
+                                 Buffers: shared hit=566
+                     ->  Hash (actual rows=800 loops=1)
+                           Buckets: 1024  Batches: 1  Memory Usage: 86kB
+                           Buffers: shared hit=18
+                           ->  Seq Scan on pages pg (actual rows=800 loops=1)
+                                 Buffers: shared hit=18
+               ->  Index Scan using projects_pkey on projects pr (actual rows=1 loops=511)
+                     Index Cond: (id = pg.project_id)
+                     Filter: ((deleted_at IS NULL) AND (owner_id = $0))
+                     Rows Removed by Filter: 0
+                     Buffers: shared hit=1023
+ Planning:
+   Buffers: shared hit=20
+ Planning Time: 0.576 ms
+ Execution Time: 280.428 ms
+(38 rows)
+
+                                                 QUERY PLAN                                                  
+-------------------------------------------------------------------------------------------------------------
+ Limit (actual rows=9 loops=1)
+   Buffers: shared hit=3404 read=2
+   ->  Sort (actual rows=9 loops=1)
+         Sort Key: nd.updated_at DESC
+         Sort Method: top-N heapsort  Memory: 27kB
+         Buffers: shared hit=3404 read=2
+         ->  Nested Loop (actual rows=3360 loops=1)
+               Buffers: shared hit=3404 read=2
+               ->  Nested Loop (actual rows=8 loops=1)
+                     Buffers: shared hit=20 read=2
+                     ->  Hash Join (actual rows=1 loops=1)
+                           Hash Cond: (pr.id = s.project_id)
+                           Buffers: shared hit=12
+                           ->  Seq Scan on projects pr (actual rows=100 loops=1)
+                                 Buffers: shared hit=3
+                           ->  Hash (actual rows=1 loops=1)
+                                 Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                                 Buffers: shared hit=9
+                                 ->  Unique (actual rows=1 loops=1)
+                                       Buffers: shared hit=9
+                                       InitPlan 1 (returns $0)
+                                         ->  Seq Scan on users (actual rows=1 loops=1)
+                                               Filter: (handle = 'seed1'::text)
+                                               Rows Removed by Filter: 2
+                                               Buffers: shared hit=1
+                                       ->  Sort (actual rows=1 loops=1)
+                                             Sort Key: s.project_id
+                                             Sort Method: quicksort  Memory: 25kB
+                                             Buffers: shared hit=9
+                                             ->  Hash Join (actual rows=1 loops=1)
+                                                   Hash Cond: (pr2.id = s.project_id)
+                                                   Buffers: shared hit=6
+                                                   ->  Seq Scan on projects pr2 (actual rows=60 loops=1)
+                                                         Filter: ((deleted_at IS NULL) AND (owner_id = $0))
+                                                         Rows Removed by Filter: 40
+                                                         Buffers: shared hit=4
+                                                   ->  Hash (actual rows=3 loops=1)
+                                                         Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                                                         Buffers: shared hit=2
+                                                         ->  Seq Scan on snapshots s (actual rows=3 loops=1)
+                                                               Filter: (search_text ~~* '%王城%'::text)
+                                                               Rows Removed by Filter: 97
+                                                               Buffers: shared hit=2
+                     ->  Index Scan using pages_project_sort_idx on pages pg (actual rows=8 loops=1)
+                           Index Cond: (project_id = pr.id)
+                           Buffers: shared hit=8 read=2
+               ->  Index Scan using design_nodes_page_idx on design_nodes nd (actual rows=420 loops=8)
+                     Index Cond: (page_id = pg.id)
+                     Buffers: shared hit=3384
+ Planning:
+   Buffers: shared hit=33
+ Planning Time: 0.878 ms
+ Execution Time: 6.506 ms
+(53 rows)
+
+                                        QUERY PLAN                                        
+------------------------------------------------------------------------------------------
+ Aggregate (actual rows=1 loops=1)
+   Buffers: shared hit=7715
+   ->  Bitmap Heap Scan on design_nodes (actual rows=511 loops=1)
+         Recheck Cond: (name ~~* '%王城%'::text)
+         Rows Removed by Index Recheck: 335489
+         Heap Blocks: exact=7149
+         Buffers: shared hit=7715
+         ->  Bitmap Index Scan on design_nodes_name_trgm_idx (actual rows=336000 loops=1)
+               Index Cond: (name ~~* '%王城%'::text)
+               Buffers: shared hit=566
+ Planning:
+   Buffers: shared hit=7
+ Planning Time: 0.298 ms
+ Execution Time: 213.570 ms
+(14 rows)
+

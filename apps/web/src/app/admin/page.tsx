@@ -33,7 +33,7 @@ const COPY: Record<Locale, {
     deniedAnonymous: '需要先登录才能看。',
     deniedNotAdmin: (name, role) => `这个页面对 ${name}（role=${role}）不开放：控制台只对 role=admin 可见。`,
     observerLine: '只读观察站：口令 123（公开）→ /admin/observe',
-    kicker: 'admin console',
+    kicker: '管理台',
     title: '管理台',
     lede: (count) => `控制面的常用入口，今安静地摆在${count}张卡里；单击进入前，先读卡的一句话。先看读数（观测 / 审计 / 访问账），再动手（删 / 复核 / 拉黑 / 轮换凭据）——本页不为任何人决定该不该点，只说清那一格是干什么的。`,
     footLine1: '控制面只对 role=admin 可见；不给非 admin 任何读数——本页也不会。',

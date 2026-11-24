@@ -9,10 +9,18 @@ import { ShipDigest } from '@/components/ShipDigest';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: 'NEXUS — Ship log',
-  description: 'How this platform was actually built — real git log, no gloss.',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  return locale === 'zh'
+    ? {
+        title: '交付日志 — NEXUS',
+        description: '这个平台到底是怎么建出来的——真实的 git 记录，没有粉饰。',
+      }
+    : {
+        title: 'Ship log — NEXUS',
+        description: 'How this platform was actually built — real git log, no gloss.',
+      };
+}
 
 /**
  * 交付日志–the platform's ship log, not gloss decor, not patches.
@@ -42,7 +50,7 @@ const CONTRACTS = (() => {
 
 const COPY = {
   zh: {
-    kicker: 'SHIP LOG',
+    kicker: '航行日志',
     title: '交付日志',
     lede:
       '这个平台自己是怎么一砖一瓦搭起来的——不是里程碑也不是战绩，只是真实的 commit；哪一天、哪一类、谁干的。本页完全由 git 机械生成；数字不预先写死，每次请求现算。',

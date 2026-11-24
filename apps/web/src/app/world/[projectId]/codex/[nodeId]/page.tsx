@@ -1,6 +1,6 @@
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import type { Metadata } from 'next';
 import { loadWorld } from '@/server/domain/worlds';
 import { loadDocument } from '@/server/domain/projects';
 import { projectVisibleTo } from '@/server/domain/team';
@@ -10,10 +10,18 @@ import { findWorldNode, WORLD_KIND_LABELS, type WorldKind } from '@nexus/world-m
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: '设定集 · 单章 · NEXUS',
-  description: '世界设定集：单个落笔节点的纸面投影。',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  return locale === 'zh'
+    ? {
+        title: '设定集 · 单章 · NEXUS',
+        description: '世界设定集：单个落笔节点的纸面投影。',
+      }
+    : {
+        title: 'Codex · Single Chapter — NEXUS',
+        description: 'A single written node from the world codex, projected as one readable page.',
+      };
+}
 
 /**
  * 「一页书」——把每个落笔节点化为一页独立可读的章。

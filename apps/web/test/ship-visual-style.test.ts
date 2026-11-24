@@ -65,7 +65,7 @@ describe('§FE-Ship /ship 交付日志', () => {
     expect(code).toContain('readdirSync');
     expect(code).toContain('execFileSync');
     expect(code).toContain('force-dynamic');
-    expect(code).toContain('metadata');
+    expect(code).toContain('generateMetadata');
     expect(manifestSource).toContain('export const SHIP_DAYS');
   });
 
@@ -111,9 +111,9 @@ describe('§FE-Ship /ship 交付日志', () => {
     }
   });
 
-  it('SHA256 钉死（本线字节）', () => {
+  it('SHA256 钉死（本线字节，metadata 改 generateMetadata 跟随语言重钉）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '13f11d6f4b28091d54373936a7a2569d0ab62a58afb3795144edd9eabe430288',
+      '3914bf12d4e9c49c24caccdc21629dcee85d52dd5ef07da274adec915f8b0db7',
     );
   });
 });

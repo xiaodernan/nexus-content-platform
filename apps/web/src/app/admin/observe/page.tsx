@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { currentUserOrNull } from '@/server/domain/session';
@@ -26,7 +27,7 @@ export const metadata = { title: '只读观察站 · Read-only observer — NEXU
 const COPY: Record<Locale, {
   kicker: string;
   title: string;
-  lede: string;
+  lede: ReactNode;
   gateTitle: string;
   gateNote: string;
   gateFoot: string;
@@ -81,7 +82,7 @@ const COPY: Record<Locale, {
   zh: {
     kicker: 'admin · read-only · 口令 123',
     title: '只读观察站',
-    lede: '这里摆的是平台上所有用户的真实行为——注册、打开、点赞、评论、收藏、关注、任务结局，以及最热的公开作品。数字来自实库，按下即刷新；本页没有任何能修改数据的按钮。',
+    lede: <>这里摆的是平台上<strong>所有用户的真实行为</strong>——注册、打开、点赞、评论、收藏、关注、任务结局，以及最热的公开作品。数字来自实库，按下即刷新；本页没有任何能修改数据的按钮。</>,
     gateTitle: '口令是公开的：123',
     gateNote: '输入 123 就能进来看。它不是鉴权秘密——它是一扇只读的窗：你能看见每一个数字，你什么也改不了。急不得的事实就那么多，不需要谁批准。',
     gateFoot: '这不是敏感数据（公开作品与公开计数）。如果你找到漏洞，请告诉我，而不是拿它干别的。',
@@ -136,7 +137,7 @@ const COPY: Record<Locale, {
   en: {
     kicker: 'admin · read-only · pass 123',
     title: 'Read-only observer',
-    lede: 'This page lays out what every real user on this platform actually does — signups, opens, likes, comments, saves, follows, task outcomes, and the hottest public works. Numbers come from the real database and refresh on every load; this page has no button that changes anything.',
+    lede: <>This page lays out <strong>what every real user on this platform actually does</strong> — signups, opens, likes, comments, saves, follows, task outcomes, and the hottest public works. Numbers come from the real database and refresh on every load; this page has no button that changes anything.</>,
     gateTitle: 'The password is public: 123',
     gateNote: 'Type 123 to walk in. It is not a secret — it is a read-only window: you see every number, you change none. None of this needed anyone’s permission.',
     gateFoot: 'Nothing here is sensitive (public works and public counters). Found a hole? Tell me — don’t use it.',

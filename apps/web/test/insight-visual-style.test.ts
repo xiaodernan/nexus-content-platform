@@ -41,7 +41,7 @@ describe('§INSIGHT-2 /insight 观察哨', () => {
   it('RSC + force-dynamic + metadata；页面零 fetch/provider 字面', () => {
     expect(page.slice(0, 60)).not.toContain('use client');
     expect(page).toContain('export const dynamic');
-    expect(page).toContain('export const metadata');
+    expect(page).toContain('export async function generateMetadata');
     expect(page).not.toContain('fetch(');
     expect(page).not.toContain('provider');
   });

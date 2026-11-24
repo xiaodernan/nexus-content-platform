@@ -123,7 +123,7 @@ describe('§FE-TD /world/<project>/tide 世界潮汐', () => {
   // 2026-11-22 f5c5f02c 改了英文文案但漏钉本门（全量复跑才发现）；按当前字节补钉。
   it('SHA256 钉死（本线字节）', () => {
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      '0434bbf8d1b83969cdf0c440927683c1cba5c19e3c0f76261c819725a0bb3903',
+      '59ba9229779a544f1c6fa69b1d484d689909a681d9803b89ae95c61891e8dae5',
     );
   });
 });

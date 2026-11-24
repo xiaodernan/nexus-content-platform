@@ -63,44 +63,44 @@ C. **采用**：逐字节能取回的就取回并入册；取不回的一次性�
 
 ## 名册（kind · token · 点名处）
 
+2026-11-24 并轨校正：本地主线已逐字节入册并在文档中以 `.scratch/` 点名的 6 个文件不再是失踪项，
+故从下表移除 `ask-page-sha2.mts`、`home-page-sha.mts`、`profile-portrait-display.html`、
+`verify-canon-inject-live.mts`、`verify-creator-canon-live.mts`、`verify-creator-graph-live.mts`。
+当前名册为 29 行 `tracked` + 1 行 `clone`；下文保留的历史普查数字只描述当时状态。
+`clone` 只登记外部工作副本：干净克隆可以没有该目录，门只要求它不进版本库；本机若存在，仍校验 `.git`。
+
 | kind | token | 点名处（docs） |
 | --- | --- | --- |
-| lost | `ab-cache-key.mts` | `docs/CURRENT-STATE.md:7279`, `docs/evidence/cache-key-ab-2026-11-18.md:11` |
-| lost | `ask-page-sha2.mts` | `docs/CURRENT-STATE.md:8114` |
-| lost | `bible-qa-live-eval-answers.json` | `docs/evidence/bible-qa-live-eval-2026-11-19.md:9` |
-| lost | `bible-qa-live-eval.py` | `docs/evidence/bible-qa-live-eval-2026-11-19.md:9` |
-| lost | `cjk-sweep.py` | `docs/evidence/i18n-sweep-2026-11-19.md:1` |
-| lost | `home-page-sha.mts` | `docs/CURRENT-STATE.md:6256` |
-| lost | `live-ask-probe.mjs` | `docs/evidence/live-qapi-v945-2026-11-18.md:21` |
-| lost | `probe-ask.mts` | `docs/CURRENT-STATE.md:7194`, `docs/evidence/post-merge-live-2026-11-18.md:7` |
-| lost | `probe-e151-clash.py` | `docs/adr/0290-provider-cache-proxy-map.md:37`, `docs/CURRENT-STATE.md:7862` |
-| lost | `probe-v1001.mts` | `docs/evidence/probe-v1001-2026-11-19.md:37` |
-| lost | `profile-portrait-display.html` | `docs/evidence/io-avatar-languages-nan-root-cause-2026-11-19.md:13` |
-| lost | `proof-burst-12.mts` | `docs/evidence/burst-interleave-12-2026-11-18.md:5` |
-| lost | `proof-character-chat.mts` | `docs/evidence/character-chat-live-v955-2026-11-18.md:7` |
-| lost | `proof-studio-lane.mts` | `docs/CURRENT-STATE.md:6890`, `docs/evidence/studio-lane-cache-2026-11-18.md:5` |
-| lost | `proof-transport-cache.mts` | `docs/evidence/transport-cache-v947-2026-11-18.md:8` |
-| lost | `stress-batteria.mjs` | `docs/CURRENT-STATE.md:6273,6287`, `docs/PERFORMANCE.md:1935,1949` |
-| lost | `stress-ip-window.mjs` | `docs/CURRENT-STATE.md:6273,6287`, `docs/PERFORMANCE.md:1935,1949` |
-| lost | `verify-canon-inject-live.mts` | `docs/CURRENT-STATE.md:6492` |
-| lost | `verify-canon-multiprobe.mts` | `docs/evidence/canon-multiprobe-2026-11-18.md:8` |
-| lost | `verify-creator-canon-live.mts` | `docs/CURRENT-STATE.md:6500` |
-| lost | `verify-creator-graph-live.mts` | `docs/CURRENT-STATE.md:6317` |
-| lost | `verify-parallel-mix.mts` | `docs/evidence/parallel-cache-2026-11-18.md:10,40` |
-| lost | `verify-parallel-warm.mts` | `docs/CURRENT-STATE.md:6554`, `docs/evidence/parallel-cache-2026-11-18.md:9,39` |
+| tracked | `ab-cache-key.mts` | `docs/CURRENT-STATE.md:7279`, `docs/evidence/cache-key-ab-2026-11-18.md:11` |
+| tracked | `bible-qa-live-eval-answers.json` | `docs/evidence/bible-qa-live-eval-2026-11-19.md:9` |
+| tracked | `bible-qa-live-eval.py` | `docs/evidence/bible-qa-live-eval-2026-11-19.md:9` |
+| tracked | `cjk-sweep.py` | `docs/evidence/i18n-sweep-2026-11-19.md:1` |
+| tracked | `live-ask-probe.mjs` | `docs/evidence/live-qapi-v945-2026-11-18.md:21` |
+| tracked | `probe-ask.mts` | `docs/CURRENT-STATE.md:7194`, `docs/evidence/post-merge-live-2026-11-18.md:7` |
+| tracked | `probe-e151-clash.py` | `docs/adr/0290-provider-cache-proxy-map.md:37`, `docs/CURRENT-STATE.md:7862` |
+| tracked | `probe-v1001.mts` | `docs/evidence/probe-v1001-2026-11-19.md:37` |
+| tracked | `proof-burst-12.mts` | `docs/evidence/burst-interleave-12-2026-11-18.md:5` |
+| tracked | `proof-character-chat.mts` | `docs/evidence/character-chat-live-v955-2026-11-18.md:7` |
+| tracked | `proof-studio-lane.mts` | `docs/CURRENT-STATE.md:6890`, `docs/evidence/studio-lane-cache-2026-11-18.md:5` |
+| tracked | `proof-transport-cache.mts` | `docs/evidence/transport-cache-v947-2026-11-18.md:8` |
+| tracked | `stress-batteria.mjs` | `docs/CURRENT-STATE.md:6273,6287`, `docs/PERFORMANCE.md:1935,1949` |
+| tracked | `stress-ip-window.mjs` | `docs/CURRENT-STATE.md:6273,6287`, `docs/PERFORMANCE.md:1935,1949` |
+| tracked | `verify-canon-multiprobe.mts` | `docs/evidence/canon-multiprobe-2026-11-18.md:8` |
+| tracked | `verify-parallel-mix.mts` | `docs/evidence/parallel-cache-2026-11-18.md:10,40` |
+| tracked | `verify-parallel-warm.mts` | `docs/CURRENT-STATE.md:6554`, `docs/evidence/parallel-cache-2026-11-18.md:9,39` |
 | clone | `showcase-site/site` | `docs/CURRENT-STATE.md:8075` |
-| lost | `review-e2e.mjs` | `docs/evidence/design-review-live-2026-11-21.md:18` |
-| lost | `review-ui-e2e.mjs` | `docs/evidence/design-review-ui-2026-11-21.md:15` |
-| lost | `e2e-chat3.mjs` | `docs/evidence/llmctx-canon-prefix-2026-11-22.md:67` |
-| lost | `onboarding-e2e2.mjs` | `docs/evidence/onboarding-e2e-2026-11-21.md:15` |
-| lost | `stress.mjs` | `docs/evidence/stress-live-2026-11-21.md:19` |
-| lost | `bulk-e2e.mjs` | `docs/evidence/world-bulk-fill-2026-11-21.md:17` |
-| lost | `chronicle-e2e.mjs` | `docs/evidence/world-chronicle-live-2026-11-21.md:20` |
-| lost | `fate-e2e.mjs` | `docs/evidence/world-fate-2026-11-21.md:16` |
-| lost | `final-link2.mjs` | `docs/evidence/world-link-live-2026-11-21.md:25` |
-| lost | `echo-e2e.mjs` | `docs/evidence/world-memory-echo-2026-11-21.md:18` |
-| lost | `rag-e2e.mjs` | `docs/evidence/world-rag-lite-2026-11-21.md:15` |
-| lost | `typo-audit3.mjs` | `docs/evidence/zh-typo-audit-2026-11-21.md:11` |
+| tracked | `review-e2e.mjs` | `docs/evidence/design-review-live-2026-11-21.md:18` |
+| tracked | `review-ui-e2e.mjs` | `docs/evidence/design-review-ui-2026-11-21.md:15` |
+| tracked | `e2e-chat3.mjs` | `docs/evidence/llmctx-canon-prefix-2026-11-22.md:67` |
+| tracked | `onboarding-e2e2.mjs` | `docs/evidence/onboarding-e2e-2026-11-21.md:15` |
+| tracked | `stress.mjs` | `docs/evidence/stress-live-2026-11-21.md:19` |
+| tracked | `bulk-e2e.mjs` | `docs/evidence/world-bulk-fill-2026-11-21.md:17` |
+| tracked | `chronicle-e2e.mjs` | `docs/evidence/world-chronicle-live-2026-11-21.md:20` |
+| tracked | `fate-e2e.mjs` | `docs/evidence/world-fate-2026-11-21.md:16` |
+| tracked | `final-link2.mjs` | `docs/evidence/world-link-live-2026-11-21.md:25` |
+| tracked | `echo-e2e.mjs` | `docs/evidence/world-memory-echo-2026-11-21.md:18` |
+| tracked | `rag-e2e.mjs` | `docs/evidence/world-rag-lite-2026-11-21.md:15` |
+| tracked | `typo-audit3.mjs` | `docs/evidence/zh-typo-audit-2026-11-21.md:11` |
 
 ## 后果
 

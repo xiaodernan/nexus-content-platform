@@ -5,10 +5,11 @@ Live list. Nothing here is hidden behind marketing copy.
 ## AI / providers
 - **2026-11-22 起：供应商 API 按用户说明已关闭**（成本/用量控制）。从今天生效的纪律：
   下文 2026-11-21/22 的 live 数字是**当时快照**，不代表今天仍可用；`capability=real`
-  只说明"配置了真 provider"，不等于此刻能出网或有额度；不再自动重跑 live 探测
-  （cache probe / world-step / bible-ask），需要时由人显式触发；任何调用失败必须如实报
-  不可用/DEMO，不伪造 AI 输出（§159）。
-- **Live model provider was wired and measured.** `apps/ai-service/.env` points all four
+  只表示最近一次真实 liveness 探测成功，`unknown` / `failed` / 未配置都按不可用处理。
+  配着一把死 key 也不能压掉 DEMO MODE。重活 live 探测（cache probe / world-step / bible-ask）
+  不再自动跑；healthz 的轻量 liveness 仍按 TTL 探测。任何调用失败必须如实报不可用/DEMO，
+  不伪造 AI 输出（§159，ADR-0317）。
+- **历史快照：Live model provider was wired and measured.** `apps/ai-service/.env` points all four
   text lanes at `gpt-6.2-sol` (`https://api.aizzz.xyz/v1`, via Clash Verge 127.0.0.1:7897),
   with `NEXUS_LLM_STREAM=1`. **2026-11-22 必修一次**：该网关只认**裸 key** 认证头——
   带 `Bearer ` 前缀稳定 401「无效的令牌」，去掉前缀同请求 200（同机同代理实测，
@@ -22,10 +23,10 @@ Live list. Nothing here is hidden behind marketing copy.
   each 100% on their 2nd turn, and world-step at 358,555-token context with a structured
   state delta + verbatim citations. The chat/design/world-step/canon paths run as LangGraph
   StateGraphs (`x-nexus-orchestration: stategraph`).
-- **DEMO MODE is conditional, not permanent.** It appears only when no real provider is
-  configured (§159/§160) — and, with the provider closed on 2026-11-22, a failing lane must
-  surface as unavailable/DEMO rather than treating the configured-but-dead credential as
-  "real". Deterministic composition / hash embeddings remain the offline fallback, never
+- **DEMO MODE is the current normal path, not a permanent product identity.** The external API is
+  closed. A configured-but-unusable provider must surface as unavailable/DEMO; if the API is restored,
+  only a successful real liveness probe may make the web capability `real` again (§159/§160,
+  ADR-0317). Deterministic composition / hash embeddings remain the offline fallback, never
   presented as model output.
 - **Image/video/speech/embedding providers are unavailable** by design (`NEXUS_MODEL_EMBEDDING=none`):
   those lanes honestly report `unavailable` rather than faking readiness (§159).

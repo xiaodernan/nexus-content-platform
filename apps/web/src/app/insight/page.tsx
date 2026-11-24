@@ -14,10 +14,18 @@ import { InsightTideCast } from '@/components/InsightTideCast';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: '观察哨 · Insight — NEXUS',
-  description: '口令 123 即达的管理员洞察台：全站用户行为统计、近 30 天趋势与线性外推、基于真实指标的深度优化建议。只展示聚合数据。',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  return locale === 'zh'
+    ? {
+        title: '观察哨 — NEXUS',
+        description: '口令 123 即达的管理员洞察台：全站用户行为统计、近 30 天趋势与线性外推、基于真实指标的深度优化建议。只展示聚合数据。',
+      }
+    : {
+        title: 'Insight — NEXUS',
+        description: 'Admin insight desk reachable with passphrase 123: site-wide user behavior stats, 30-day trends with linear extrapolation, and deep optimization advice grounded in real metrics. Aggregated data only.',
+      };
+}
 
 const COPY: Record<Locale, {
   kicker: string;

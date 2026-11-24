@@ -2,13 +2,13 @@
 
 - 日期：2026-11-23
 - 状态：accepted
-- 相关：ADR-0291 / ADR-0297（origin/master 陈旧引用保留）、ADR-0313（origin/main 并线）、cont.478–480
+- 相关：ADR-0291 / ADR-0297（origin/master 陈旧引用保留）、ADR-0319（origin/main 并线，原 ADR-0313）、cont.478–480
 
 ## 背景
 
 仓库在本次开工时存在**三条线**：
 
-1. `master`（HEAD `9ce26a74`）：已由 `d2ed638c` 并入 `origin/main` 的 94 个提交（ADR-0313 / v1098），
+1. `master`（HEAD `9ce26a74`）：已由 `d2ed638c` 并入 `origin/main` 的 94 个提交（ADR-0319，原 ADR-0313 / v1098），
    并继续完成 v1095–v1098 的 CSRF、数据库 parity、showcase 等修复。
 2. `local-clone/main`（MERGE_HEAD `11efbc1c`）：另一台机器上的活跃线，独有 E219《点账》/ E220《照着点走一遍》、
    典籍室 metadata 本地化、配置中心只读操作面、ai-service 成本账与 liveness 分类、撞库压测等。
@@ -24,7 +24,7 @@
 
 1. **14 处冲突统一取 `local-clone/main`（theirs）为基准**。理由：该线是更完整的超集——
    `CURRENT-STATE.md` 517 个 cont. 标题对 ours 的 514，且已按叙事顺序吸收 master 的回响并重排编号；
-   ours 独有的 v1098 合并记录另存于不冲突的 `docs/adr/0313-merge-origin-main-into-one-main-line.md`，
+   ours 独有的 v1098 合并记录另存于不冲突的 `docs/adr/0319-merge-origin-main-into-one-main-line.md`（原 ADR-0313），
    未丢失历史。
 2. **生成物不手工选边，一律从合并后的语料重导**。删除生成器残留冲突标记后执行
    `npm run gen:bible-snapshot`：14 章 + 220 回响 + 4 附录，锚句 1334 zh / 1334 en 逐字对齐，

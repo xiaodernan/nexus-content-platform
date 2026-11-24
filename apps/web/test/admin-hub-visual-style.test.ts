@@ -210,10 +210,11 @@ describe('§FE-26 /admin 入口总览 + AdminNav', () => {
     );
   });
 
-  it('page.tsx 门页结构哈希与卡片抽离后的当前原样一致', () => {
-    // 2026-11-24：十四卡只声称常用入口，不再把覆盖范围夸大为全部能力。
+  it('page.tsx redact 与有意录在目录册里的常量一致（§ADMIN-13 观察站卡 + denied 链 + 十四处口径重钉）', () => {
+    // 2026-11-24 并轨保留中文 kicker，避免中文界面夹英文；十四卡只声称常用入口，不夸大覆盖范围。
+    // 两侧 pin 均为合并前字节；自动合并产生第三版，按合并后的实际字节重钉。
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      '51af6b12df517755d954a5432c739faa0729f02cd2ded389945edab6499d5d8e',
+      '3717f2ce7e3af262b68c5a5acfbc890041b67f705ed3a1ada2523684f399ba22',
     );
   });
 

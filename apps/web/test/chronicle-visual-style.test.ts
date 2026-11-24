@@ -123,7 +123,7 @@ describe('§FE-CRN /world/<project>/chronicle 世界编年', () => {
 
   it('SHA256 钉死（本线字节；2026-11-22 §I18N-EN-PURITY 重钉：en 文案中文书名号改英文引号）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      'a54edca6448331b6dc677735e9310ed0cb781682bfe0dbcdf48186cea4b7600c',
+      'b84b448e359d24a9c46c78f255b8a060fcd61eeca79b34c78ed619cf61abcea7',
     );
   });
 });

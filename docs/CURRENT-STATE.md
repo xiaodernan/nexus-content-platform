@@ -1,3 +1,5 @@
+> **2026-11-24（§INTEGRATE-2 主线再并轨，ADR-0318）**：本地 `main`（`f531ad5d`，15 条独有提交）与 `origin/main`（`cb5407c5`，22 条独有提交）在隔离工作树 `D:\nexus-sync-20261124` 做真实三方合并，不 rebase、不 cherry-pick、不触碰主工作区另一会话的搜索支线。九处冲突逐文件判侧；ADR 撞号按来客后移（provider 0316→0317、旧并轨 0313→0319）；视觉 SHA 按合并后字节重钉；隐藏文件输入补可访问名称；展示同步 ref 改为唯一 `main`。Next 16.4.6 webpack 在 3101 真实启动，修复 Edge instrumentation 静态遍历 `ioredis` 的编译断链；`/about-nexus`、`/guide`、`/onboarding` 中英六页 HTTP 200、控制台无错误，六张截图全部目验。最终非集成 Vitest **561 files / 7485 tests 通过**（1 file / 4 tests skip），FE 门 **158 suites / 1439 tests 全绿**，整树 lint **20 areas / 0 finding**，`nexus-api` **1063/1063**。Docker/PostgreSQL/Redis 不可达，相关 integration/live 套件如实列为环境阻塞；provider API 按用户要求关闭，不调用、不伪造 live 结果。
+>
 > **2026-11-23（§HINT-1 主界面的按键都带教学说明，且说明只有一份真值，ADR-0316）**：用户第五点落地——先量后做：静态扫六个主界面，**Studio 命令栏 14 个控件 0 个带说明**（命令面板入口只有 aria-label，顶栏 10 个里 8 个有）。「执行」与「批准并交回编辑区」对第一次进 Studio 的人是两个看起来一样的按钮，而其中一个可能删掉东西。
 >
 > **真值只有一份**：新增 `apps/web/src/lib/hintCopy.ts`（22 条 · 中英各一份 · 一 id 一句）；原先散在**三份**字典里的教学说明全部搬进来（`CommandBar.COPY` 五句 + `shell-i18n.ts` 五句（确认只有 TopBar 用到，已删）+ 原来根本没有的十一句），控件统一 `title={hint('<id>', locale)}`；说明讲**后果**不讲术语（「重命名项目」→「改完按 Enter 生效，按 Esc 取消」）。
@@ -8085,11 +8087,27 @@ provider 侧 5xx 抖动消失；provider 侧 5xx 抖动消失；`INSIGHT_AI_SYST
 
 用户新报两个 IO/主页缺陷，全部修完且都来自真实数据：
 
-- **头像「压缩变小 + 边缘删掉」**（`.scratch/showcase-site/site`）：
+- **头像「压缩变小 + 边缘删掉」**（证据：`.scratch/showcase-avatar-display.html` 探针 + 读数 `.scratch/showcase-avatar-display.json` · 源图字节快照 `.scratch/showcase-avatar-source/`；展示页本地克隆 `showcase-site/site`）：
   - `assets/profile.png` 源图仅 169×197 且肩头贴边——不是 CSS 裁的，是**源图本身就是贴边裁剪**。
   - 新产物 `assets/profile-portrait.png` **508×586**：HighQualityBicubic 3.0x + 白画布补边（每侧约 64px · 上下约 71px），人不再贴边。
   - CSS `.profile-frame img`：`aspect-ratio:1/1.15 + object-fit:cover + saturate(.82)` → `508/586 + contain + saturate(.92)`；不再黑边"删肩"。
   - JSON-LD `image` 与 `og` 引用同步到新文件；styles.css 版本戳 `?v=20261119a` → `b`。
+  - **补记（2026-11-22 · §192 证据链重整）**：这一段的指针原来指的是 `.scratch` 下那个本地克隆 `showcase-site/site`——那是**另一个仓库**
+    （`xiaodernan/xiaodernan.github.io`）的本地克隆，自带 `.git/`，git 拒绝把内嵌仓库的内容纳进本仓库（只会变成 gitlink），
+    所以「指过去」在 §192 那道门下永远修不好。修法不是把别人的克隆塞进版本库，而是**把证据搬回本仓库**：
+    源图按字节快照进 `.scratch/showcase-avatar-source/`（sha256 `1f7333e9…` = 上游 `6a74767` 的 blob `13178c78…`，
+    上游提交见 `MANIFEST.json`），并新建可当场复算的探针 `.scratch/showcase-avatar-display.html`。
+    **2026-11-22 实测读数**：源图 508×586 · 渲染盒 508.0×586.0 px · 宽高比偏差 **0.000%** · `object-fit: contain` ·
+    留白 左61/右49/上52/下59 px · 内容包围盒 398×475 · 中线 192 个非白像素 → **PASS**；
+    另在**真实展示页原件**（`file://` 加载克隆的 `index.html`）实测：`<img>` 命中 1/1 可见 · 源图 508×586 ·
+    渲染盒 540.58×623.58 px · `aspect-ratio: 508 / 586` · `object-fit: contain` · `object-position: 50% 12%` → **PASS**。
+    **顺手补上一段原文档没记的回归史**：这次修复对应上游 `3618ab7`（2026-11-19 15:43），
+    但 **78 分钟后的 `639510d`（17:06）把它改回 415×492 face-fills-frame**（`aspect-ratio: 415/492`，
+    「face fills frame」＝把边缘切掉再缩小，正是用户报的那两个症状），
+    再由 `6a74767`（20:43）改回 508×586 补边不裁切——源图 blob 与 `3618ab7` 完全一致（`13178c78…`）。
+    探针第 5 条判据就是**直接钉住这个尺寸**，回归一复发就红。
+    *本仓库的写法约定*：`.scratch/<路径>` = **证据**，必须 `git add -f` 入册、跟仓库一起走；
+    裸路径（如 `showcase-site/site`）= **本地克隆 / 工作区位置**，不随仓库走，也不该被当成证据。
 - **most-used-languages 全 NaN**（用户报障）：
   - 根因：`github-readme-stats.vercel.app/api/top-langs/` 外部服务对无外层权限的账号经常吐 NaN——**把外链整个拔掉**。
   - 换成纯静态内嵌 `.gh-figures` 双面板（左：16 公开仓 · 9 Stars · 144.36 MB 字节合计 · 14 原创/2 fork，口径 2026-11-19 · GitHub REST `languages_url` 逐仓求和；右：语言字节占比 bars，**TS 31.92 / Python 24.90 / JavaScript 19.44 / HTML 12.37 / Java 8.94 / CSS 1.52 / Shell 0.40 / PLpgSQL 0.29 / 其他 10 种 0.22**）。静态 HTML 无 JS 依赖，结构上不可能再渲染出 NaN。

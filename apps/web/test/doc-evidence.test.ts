@@ -27,7 +27,8 @@ const ROOT = process.cwd();
  * 段内允许的字符就是磁盘上用过的（点、下划线、连字符、加号、`@`、glob 的 `*`）；
  * 中文标点、反引号、括号、空格都不在类里，天然收尾。
  */
-const CITATION = /\.scratch\/([A-Za-z0-9_+.@*-]+(?:\/[A-Za-z0-9_+.@*-]+)?)/g;
+const SEG = String.raw`[A-Za-z0-9_+.@*-]+(?:\{[A-Za-z0-9_+.@*-]+(?:,[A-Za-z0-9_+.@*-]+)+\}[A-Za-z0-9_+.@*-]*)?`;
+const CITATION = new RegExp(String.raw`\.scratch\/(${SEG}(?:\/${SEG})?)`, 'g');
 
 function markdownFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
@@ -60,8 +61,29 @@ function collectCitations(): { docCount: number; cites: Cite[] } {
   return { docCount: docs.length, cites };
 }
 
+/** 展开 `{a,b,c}` 缩写：docs 里写 `world-quests-{desktop,mobile,en}.png` 是常见写法，
+ *  磁盘上三张图都在；抓取器不认 brace 会把它截成 `world-quests-` 并误报死引用。 */
+function expandBraces(token: string): string[] {
+  const m = token.match(/^(.*?)\{([^{}]+)\}(.*)$/);
+  if (!m) return [token];
+  const head = m[1] ?? '';
+  const tail = m[3] ?? '';
+  return (m[2] ?? '').split(',').flatMap((alt) => expandBraces(`${head}${alt}${tail}`));
+}
+
 /** token -> 磁盘上解得出的相对路径；`*` 只认最后一段，目录引用收它下面的文件。 */
 function resolveToken(token: string): { kind: 'file' | 'dir' | 'none'; paths: string[] } {
+  const expanded = expandBraces(token);
+  if (expanded.length > 1 || expanded[0] !== token) {
+    // brace 型是一个路径集合：任一展开项不在磁盘上，整条声称就该红（不许"部分绿"）。
+    const paths: string[] = [];
+    for (const p of expanded) {
+      const direct = join(ROOT, '.scratch', p);
+      if (!existsSync(direct) || statSync(direct).isDirectory()) return { kind: 'none', paths: [] };
+      paths.push(`.scratch/${p}`);
+    }
+    return { kind: 'file', paths };
+  }
   const direct = join(ROOT, '.scratch', token);
   if (!token.includes('*')) {
     if (!existsSync(direct)) return { kind: 'none', paths: [] };
@@ -82,6 +104,11 @@ function resolveToken(token: string): { kind: 'file' | 'dir' | 'none'; paths: st
 
 function walkFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
+    // 内嵌仓库边界：`.git/` 是版本库自己的元数据，`node_modules/` 是第三方依赖。
+    // git 拒绝把内嵌仓库的内容纳进本仓库（只会变成 gitlink，克隆后拿不到文件），
+    // 所以它们永远不可能是"点名的证据"；留着只会让一道永远修不好的门一直红。
+    // 与上面的 markdownFiles() 保持同一套排除口径。
+    if (name === '.git' || name === 'node_modules') return [];
     const p = join(dir, name);
     if (statSync(p).isDirectory()) return walkFiles(p);
     return [relative(ROOT, p).split('\\').join('/')];
@@ -97,8 +124,9 @@ function trackedScratchFiles(): Set<string> {
 }
 
 /**
- * `scratch/<路径>`（少一个点）是 ADR-0307 定下的「声明式失踪」拼写：它落在 CITATION 正则之外，
- * 所以不会再被当成「磁盘上应该查得到的证据」，但它必须有名册行、且名册行必须当场验真。
+ * `scratch/<路径>`（少一个点）是 ADR-0307 定下的名册引用拼写：它落在 CITATION 正则之外，
+ * 所以不会再被当成「磁盘上应该查得到的证据」；kind 区分已入册（tracked）、仍失踪（lost）
+ * 与外部克隆（clone），并由名册逐行验真。
  */
 const DECLARED_LOST = /(?<![.\w])scratch\/([A-Za-z0-9_+.@*-]+(?:\/[A-Za-z0-9_+.@*-]+)?)/g;
 const ROSTER = join(ROOT, 'docs', 'adr', '0307-scratch-evidence-retracked-and-loss-rostered.md');
@@ -114,14 +142,15 @@ function collectDeclarations(): { tokens: Set<string> } {
   return { tokens };
 }
 
-/** 名册行长这样：`| lost | ab-cache-key.mts | ... |`，kind 在第二格，token 在反引号里。 */
-function rosterRows(): { kind: 'lost' | 'clone'; token: string }[] {
-  const out: { kind: 'lost' | 'clone'; token: string }[] = [];
+/** 名册行长这样：`| tracked | ab-cache-key.mts | ... |`，kind 在第二格，token 在反引号里。 */
+type RosterKind = 'lost' | 'clone' | 'tracked';
+function rosterRows(): { kind: RosterKind; token: string }[] {
+  const out: { kind: RosterKind; token: string }[] = [];
   for (const line of readFileSync(ROSTER, 'utf8').split(/\r?\n/)) {
     const cells = line.split('|');
     if (cells.length < 4) continue;
     const kind = (cells[1] ?? '').trim();
-    if (kind !== 'lost' && kind !== 'clone') continue;
+    if (kind !== 'lost' && kind !== 'clone' && kind !== 'tracked') continue;
     const token = (cells[2] ?? '').replace(/`/g, '').trim();
     if (token) out.push({ kind, token });
   }
@@ -150,6 +179,17 @@ describe('§192 文档点名的 .scratch 证据：解得出、且跟仓库一起
     ]);
     expect(grab('（`.scratch/s28-forwarded-live-probe2.mts`）：')).toEqual(['s28-forwarded-live-probe2.mts']);
     expect(grab('.scratch/shots/40-*-light.png')).toEqual(['shots/40-*-light.png']);
+    // brace 缩写（bash 的 {a,b,c}）：上一版把它截成 `world-quests-`，于是三张真实截图被误报死引用。
+    expect(grab('截图在 `.scratch/world-quests-{desktop,mobile,en}.png`。')).toEqual([
+      'world-quests-{desktop,mobile,en}.png',
+    ]);
+    expect(resolveToken('world-quests-{desktop,mobile,en}.png').paths).toEqual([
+      '.scratch/world-quests-desktop.png',
+      '.scratch/world-quests-mobile.png',
+      '.scratch/world-quests-en.png',
+    ]);
+    // 反例：brace 里有一个不存在的备选，整条就该红——钉住它不是恒真。
+    expect(resolveToken('world-quests-{desktop,nope,en}.png')).toEqual({ kind: 'none', paths: [] });
     // 真文件确实解得出，假名字解不出：这两句钉住 resolveToken 不是恒真。
     expect(resolveToken('submit.ts.fixed').paths).toEqual(['.scratch/submit.ts.fixed']);
     expect(resolveToken('no-such-evidence-8f2b1c.mjs')).toEqual({ kind: 'none', paths: [] });
@@ -207,16 +247,23 @@ describe('§192 文档点名的 .scratch 证据：解得出、且跟仓库一起
     const lies: string[] = [];
     for (const r of rows) {
       const abs = join(ROOT, '.scratch', r.token);
-      if (r.kind === 'lost') {
+      const trackedPath = `.scratch/${r.token}`;
+      if (r.kind === 'tracked') {
+        if (!existsSync(abs) || !statSync(abs).isFile()) lies.push(`${r.token}：名册说已入册，磁盘上却没有普通文件`);
+        else if (!tracked.has(trackedPath)) lies.push(`${r.token}：名册说已入册，版本库里却没有`);
+      } else if (r.kind === 'lost') {
         if (existsSync(abs)) lies.push(`${r.token}：名册说失踪，磁盘上却有（该入册，或把名册行删掉）`);
-        if (tracked.has(`.scratch/${r.token}`)) lies.push(`${r.token}：名册说失踪，版本库里却有`);
-      } else {
-        if (!existsSync(abs) || !statSync(abs).isDirectory()) lies.push(`${r.token}：名册说是克隆，磁盘上不是目录`);
-        else if (!existsSync(join(abs, '.git'))) lies.push(`${r.token}：名册说是克隆，目录里没有 .git`);
+        if (tracked.has(trackedPath)) lies.push(`${r.token}：名册说失踪，版本库里却有`);
+      } else if (existsSync(abs)) {
+        if (!statSync(abs).isDirectory()) lies.push(`${r.token}：名册说是外部克隆，磁盘上却不是目录`);
+        else if (!existsSync(join(abs, '.git'))) lies.push(`${r.token}：名册说是外部克隆，目录里没有 .git`);
         else {
           const inside = walkFiles(abs).filter((p) => tracked.has(p));
-          if (inside.length) lies.push(`${r.token}：克隆里有 ${inside.length} 个文件入了本册，例如 ${inside[0]}`);
+          if (inside.length) lies.push(`${r.token}：外部克隆里有 ${inside.length} 个文件入了本册，例如 ${inside[0]}`);
         }
+      }
+      if (r.kind === 'clone' && [...tracked].some((p) => p === trackedPath || p.startsWith(`${trackedPath}/`))) {
+        lies.push(`${r.token}：外部克隆不该有文件进入本仓库版本库`);
       }
     }
     expect(lies, `名册说的话与磁盘不符：${lies.join('；')}`).toEqual([]);

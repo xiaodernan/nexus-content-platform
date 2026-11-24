@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
@@ -26,6 +28,11 @@ import { RedisStreamJobQueue } from '@/server/queue/redisStreamJobQueue';
 
 describe('degraded enqueue (Redis XADD fails)', () => {
   beforeEach(() => xadd.mockReset());
+
+  it('keeps ioredis external to the Next server bundle', () => {
+    const config = readFileSync(join(process.cwd(), 'apps/web/next.config.ts'), 'utf8');
+    expect(config).toMatch(/serverExternalPackages:\s*\[[^\]]*'ioredis'[^\]]*\]/);
+  });
 
   it("resolves to an empty id and logs, never rejecting the caller's request", async () => {
     // Exactly one XADD fails — the wire-blip case. enqueue must absorb it.
