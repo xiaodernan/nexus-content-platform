@@ -33,10 +33,13 @@ describe('§ECHO-THREAD · echoThreadNeighbours', () => {
     for (const t of n.threads) for (const o of t.others) expect(slugs.has(o.slug)).toBe(true);
   });
 
-  it('没命中任何线索的回响：threads 为空，但不说它"无关"', () => {
-    const orphan = INDEX.orphans[0];
-    expect(orphan, '索引里没有未入线索的回响——这条判据空转了').toBeTruthy();
-    const n = echoThreadNeighbours(INDEX, orphan!, BIBLE_ECHOES);
+  it('没命中任何线索的序号：threads 为空，但不说它"无关"', () => {
+    // 用合成序号而非真实 orphan：线索表补全后 orphans 可以为空（这是好事），
+    // 但"无线索时 threads 为空"这个分支仍必须被验证，不能依赖某篇回响恰好没被收录。
+    const synthetic = 10_000;
+    expect(INDEX.motifs.some((m) => m.echoes.includes(synthetic))).toBe(false);
+    const n = echoThreadNeighbours(INDEX, synthetic, BIBLE_ECHOES);
     expect(n.threads).toEqual([]);
+    expect(n.order).toBe(synthetic);
   });
 });

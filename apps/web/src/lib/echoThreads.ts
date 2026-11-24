@@ -140,6 +140,13 @@ const MOTIFS: readonly MotifSpec[] = [
   // 盐井：Echo #4「盐在井里等潮」首写，E226/E227/E228 续写（巡夜人绕井、数盐、放盐人的竖琴）。
   // 它符合"两篇以上写到同一件有名字的东西"的收录判据，补进来让这几篇可被顺藤摸瓜。
   { id: 'salt-well', kind: 'object', labelZh: '盐井', labelEn: 'the salt well', zh: ['盐井', '井里', '井边', '井不'], en: ['salt well', 'the well', 'well rim'] },
+  // 灰：正典第 7-9 章《灯前灰》《灰后》《带灰回家》反复出现，18 篇回响锚句写到——
+  // 此前线索表竟没有它，等于把最大的一条意象线漏掉了。
+  { id: 'ash', kind: 'object', labelZh: '灰', labelEn: 'the ash', zh: ['灰'], en: ['ash', 'dust'] },
+  // 旧账与秤（E97《秤》）、碗（E98《碗》）：分别 3/2/5 篇锚句写到，补进来消掉最后两个 orphan。
+  { id: 'old-account', kind: 'object', labelZh: '旧账', labelEn: 'the old account', zh: ['旧账', '入账'], en: ['old account', 'entered into the account'] },
+  { id: 'scale', kind: 'object', labelZh: '秤', labelEn: 'the scale', zh: ['秤'], en: ['scale'] },
+  { id: 'bowl', kind: 'object', labelZh: '碗', labelEn: 'the bowl', zh: ['碗'], en: ['bowl'] },
   { id: 'paper-boat', kind: 'object', labelZh: '纸船', labelEn: 'the paper boat', zh: ['纸船'], en: ['paper boat'] },
   { id: 'iron-door', kind: 'object', labelZh: '铁门', labelEn: 'the iron door', zh: ['铁门'], en: ['iron door'] },
   { id: 'whalebone-harp', kind: 'object', labelZh: '鲸骨竖琴', labelEn: 'the whalebone harp', zh: ['竖琴', '鲸骨'], en: ['harp'] },
