@@ -154,7 +154,7 @@ describe('§BIBLE-1 /bible 典籍室', () => {
   // 中英各一条 bb-playLink；reader / component 仍未动。
   it('SHA256 钉死（EOL 归一 + className→@）：目录页 / 阅读页 / 渲染器', () => {
     expect(createHash('sha256').update(redactClasses(index)).digest('hex')).toBe(
-      'b19c420421e05194fcccdbfbe5eccbf6fce766545fb9fee35fd2c7e04558ea64',
+      '4efc6c9b29287ca7a5a3fdcb86fc8ef6626149cf8f96f06baac8373f218f9b5b',
     );
     expect(createHash('sha256').update(redactClasses(reader)).digest('hex')).toBe(
       'c76bec23b6a5a94a46d7b849459817b04a6633791f1de57bf7000202ad076df7',

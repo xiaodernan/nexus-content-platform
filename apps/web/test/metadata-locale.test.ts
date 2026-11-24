@@ -14,6 +14,7 @@ const PAGES = [
   'pulse',
   'insight',
   'preview',
+  'onboarding',
   'world/[projectId]/tide',
   'world/[projectId]/quests',
   'world/[projectId]/digest',

@@ -8,7 +8,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const locale = await getLocale();
   return locale === 'zh'
     ? {
-        title: '上手漫游 / Onboarding — NEXUS',
+        title: '上手漫游 — NEXUS',
         description: '新用户的 7 步漫游：60 秒看懂从「一句话想法」到「发布出去」的每一步。可中断、可重来、可直达。中英双语。',
       }
     : {
