@@ -77,7 +77,7 @@ wkapi.pro 线退役；新线（用户提供）：key 经 `apps/ai-service/.env`�
 
 - 用户确认大模型 API 因成本/用量关闭，后续开发零 provider 调用；**不再需要任何出站代理**。
 - `apps/ai-service/.env`（gitignored）里 `HTTPS_PROXY` / `HTTP_PROXY=http://127.0.0.1:7897` 与 `NO_PROXY` 三行已删除，换成「需要代理时由启动环境临时给，不写进文件」的注释。`infra/dev-ai.sh` 仍 source 这些变量，但现在没有可 source 的值，进程不设代理即走系统/直连。
-- Windows 系统代理 `ProxyEnable=0`（本来就没绑）；清空进程代理后直连 `https://github.com/` 实测 200，`http://127.0.0.1:3100/` 实测 200。上一节 2026-11-16 的「必须经 Clash」是当日 provider 实测记录，保留原文不改写，**当前已不成立**。
+- Windows 系统代理曾再次被 Clash Verge（`verge-mihomo.exe`，监听 `127.0.0.1:7897`）写成 `ProxyEnable=1 / ProxyServer=127.0.0.1:7897`，把浏览器也绑了上去。已手动置 `ProxyEnable=0` 且清空 `ProxyServer`；清空进程代理后直连 `https://github.com/` 实测 200，`http://127.0.0.1:3100/` 实测 200。**Clash 进程仍在跑，下次启动它可能再次打开系统代理；不再需要就从托盘退出。** 上一节 2026-11-16 的「必须经 Clash」是当日 provider 实测记录，保留原文不改写，**当前已不成立**。
 - 本机 User/Machine 作用域都没有 `HTTP_PROXY/HTTPS_PROXY`；仍在进程里看到的是从启动 shell 继承来的，要彻底清掉需从干净 shell 重启对应进程，不是系统级绑定。
 - 本地访问报错与代理无关：`ECONNREFUSED` 是 web 进程没在跑；`500` 且 cause 为 `connect ECONNREFUSED 127.0.0.1:5433` 或 Postgres `57P03 the database system is starting up` 是 DB 容器停了/正在崩溃恢复。先看 `docker ps --filter name=nexus` 与对应 `docker logs`，不要去改代理。
 
