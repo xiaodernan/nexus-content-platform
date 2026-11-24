@@ -283,6 +283,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E224-潮候院抄本院那个问句被抄成了新的一条': 'echo-224-question-as-first-entry',
   'E225-潮候院抄本院问句也有声音': 'echo-225-questions-have-a-sound',
   'E226-潮候院巡夜人绕开那口井走': 'echo-226-watchman-walks-around-well',
+  'E227-潮候院巡夜人数井边的盐': 'echo-227-watchman-counts-salt',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');

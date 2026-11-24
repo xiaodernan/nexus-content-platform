@@ -8886,3 +8886,10 @@ Reader (post-continuum trace):
 - **重导**：gen:bible-snapshot 重生 generated.ts / digest（276,461 chars, sha 2bc86485…）；锚句 1364→1370；回响 225→226。
 - **计数对齐**：guideCopy 225→226 / 1359→1365 / two hundred twenty-five→twenty-six；bible-ask-behavior pin 1359→1365；canon-answer-graph 225→226（14+226）。问答数 131 保持不变。
 - **验证**：world-bible / bible-snapshot / anchor-echo / record-encoding 全 exit 0；vitest 25 passed；typecheck:main、fe-gates 全绿。
+
+## cont. 487 (2026-11-25) — Echo #227《巡夜人数井边的盐》· 226→227 回响（首次用 repin:echoes 工具重钉）
+- **细节场景（需求六）**：承接 E226「巡夜人绕井、不往里看」——守夜人绕井时不看井里，却一眼数得清桶沿盐袋；昨晚三袋今晚五袋，多出两袋是两个来过的人各放一袋各自走掉；他不记札记只记心里，因为盐袋不是账是潮信；放的人不认领、数的人不问；井不说话却记得每袋盐落下的重量。接 Echo #4 盐井线。6 组锚句 zh/en 逐字对应、全典唯一。
+- **工具首用**：本篇是 repin:echoes 确定性工具（b3c3e0b8 引入）落地后的第一篇回响——`npx tsx scripts/repin-echo-counts.mts --echo 227 --pin 1371 --phrase 二百二十七 --phrase-en "two hundred twenty-seven"` 原子更新 guideCopy / behavior pin / graph 三文件，不再手工改 pin（工具区分 quiz pin 与 world-bible 锚句总数两个口径）。
+- **重导**：gen:bible-snapshot 重生 generated.ts / digest（276,736 chars, sha 5604327b…）；锚句 1370→1376；回响 226→227。
+- **计数对齐**：guideCopy 226→227 / 1365→1371 / two hundred twenty-six→twenty-seven；bible-ask-behavior pin 1365→1371（quiz 口径，比 world-bible 锚句数少 5）；canon-answer-graph 226→227（14+227）。问答数 131 保持不变。
+- **验证**：world-bible / bible-snapshot / anchor-echo / record-encoding 全 exit 0；vitest 25 passed；typecheck:main、fe-gates 全绿。

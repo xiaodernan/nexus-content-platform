@@ -31189,6 +31189,162 @@ So the watch route keeps a bend before the well — it is not the well blocking 
 `,
   },
   {
+    order: 227,
+    slug: 'echo-227-watchman-counts-salt',
+    titleZh: '巡夜人数井边的盐',
+    titleEn: 'The Watchman Counts the Salt by the Well',
+    eraLineZh: '纪元：铁月纪 · 第四十一次大会之后（同 Echo #4「盐在井里等潮」与 E226「巡夜人绕开那口井走」）。',
+    eraLineEn: 'Era: the Iron-Moon Age — after the 41st Convocation (as in Echo #4 "Salt Waiting for the Tide in the Well" and E226 "The Watchman Walks Around the Well").',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 227): The Watchman Counts the Salt by the Well
+
+> 回响不替正典续写——它只是页边另一层长出来的盐。
+> 写在 E226 之后：巡夜人绕开井、不往井里看，却能数清桶沿的盐袋。这一篇写的是数盐这件小事。
+> 纪律同前：锚句逐字；不新增正典专名，只在既有的巡夜路线与盐井旁添细节。
+>
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E226: the watchman walks around the well and never looks in, yet can count the salt bags on the rim. This one writes the small act of counting.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail along the watch route and beside the salt well.
+
+> 纪元：铁月纪 · 第四十一次大会之后（同 Echo #4「盐在井里等潮」与 E226「巡夜人绕开那口井走」）。
+> Era: the Iron-Moon Age — after the 41st Convocation (as in Echo #4 "Salt Waiting for the Tide in the Well" and E226 "The Watchman Walks Around the Well").
+
+---
+
+## 一 · 数得清
+
+守夜人绕井时从不看井里，可桶沿的盐袋，他一眼就数得清。
+**锚句**：桶沿的盐袋，他一眼就数得清。
+**Anchor sentence**: the salt bags on the rim — he could count them at a single glance.
+
+---
+
+## 二 · 昨晚三袋
+
+昨晚是三袋，今晚是五袋——多出来的两袋，没人说过是谁放的。
+**锚句**：昨晚是三袋，今晚是五袋。
+**Anchor sentence**: three bags last night, five tonight.
+
+---
+
+## 三 · 记在心里
+
+他不记在札记上，只记在心里——因为盐袋不是账，是潮信。
+**锚句**：盐袋不是账，是潮信。
+**Anchor sentence**: the salt bags are not an account — they are a tide-sign.
+
+---
+
+## 四 · 多两袋
+
+多两袋，说明昨晚有两个人来过，各自放下一袋，各自走掉，谁也没等到潮。
+**锚句**：多两袋，说明昨晚有两个人各自放下一袋，各自走掉。
+**Anchor sentence**: two more means two people came last night — each set down a bag, each walked away.
+
+---
+
+## 五 · 不认领
+
+盐袋从不写名字——放的人不回来认领，数的人也不去问。
+**锚句**：放的人不回来认领，数的人也不去问。
+**Anchor sentence**: those who set them down never come back to claim them, and those who count never ask.
+
+---
+
+## 六 · 井记得
+
+守夜人数完就走，井不说话——可井记得每一袋盐落下的重量。
+**锚句**：井不说话——可井记得每一袋盐落下的重量。
+**Anchor sentence**: the well says nothing — yet it remembers the weight of every bag set down.
+
+---
+
+## 七 · Mapping（Echo No. 227 · world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | salt bags are a tide-sign, not an account · the well remembers weight | 三、六 |
+| geography | the well rim · the watch route | 一、六 |
+| characters | the counting watchman · the unseen givers | 二、四、五 |
+| story | a small detail after E226: counting the salt reads the tide without looking in | 全篇 |
+| items | the salt bags (three → five) · the watch-log left blank | 二、三 |
+| history | the Iron-Moon Age after the 41st Convocation (links Echo #4, E226) | 纪元 |
+
+> 世界没有写完——井记得的每一袋盐，都是一个没讲完的人。
+> The world is not finished — every bag the well remembers is a person whose story was not told.
+`,
+    markdownEn: `
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E226: the watchman walks around the well and never looks in, yet can count the salt bags on the rim. This one writes the small act of counting.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail along the watch route and beside the salt well.
+
+> Era: the Iron-Moon Age — after the 41st Convocation (as in Echo #4 "Salt Waiting for the Tide in the Well" and E226 "The Watchman Walks Around the Well").
+
+---
+
+## One · Countable
+
+The watchman never looks into the well as he detours, yet the salt bags on the rim — he could count them at a single glance.
+**锚句**：桶沿的盐袋，他一眼就数得清。
+**Anchor sentence**: the salt bags on the rim — he could count them at a single glance.
+
+---
+
+## Two · Three, Then Five
+
+Three bags last night, five tonight — no one said who set down the two extra.
+**锚句**：昨晚是三袋，今晚是五袋。
+**Anchor sentence**: three bags last night, five tonight.
+
+---
+
+## Three · In Memory
+
+He writes none of it in the watch-log, only in memory — the salt bags are not an account — they are a tide-sign.
+**锚句**：盐袋不是账，是潮信。
+**Anchor sentence**: the salt bags are not an account — they are a tide-sign.
+
+---
+
+## Four · Two More
+
+Two more means two people came last night — each set down a bag, each walked away.
+**锚句**：多两袋，说明昨晚有两个人各自放下一袋，各自走掉。
+**Anchor sentence**: two more means two people came last night — each set down a bag, each walked away.
+
+---
+
+## Five · Unclaimed
+
+The bags bear no name — those who set them down never come back to claim them, and those who count never ask.
+**锚句**：放的人不回来认领，数的人也不去问。
+**Anchor sentence**: those who set them down never come back to claim them, and those who count never ask.
+
+---
+
+## Six · The Well Remembers
+
+The watchman counts and moves on; the well says nothing — yet it remembers the weight of every bag set down.
+**锚句**：井不说话——可井记得每一袋盐落下的重量。
+**Anchor sentence**: the well says nothing — yet it remembers the weight of every bag set down.
+
+---
+
+## Seven · Mapping (Echo No. 227 · world model)
+
+| Dimension | Value | Chapters |
+| --- | --- | --- |
+| lore | salt bags are a tide-sign, not an account · the well remembers weight | 三、六 |
+| geography | the well rim · the watch route | 一、六 |
+| characters | the counting watchman · the unseen givers | 二、四、五 |
+| story | a small detail after E226: counting the salt reads the tide without looking in | 全篇 |
+| items | the salt bags (three → five) · the watch-log left blank | 二、三 |
+| history | the Iron-Moon Age after the 41st Convocation (links Echo #4, E226) | 纪元 |
+
+> The world is not finished — every bag the well remembers is a person whose story was not told.
+> 世界没有写完——井记得的每一袋盐，都是一个没讲完的人。
+`,
+  },
+  {
     order: 23,
     slug: 'echo-023-the-ship-that-appears-only-at-dusk',
     titleZh: '雾港里那艘只在黄昏出现的船',

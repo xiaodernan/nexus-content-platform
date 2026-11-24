@@ -3834,6 +3834,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [5] 井的不回答也是一种回答——它只接住放下去的盐，不接问题。
 - [6] 不是井挡了路，是问题不该被带到井边。
 
+### Echo 227 · 巡夜人数井边的盐 / The Watchman Counts the Salt by the Well
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 桶沿的盐袋，他一眼就数得清。
+- [2] 昨晚是三袋，今晚是五袋。
+- [3] 盐袋不是账，是潮信。
+- [4] 多两袋，说明昨晚有两个人各自放下一袋，各自走掉。
+- [5] 放的人不回来认领，数的人也不去问。
+- [6] 井不说话——可井记得每一袋盐落下的重量。
+
 ### Echo 23 · 雾港里那艘只在黄昏出现的船 / The Ship That Appears Only at Dusk in Fog Harbor
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 雾港黄昏起雾的时候，码头口总有一艘船不在值守的名册上。

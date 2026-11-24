@@ -77,12 +77,12 @@ describe('§GRAPH-1 检索与机检（确定性，不烧 token）', () => {
 
   // 2026-11-22 并轨 origin/master：正典 13 章 → 14 章、212 回响 → 217 回响
   // E218 → … → E225《问句也有声音》→ E226《巡夜人绕开那口井走》：218 → … → 226。
-  it('digest 段落切分出 14 章 + 226 回响', () => {
+  it('digest 段落切分出 14 章 + 227 回响', () => {
     const segments = splitDigestSegments(CANON_DIGEST);
     const chapters = segments.filter((s) => s.startsWith('## Chapter'));
     const echoes = segments.filter((s) => s.startsWith('### Echo'));
     expect(chapters).toHaveLength(14);
-    expect(echoes).toHaveLength(226);
+    expect(echoes).toHaveLength(227);
   });
 
   it('「米缸」问句命中米缸回响 Echo 36（而不是随机段落）', () => {
