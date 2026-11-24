@@ -15,7 +15,7 @@ function probe(port) {
       res.on('end', () => resolve(res.statusCode ?? 0));
     });
     req.on('error', () => resolve(0));
-    req.setTimeout(6000, () => { req.destroy(); resolve(0); });
+    req.setTimeout(15000, () => { req.destroy(); resolve(0); });
   });
 }
 
