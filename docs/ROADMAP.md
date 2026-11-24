@@ -10867,6 +10867,44 @@ verify:actuator     PASS 5/5  —— 五个服务 health 200 UP（details 隐藏
 `ai-health via gateway (degraded)` 是诚实读数——本机 3200 由另一个项目持有，domain-service 的 Feign
 指向不到，降级并说明原因而不是假装 UP。
 
+## §CI-SEAM 并轨后的两处验收接缝——actuator 跟随配置库址，i18n 默认离线且模型门失败即停（2026-11-24）
+
+hosted `main-line` 使用 PostgreSQL `55433`，而 `verify:actuator` 建临时库时仍硬编码
+`127.0.0.1:5433`，五个 JVM 尚未启动就 `ECONNREFUSED`。现在维护连接从
+`NEXUS_API_DB_URL` 解析 host/port/database，连接同一服务器的 `postgres` 库并引用数据库标识符；
+未给 API URL 时才采用 `NEXUS_DOMAIN_PG_PORT`（默认 5433）。四组解析回归覆盖配置端口、默认端口、
+IPv6/引号标识符和非法目标。
+
+`npm run i18n:audit` 不再把 provider 不可用算成翻译差异：默认只做全正文结构检查，14 对章节零差异；
+`npm run i18n:audit:model` 必须显式给原始 `NEXUS_AI_SERVICE_URL`，且只接受 `capability=real`。
+模型输出契约损坏或基础设施失败会形成“不可用（未形成完整审计）”报告并退出 2，不进入翻译差异统计。
+当前 API 已关闭，本轮未调用模型，也未把离线通过冒充语义通过。
+
+**验证**：定向 9/9、`typecheck:main`、表格 recount、证据普查与 record-encoding 均通过。
+**仍欠**：本机 Docker Linux engine 已恢复，`nexus-postgres` healthy 且 55433 可做真实查询，
+但五个 JVM 尚未在本机启动；hosted CI 配置的 PostgreSQL 仍是 actuator 修复的完整验证面。
+记录：ADR 0016 amendment 584、`docs/evidence/ci/README.md` v1098。
+
+## §HEAD-1 当前工作树的多尺寸真实路由验收——管理台、指南、观测边界与移动端溢出（2026-11-24）
+
+`/admin` 首页把十四张真实入口抽成 `AdminHomeCards` 单一真值，页面只消费派生数量；
+行为模拟明确标为合成流量，不冒充真实用户观测。真实组件与产品 CSS 的深/浅主题、
+390/768/1280 浏览器验收通过，链接、卡片数、focus 表面与英文纯度都有门。
+
+`/guide` 保持 RSC，服务端只做本地字面搜索，稳定锚点由字典派生，项目上下文复用 UUID 校验；
+阅读进度只记录章节进入视口，不声称读懂或完成任务，存储不可用时保留页内进度并诚实告警。
+`/onboarding` 七步双语教学、损坏存储降级与运行时中英切换均通过真实路由验收。
+
+观测端把“没有采集日”与“真实观测到零”分开：缺失是 `null`，零是 `0`；少于四天、无观测或全零
+不生成预测，预测横坐标保留真实日历间隔，`next1` 是最后观测日的下一日历日。公共观测大厅
+仍只回聚合匿名数据，数据库故障返回 503，不编数。
+
+真实首页、Studio 与公共观测大厅在 390/768/1280 下共九档通过：请求视口宽度落地、零页面级
+横向溢出、无 NaN、主体块不相交、无控制台错误，九张截图逐一检查。本轮抓到并修复热门榜
+`.pl-hotMeta` 的 `nowrap` 把 390px 移动布局视口撑到 507px 的真缺陷；窄屏改为纵排并允许长路径换行，
+没有放宽测试。**验证**：聚焦单测 93/93、审计/actuator 复测 9/9、`typecheck:main`、变更文件 ESLint、
+真实路由 e2e 3/3（九个视口）均通过；当前 API 关闭，本轮未调用模型。
+
 ## §I18N-LIVE 中英合规审计第一次配上真 LLM——35 项差异逐条修到 26，7/14 段全净（2026-11-22）
 
 `npm run i18n:audit` 从 2026-11-20 起就在跑，但**从来没有一次真的调用过模型**：

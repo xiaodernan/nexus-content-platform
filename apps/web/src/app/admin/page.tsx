@@ -1,16 +1,17 @@
 import Link from 'next/link';
 import { currentUserOrNull } from '@/server/domain/session';
 import { AdminNav } from '@/components/AdminNav';
+import { ADMIN_AREAS, AdminHomeCards } from './AdminHomeCards';
 import { getLocale, type Locale } from '@/lib/i18n';
 
 export const dynamic = 'force-dynamic';
 
 /**
- * 管理台首页（§A11Y-4）——十处的总入口。
+ * 管理台首页（§A11Y-4）——十四处的总入口。
  *
  * `/admin` 之前没有 index route：访客或管理员打开 /admin 会拿到的是根 not-found
  * （内容平台里每一处门面都言之有物，唯独这一格说自己是 404）——不是"没人告诉你哪里能去"，而是
- * 十一处真实入口摆在手边却没有任何一张脸。本页补这一张脸。
+ * 十四处真实入口摆在手边却没有任何一张脸。本页补这一张脸。
  *
  * 零行为：本页只导航，不读库、不发请求、不递 box、不写审计——每张卡一句话说清
  * "这一格是干什么的"，卡内没有假数据、没有百分比占位、没有"loading…"。测试锚
@@ -18,31 +19,13 @@ export const dynamic = 'force-dynamic';
  *
  * v760：全双语（zh/en 同序同义，按 cookie getLocale 取）。
  */
-const AREAS = [
-  { slug: 'observe', href: '/admin/observe', titleZh: '观察站（只读 · 口令 123）', titleEn: 'Observer (read-only · pass 123)', noteZh: '口令 123 公开进入。看平台所有用户的真实行为——注册、打开、点赞、评论、收藏、任务结局与规则建议', noteEn: 'Pass 123 to enter. What every real user on the platform does — signups, opens, likes, comments, saves, task outcomes, rule-based advice.' },
-  { slug: 'users', href: '/admin/users', titleZh: '账号与角色', titleEn: 'Accounts & roles', noteZh: '看账号、改角色与套餐、回收游客账号——营业员的眼睛，不会误删。', noteEn: 'Browse accounts, change roles and plans, reclaim guest accounts — the operator’s view, built not to misfire.' },
-  { slug: 'moderation', href: '/admin/moderation', titleZh: '复核台', titleEn: 'Moderation', noteZh: '违规与被举报的内容逐条过眼：接受、驳回、保持——每一票带读屏可见标签。', noteEn: 'Walk every violating or reported item one by one: accept, reject, hold — with screen-reader labels on every vote.' },
-  { slug: 'marketplace', href: '/admin/marketplace', titleZh: '市场工单', titleEn: 'Marketplace queue', noteZh: '售后争议（退款、投诉、交付）人工结案——客服队列的硬门。', noteEn: 'Post-sale disputes — refunds, complaints, fulfillment — get a manual verdict. The human gate on the queue.' },
-  { slug: 'audit', href: '/admin/audit', titleZh: '审计事件', titleEn: 'Audit events', noteZh: '跨实例的 append-only 审计流按时间筛——谁在什么时候干了什么。', noteEn: 'The cross-instance append-only audit stream, filtered by time — who did what, when.' },
-  { slug: 'realtime', href: '/admin/realtime', titleZh: '实时总线', titleEn: 'Realtime bus', noteZh: '线路帧计数：发布总数/过大丢弃/线路失败/熔断状态—— wire 上真正在发生的事。', noteEn: 'Wire frame counters: total published / oversized dropped / wire failures / breaker state — what is happening on the wire, right now.' },
-  { slug: 'rate-limit', href: '/admin/rate-limit', titleZh: '限流闸', titleEn: 'Rate limiting', noteZh: '每客户端令牌桶 live 读数—— memory 诚实说自己按副本数翻倍，redis 真实 PING。', noteEn: 'Per-client token-bucket reads, live — memory honestly says it doubles per replica; redis actually PINGs.' },
-  { slug: 'access', href: '/admin/access', titleZh: '访问账', titleEn: 'Access log', noteZh: '全平台凭据热点：谁在扫库、哪一枚 token 最热——按 1/7/30 天分档。', noteEn: 'Platform-wide credential hotspots: who is scanning, which token is the hottest — bucketed by 1/7/30 days.' },
-  { slug: 'observability', href: '/admin/observability', titleZh: '观测', titleEn: 'Observability', noteZh: '进程计数器（本实例）+ 库里三账（跨重启）——两半，别合并。', noteEn: 'Process counters (this instance) + the library’s three ledgers (across restarts) — two halves, never merged.' },
-  { slug: 'gateway', href: '/admin/gateway', titleZh: '网关态势', titleEn: 'Gateway', noteZh: '网关此刻给谁路由、注册中心记着谁、每实例还活不活——错处自现。', noteEn: 'Who the gateway routes to right now, which registry members it remembers, whether each instance is alive — misroutes reveal themselves.' },
-  { slug: 'discover-cache', href: '/admin/discover-cache', titleZh: '发现页缓存', titleEn: 'Discover cache', noteZh: '/discover 缓存的命中/水位/失效总线心跳——读缓存，不动缓存。', noteEn: 'Hit/watermark/invalidation heartbeat of the /discover cache — read it, never touch it.' },
-  { slug: 'behavior-sim', href: '/admin/behavior-sim', titleZh: '行为演练', titleEn: 'Behavior drill', noteZh: '真实用户行为模拟——没耐心就关掉、乱点、深读者…… 灌进疑似爬虫口径；用真实仪表盘接住。', noteEn: 'Simulate rushers and idle readers — into the bot-tally so real dashboards feel them.' },
-  { slug: 'health', href: '/admin/health', titleZh: '健康总览', titleEn: 'Health', noteZh: 'ai/java/gateway/redis/postgres 五层一致性——拿不到就是“未测到”，不是down；每层独立超时。', noteEn: 'ai/java/gateway/redis/postgres five-layer consistency — unreachable means “unmeasured”, never down; each layer has its own timeout.' },
-  { slug: 'canon-review', href: '/admin/canon-review', titleZh: '正典评审', titleEn: 'Canon review', noteZh: '把一篇候选回响交给 gpt-6.2-sol，对照全部既有锚句逐条挑：疑似新专名、设定冲突、锚句撞句、能不能进正典。只读，不改写候选。', noteEn: 'Hand a candidate echo to gpt-6.2-sol: it checks every existing anchor for suspected new proper nouns, setting conflicts, anchor collisions, and whether it can enter the canon. Read-only.' },
-] as const;
-
 const COPY: Record<Locale, {
   deniedAnonymous: string;
   deniedNotAdmin: (name: string, role: string) => string;
   observerLine: string;
   kicker: string;
   title: string;
-  lede: string;
-  cardsAria: string;
+  lede: (count: number) => string;
   footLine1: string;
   footLine2: string;
 }> = {
@@ -52,8 +35,7 @@ const COPY: Record<Locale, {
     observerLine: '只读观察站：口令 123（公开）→ /admin/observe',
     kicker: 'admin console',
     title: '管理台',
-    lede: '控制面上你能做的每一件事，今安静地摆在十四张卡里；单击进入前，先读卡的一句话。先看读数（观测 / 审计 / 访问账），再动手（删 / 复核 / 拉黑 / 轮换凭据）——本页不为任何人决定该不该点，只说清那一格是干什么的。',
-    cardsAria: '管理台十四处入口',
+    lede: (count) => `控制面的常用入口，今安静地摆在${count}张卡里；单击进入前，先读卡的一句话。先看读数（观测 / 审计 / 访问账），再动手（删 / 复核 / 拉黑 / 轮换凭据）——本页不为任何人决定该不该点，只说清那一格是干什么的。`,
     footLine1: '控制面只对 role=admin 可见；不给非 admin 任何读数——本页也不会。',
     footLine2: '想知道"刚才谁干了什么"：审计事件 ∣ 想知道"系统现在崩了吗"：观测 ∣ 想知道"谁在扫我这台"：访问账。',
   },
@@ -63,8 +45,7 @@ const COPY: Record<Locale, {
     observerLine: 'Read-only observer: pass 123 (public) → /admin/observe',
     kicker: 'admin console',
     title: 'Admin console',
-    lede: 'Everything you can do on the control plane sits quietly in thirteen cards; read the one-liner on a card before you click in. Read first (observability / audit / access log), act second (delete / review / ban / rotate credentials) — this page never decides for you whether to click, it only says what each cell does.',
-    cardsAria: 'Thirteen entries into the admin console',
+    lede: (count) => `Common entry points into the control plane sit quietly in ${count} cards; read the one-liner on a card before you click in. Read first (observability / audit / access log), act second (delete / review / ban / rotate credentials) — this page never decides for you whether to click, it only says what each cell does.`,
     footLine1: 'The control plane is visible only to role=admin; no reads go to non-admins — this page included.',
     footLine2: 'Want to know “who did what just now”: Audit events ∣ “Is the system down right now”: Observability ∣ “Who is scanning this host”: Access log.',
   },
@@ -110,40 +91,13 @@ export default async function AdminHomePage() {
             {c.title}
           </h1>
           <p className="adm-lede">
-            {c.lede}
+            {c.lede(ADMIN_AREAS.length)}
           </p>
         </div>
         <AdminNav current="home" />
       </header>
 
-      <section
-        aria-label={c.cardsAria}
-        className="adm-cards"
-        data-admin-home-cards
-      >
-        {AREAS.map((area) => (
-          <Link
-            key={area.slug}
-            href={area.href}
-            data-admin-home-card={area.slug}
-            className="adm-card"
-          >
-            <div>
-              <p className="adm-slug">{area.slug}</p>
-              <h2 className="adm-cardTitle">
-                {locale === 'en' ? area.titleEn : area.titleZh}
-              </h2>
-              <p className="adm-note">{locale === 'en' ? area.noteEn : area.noteZh}</p>
-            </div>
-            <span
-              aria-hidden="true"
-              className="adm-arrow"
-            >
-              →
-            </span>
-          </Link>
-        ))}
-      </section>
+      <AdminHomeCards locale={locale} />
 
       <footer className="adm-foot">
         <p>

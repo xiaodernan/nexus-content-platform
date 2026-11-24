@@ -36,18 +36,22 @@ describe('§OV-2 /onboarding 上手漫游', () => {
 
   it('OnboardingTour 是 client 组件；不发请求', () => {
     expect(tour.slice(0, 40)).toContain('use client');
-    expect(tour).not.toContain('fetch(');
-    expect(tour).not.toContain('provider');
+    expect(tour).not.toMatch(/\bfetch\s*\(/);
+    expect(tour).not.toMatch(/\b(?:XMLHttpRequest|WebSocket|sendBeacon)\b/);
+    expect(tour).not.toMatch(/\bchatWith[A-Za-z0-9_]*\s*\(/);
     expect(tour).not.toContain('/api/');
+    expect(tour).toContain('真实 provider');
   });
 
-  it('双语 STEPS 齐（zh + en，6 步同步）', async () => {
-    for (const marker of ['think', 'create', 'studio', 'snap', 'publish', 'discover']) {
-      expect(tour).toContain(`key: '${marker}'`);
+  it('双语 STEPS 齐（zh + en，7 步同步）', () => {
+    for (const marker of ['think', 'create', 'studio', 'save', 'publish', 'discover', 'tide']) {
+      expect([...tour.matchAll(new RegExp(`key: '${marker}'`, 'g'))]).toHaveLength(2);
     }
-    expect(tour).toContain("'think'");
     expect(tour).toContain('zh: [');
     expect(tour).toContain('en: [');
+    expect(tour).toContain('本地自检进度');
+    expect(tour).toContain('Local self-check progress');
+    expect(tour).not.toContain("key: 'snap'");
   });
 
   it('钩子守恒', () => {
@@ -60,6 +64,7 @@ describe('§OV-2 /onboarding 上手漫游', () => {
       'data-onboarding-done',
       'data-onboarding-reset',
       'data-onboarding-progress-text',
+      'data-onboarding-storage-unavailable',
     ]) {
       expect(page + tour, `Onboarding 丢了钩子 ${hook}`).toContain(hook);
     }
@@ -69,6 +74,19 @@ describe('§OV-2 /onboarding 上手漫游', () => {
     const idx = tour.indexOf('localStorage');
     expect(idx).toBeGreaterThan(-1);
     expect(tour).toMatch(/try\s*\{[\s\S]*?localStorage[\s\S]*?\}\s*catch/);
+    expect(tour).toContain('setStorageAvailable(false)');
+    expect(tour).toContain('data-onboarding-storage-unavailable');
+    expect(tour).toContain('不会假装已持久化');
+    expect(tour).toContain('not presented as persisted');
+  });
+
+  it('本地存储记录先校验形状与已知步骤，坏数据不退化成崩溃或额外完成数', () => {
+    expect(tour).toContain('function parseDone');
+    expect(tour).toContain("typeof parsed !== 'object'");
+    expect(tour).toContain('Array.isArray(parsed)');
+    expect(tour).toContain('new Set<string>(STEPS.zh.map((step) => step.key))');
+    expect(tour).toContain("typeof value === 'boolean'");
+    expect(tour).toContain('setDone(parseDone(raw))');
   });
 
   it('字面 className 只认 .obv-*；无裸 Tailwind 原子类', () => {
@@ -86,7 +104,7 @@ describe('§OV-2 /onboarding 上手漫游', () => {
   it('.obv-* 全部在 §OV-1 段定义；段内零 hex；forced-colors 收口', () => {
     expect(ovSegment.length).toBeGreaterThan(1200);
     expect(ovSegment).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
-    for (const cls of ['.obv-root', '.obv-title', '.obv-tour', '.obv-progressBar', '.obv-progressFill', '.obv-stepCard', '.obv-stepTitle', '.obv-stepCta', '.obv-stepToggle', '.obv-reset', '.obv-foot', '.obv-footLink']) {
+    for (const cls of ['.obv-root', '.obv-title', '.obv-tour', '.obv-progressBar', '.obv-progressFill', '.obv-storageNote', '.obv-stepCard', '.obv-stepTitle', '.obv-stepCta', '.obv-stepToggle', '.obv-reset', '.obv-foot', '.obv-footLink']) {
       expect(ovSegment, `§OV-1 段没有定义 ${cls}`).toContain(cls + ' {');
     }
     expect(ovSegment).toContain('@media (forced-colors: active)');

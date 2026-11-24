@@ -5,24 +5,27 @@ import { describe, expect, it } from 'vitest';
 /**
  * §A11Y-4 `/admin` 管理台首页——静态那一寸（零浏览器、零真库、零时钟）。
  *
- * 这一页补的是"访客打开 /admin 被根 not-found 打回"的缺口——十二处真实入口此前没有任何一张脸。
+ * 这一页补的是"访客打开 /admin 被根 not-found 打回"的缺口——十四处真实入口此前没有任何一张脸。
  * 全是纯导航：没有任何数据读取、没有 fetch、没有 mutation，每个钩子都是锚点给人看的。
  * 浏览器那一寸（真的渲染、深/浅主题、focus 环、forced-colors）靠 `scripts/capture-admin-home.mts`
  * 的头less-Chrome 截图 + 人工读图；axe 归既有 `a11y-internal.spec.ts` 体系。
  */
 const ROOT = process.cwd();
 const PAGE = join(ROOT, 'apps/web/src/app/admin/page.tsx');
+const CARDS = join(ROOT, 'apps/web/src/app/admin/AdminHomeCards.tsx');
 const NAV = join(ROOT, 'apps/web/src/components/AdminNav.tsx');
 const GLOBALS = join(ROOT, 'apps/web/src/app/globals.css');
 const TOKENS = join(ROOT, 'apps/web/src/styles/tokens.css');
 
 const page = readFileSync(PAGE, 'utf8');
+const cards = readFileSync(CARDS, 'utf8');
 const nav = readFileSync(NAV, 'utf8');
 const globals = readFileSync(GLOBALS, 'utf8');
 const tokens = readFileSync(TOKENS, 'utf8');
 
 /** 去注释后的真代码——所有语义门锚它（ADR-0154 纪律），注释里的示例不算数。 */
 const code = page.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+const cardsCode = cards.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 
 /** `.adm-` 视觉段：`.adm-denied {` 起，到下一个 §FE 段头止（`.adm-` 注释含段头）。 */
 const admSegment = ((): string => {
@@ -62,25 +65,32 @@ describe('§A11Y-4 admin home', () => {
   });
 
   it('十四张卡全在且唯一：href 与 slug 一一对齐，没有多出第十五张 phantom 入口', () => {
-    // 来源于 page.tsx 的 AREAS 常量；写下计数而不是"包含这些字串"，杜绝静默多加了一处
-    const slugs = [...code.matchAll(/slug: '([a-z-]+)'/g)].map((m) => m[1]);
+    // 卡片真值在 AdminHomeCards.tsx；页面只消费组件与派生数量，不保留第二份名单
+    const slugs = [...cardsCode.matchAll(/slug: '([a-z-]+)'/g)].map((m) => m[1]);
     expect(slugs).toEqual([
       'observe', 'users', 'moderation', 'marketplace', 'audit', 'realtime',
       'rate-limit', 'access', 'observability', 'gateway', 'discover-cache', 'behavior-sim', 'health',
       'canon-review',
     ]);
-    const hrefs = [...code.matchAll(/href: '(\/admin\/[a-z-]+)'/g)].map((m) => m[1]);
+    const hrefs = [...cardsCode.matchAll(/href: '(\/admin\/[a-z-]+)'/g)].map((m) => m[1]);
     expect(hrefs).toEqual([
       '/admin/observe', '/admin/users', '/admin/moderation', '/admin/marketplace', '/admin/audit', '/admin/realtime',
       '/admin/rate-limit', '/admin/access', '/admin/observability', '/admin/gateway', '/admin/discover-cache', '/admin/behavior-sim', '/admin/health',
       '/admin/canon-review',
     ]);
-    expect([...code.matchAll(/data-admin-home-card=/g)].length).toBeGreaterThanOrEqual(1);
+    expect([...cardsCode.matchAll(/data-admin-home-card=/g)]).toHaveLength(1);
+    expect(code).toContain("import { ADMIN_AREAS, AdminHomeCards } from './AdminHomeCards'");
+    expect(code).toContain('c.lede(ADMIN_AREAS.length)');
+    expect(code).toContain('<AdminHomeCards locale={locale} />');
+    expect(code).not.toMatch(/(?:十|十一|十二|十三|十四)张卡/);
   });
 
   it('钩子：root / kicker / cards / 卡位四个 data-admin-home-* 一个都不能少', () => {
-    for (const hook of ['data-admin-home-root', 'data-admin-home-kicker', 'data-admin-home-cards', 'data-admin-home-card=']) {
+    for (const hook of ['data-admin-home-root', 'data-admin-home-kicker']) {
       expect(code).toContain(hook);
+    }
+    for (const hook of ['data-admin-home-cards', 'data-admin-home-card=']) {
+      expect(cardsCode).toContain(hook);
     }
   });
 
@@ -111,12 +121,18 @@ describe('§A11Y-4 admin home', () => {
     expect(admSegment).toContain('.adm-navItem:focus-visible');
   });
 
-  it('面向用户的字符串诚实：十张卡的一句话都不画饼、不虚构百分比、不含 TODO/占位', () => {
-    expect(code).not.toContain('TODO');
-    expect(code).not.toContain('占位');
-    expect(code).not.toMatch(/\d+%[\s\S]{0,24}(?:成功|好用|命中)/);
-    expect(code).not.toContain('100% 成功');
-    expect(code).not.toContain('全部正常');
+  it('面向用户的字符串诚实：十四张卡的一句话都不画饼、不虚构百分比、不含 TODO/占位', () => {
+    for (const source of [code, cardsCode]) {
+      expect(source).not.toContain('TODO');
+      expect(source).not.toContain('占位');
+      expect(source).not.toMatch(/\d+%[\s\S]{0,24}(?:成功|好用|命中)/);
+      expect(source).not.toContain('100% 成功');
+      expect(source).not.toContain('全部正常');
+    }
+    expect(code).not.toContain('每一件事');
+    expect(code).not.toContain('Everything you can do');
+    expect(code).toContain('常用入口');
+    expect(code).toContain('Common entry points');
   });
 
   it('tokens.css 里本片引用的 accent/shadow/motion 至少声明过一次（不引用幽灵 token）', () => {

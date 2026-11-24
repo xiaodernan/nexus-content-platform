@@ -56,6 +56,8 @@ const COPY: Record<Locale, {
   planUnknown: string;
   trendTitle: string;
   trendAria: string;
+  observedDays: (observed: number, total: number) => string;
+  trendMissing: string;
   projTitle: string;
   projEmpty: string;
   projNext1: string;
@@ -109,18 +111,20 @@ const COPY: Record<Locale, {
     planUnknown: '未知档',
     trendTitle: '近 7 天有效打开（按天）',
     trendAria: '近 7 天有效打开趋势柱状图',
+    observedDays: (observed, total) => `实际观测 ${observed}/${total} 天`,
+    trendMissing: '— = 未观测，不是 0',
     projTitle: '趋势预测（最小二乘线性外推 · 非 AI）',
     projEmpty: '样本不足，不做预测',
-    projNext1: '第 8 天点预测（opens）',
-    projNext3: '未来 3 天平均预测',
-    projNext7: '未来 7 天平均预测',
+    projNext1: '最后观测日的下一日历日（opens）',
+    projNext3: '下一日起未来 3 天平均预测',
+    projNext7: '下一日起未来 7 天平均预测',
     projSlope: '斜率（opens/day）',
     projR2: 'R²（拟合解释度）',
     projResidual: '残差标准差',
     projTrendUp: '上升趋势',
     projTrendFlat: '平线',
     projTrendDown: '下降趋势',
-    projFoot: '公式：对 daily.opens 做 y = slope·x + intercept 最小二乘拟合（x 从 0 起）；residual SD = √(SSE/(n−2))；趋势死区 ±0.5 opens/day。样本 < 4 天不拟合——先承认不知道。',
+    projFoot: '公式：仅对真实观测日做 y = slope·x + intercept 最小二乘拟合（x 为距首个观测日的日历天数，缺口不补零）；residual SD = √(SSE/(n−2))；趋势死区 ±0.5 opens/day。观测日 < 4、没有观测或全为零都不拟合——先承认不知道。',
     topTitle: '最热的公开作品',
     topHead: ['作品', '浏览', '点赞', '路径'],
     topEmpty: '还没有通过审核的公开作品。',
@@ -162,18 +166,20 @@ const COPY: Record<Locale, {
     planUnknown: 'unknown',
     trendTitle: 'Effective opens, last 7 days (by day)',
     trendAria: 'Bar chart of effective opens over the last 7 days',
+    observedDays: (observed, total) => `${observed}/${total} days actually observed`,
+    trendMissing: '— = not observed, not zero',
     projTitle: 'Trend projection (least-squares linear extrapolation · not AI)',
     projEmpty: 'Not enough samples — no projection',
-    projNext1: 'Day 8 point forecast (opens)',
-    projNext3: 'Avg forecast, next 3 days',
-    projNext7: 'Avg forecast, next 7 days',
+    projNext1: 'Next calendar day after last observation (opens)',
+    projNext3: 'Average forecast, 3 days from the next day',
+    projNext7: 'Average forecast, 7 days from the next day',
     projSlope: 'Slope (opens/day)',
     projR2: 'R² (variance explained)',
     projResidual: 'Residual SD',
     projTrendUp: 'Rising trend',
     projTrendFlat: 'Flat line',
     projTrendDown: 'Falling trend',
-    projFoot: 'Method: least-squares fit of daily.opens to y = slope·x + intercept (x from 0); residual SD = √(SSE/(n−2)); trend deadband ±0.5 opens/day. Under 4 days of samples there is no fit — unknown is admitted, never invented.',
+    projFoot: 'Method: least-squares fit of observed daily.opens to y = slope·x + intercept (x is calendar days since the first observation; gaps are not zero-filled); residual SD = √(SSE/(n−2)); trend deadband ±0.5 opens/day. Fewer than 4 observed days, no observations, or all-zero values produce no fit — unknown is admitted, never invented.',
     topTitle: 'Hottest public works',
     topHead: ['Work', 'Views', 'Likes', 'Path'],
     topEmpty: 'No approved public works yet.',
@@ -220,7 +226,7 @@ export default async function ObserverPage() {
   const m = await readObserverMetrics();
   const advice = buildObserverAdvice(m);
   const projection = buildObserverProjection(m.daily);
-  const maxOpens = Math.max(1, ...m.daily.map((d) => d.opens));
+  const maxOpens = Math.max(1, ...m.daily.flatMap((d) => d.opens === null ? [] : [d.opens]));
   const fmt = new Intl.NumberFormat(locale === 'zh' ? 'zh-CN' : 'en-US');
 
   return (
@@ -262,21 +268,28 @@ export default async function ObserverPage() {
           {' · '}
           {c.opened30d}: <strong>{fmt.format(m.opens30d)}</strong>
           {' · '}
+          <span data-observer-observed-days>{c.observedDays(m.observedDays7d, m.daily.length)}</span>
+          {' · '}
           {c.visibleMin7d(Math.round(m.visibleMs7d / 60000))}
         </p>
         <div className="obs-bars" role="img" aria-label={c.trendAria} data-observer-trend>
           {m.daily.map((d) => (
-            <div className="obs-barCol" key={d.day}>
-              <div
-                className="obs-bar"
-                style={{ height: `${Math.max(2, Math.round((d.opens / maxOpens) * 100))}%` }}
-                title={`${d.day} · ${d.opens}`}
-              />
+            <div className="obs-barCol" key={d.day} data-observer-day={d.day} data-observed={d.opens !== null}>
+              {d.opens === null ? (
+                <span className="obs-barMissing" title={`${d.day} · ${c.trendMissing}`} aria-hidden="true" />
+              ) : (
+                <div
+                  className="obs-bar"
+                  style={{ height: `${Math.max(2, Math.round((d.opens / maxOpens) * 100))}%` }}
+                  title={`${d.day} · ${d.opens}`}
+                />
+              )}
               <span className="obs-barDay">{d.day.slice(5)}</span>
-              <span className="obs-barValue">{d.opens}</span>
+              <span className="obs-barValue">{d.opens ?? '—'}</span>
             </div>
           ))}
         </div>
+        <p className="obs-subnote">{c.trendMissing}</p>
         <p className="obs-subnote">
           {c.completionAvg(m.completionPctAvg30d)}
           {' · '}

@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { buildObserverProjection } from '@/server/admin/observer';
 import type { ObserverDailyPoint } from '@/server/admin/observer';
 
-const daily = (ops: number[]): ObserverDailyPoint[] =>
+const daily = (ops: (number | null)[]): ObserverDailyPoint[] =>
   ops.map((opens, i) => ({ day: `2026-11-${String(10 + i).padStart(2, '0')}`, opens }));
 
 describe('§OBSERVE-PROJ · buildObserverProjection', () => {
@@ -24,14 +24,53 @@ describe('§OBSERVE-PROJ · buildObserverProjection', () => {
     expect(p.trend).toBe('up');
   });
 
-  it('完全平线（全 0）：有效预测，斜率 0，趋势 flat，R² 不造出来', () => {
-    const p = buildObserverProjection(daily([0, 0, 0, 0, 0, 0, 0]));
+  it('完全平线（非零）：有效预测，斜率 0，趋势 flat，R² 不造出来', () => {
+    const p = buildObserverProjection(daily([5, 5, 5, 5, 5, 5, 5]));
     expect(p.valid).toBe(true);
     expect(p.slopePerDay).toBeCloseTo(0, 6);
-    expect(p.next1).toBeCloseTo(0, 6);
-    expect(p.r2).toBeNull(); // sst=0，除以 0 没有意义，如实给 null
+    expect(p.next1).toBeCloseTo(5, 6);
+    expect(p.r2).toBeNull();
     expect(p.residualStdDev).toBeCloseTo(0, 6);
     expect(p.trend).toBe('flat');
+  });
+
+  it('全零观测：没有趋势样本，拒绝伪造有效平线预测', () => {
+    const p = buildObserverProjection(daily([0, 0, 0, 0, 0, 0, 0]));
+    expect(p.valid).toBe(false);
+    expect(p.next1).toBeNull();
+    expect(p.trend).toBeNull();
+    expect(p.reasonZh).toContain('全为 0');
+    expect(p.reasonEn).toContain('zero effective opens');
+  });
+
+  it('空样本或全部未观测：明确拒绝，不把缺失当成零', () => {
+    for (const input of [[], daily([null, null, null, null, null, null, null])]) {
+      const p = buildObserverProjection(input);
+      expect(p.valid).toBe(false);
+      expect(p.slopePerDay).toBeNull();
+      expect(p.reasonZh).toContain('没有有效观测日');
+      expect(p.reasonEn).toContain('No observed days');
+    }
+  });
+
+  it('缺失日不补零、不压缩日历：只用四个真实观测日拟合', () => {
+    const p = buildObserverProjection(daily([1, null, 3, null, 5, null, 7]));
+    expect(p.valid).toBe(true);
+    expect(p.slopePerDay).toBeCloseTo(1, 6);
+    expect(p.intercept).toBeCloseTo(1, 6);
+    expect(p.next1).toBeCloseTo(8, 6);
+    expect(p.next3).toBeCloseTo(9, 6);
+    expect(p.next7).toBeCloseTo(11, 6);
+  });
+
+  it('末位缺失仍锚定最后观测日：不从七天窗口的末日硬补一天', () => {
+    const p = buildObserverProjection(daily([1, null, 3, null, 5, 7, null]));
+    expect(p.valid).toBe(true);
+    expect(p.slopePerDay).toBeCloseTo(68 / 59, 6);
+    expect(p.next1).toBeCloseTo(7.745763, 6);
+    expect(p.next3).toBeCloseTo(8.898305, 6);
+    expect(p.next7).toBeCloseTo(11.203390, 6);
+    expect(p.next1).not.toBeCloseTo(p.slopePerDay! * 7 + p.intercept!, 6);
   });
 
   it('下降直线：斜率为负，趋势 down', () => {
@@ -50,6 +89,9 @@ describe('§OBSERVE-PROJ · buildObserverProjection', () => {
     expect(p.reasonZh).toContain('少于 4 天');
     expect(p.reasonEn).toContain('fewer than 4');
     expect(p.trend).toBeNull();
+    const sparse = buildObserverProjection(daily([3, null, 1, null, 4, null, null]));
+    expect(sparse.valid).toBe(false);
+    expect(sparse.reasonZh).toContain('3 个观测日');
   });
 
   it('含噪声数据：R² 落在 (0,1)，残差 SD > 0，next1 与拟合线一致', () => {

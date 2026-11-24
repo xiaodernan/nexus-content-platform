@@ -8,28 +8,28 @@ export async function generateMetadata(): Promise<Metadata> {
   const locale = await getLocale();
   return locale === 'zh'
     ? {
-        title: '上手漫游 / Onboarding — NEXUS',
-        description: '新用户的 7 步漫游：60 秒看懂从「一句话想法」到「发布出去」的每一步。可中断、可重来、可直达。中英双语。',
+        title: '上手漫游 — NEXUS',
+        description: '新用户的 7 步漫游：从一句话想法走到真实发布操作。可中断、可重来、中英双语；完成标记只是本地自检。',
       }
     : {
         title: 'Onboarding — NEXUS',
-        description: 'A 7-step walk for newcomers: sixty seconds from one sentence to one published work. Interruptible, re-doable, direct. Chinese and English.',
+        description: 'A seven-step walk from one sentence to a real publishing action. Interruptible, re-doable and bilingual; completion marks are local self-checks only.',
       };
 }
 
 const COPY: Record<Locale, { kicker: string; title: string; lede: string; footer: string; guideHint: string }> = {
   zh: {
     kicker: '上手漫游',
-    title: '60 秒走完「从一个词到一个作品」',
-    lede: '这不是考试。每步做给你看，每步都带你直达那个页面——做完，就知道这块土地到底怎么走。随时可以离开、随时可以回来；进度存在本地浏览器里。',
-    footer: '任何一步没做完、想重来：点左下角「重来」。整个过程不产生任何不可撤销的操作。',
+    title: '从一个词到一个作品：7 步上手漫游',
+    lede: '这不是考试，也不承诺几分钟学完。每步做给你看，并带你前往相关页面。完成标记只表示你勾选过，不是系统验证你真的操作过；标记保存在本地浏览器，存储不可用时只在本次页面有效。',
+    footer: '想重来，点「重来（清除本地进度）」。漫游本身不执行发布、删除或模型调用；跳转后的操作由目标页面负责。',
     guideHint: '还想看更细的？',
   },
   en: {
     kicker: 'ONBOARDING',
-    title: 'Sixty seconds, from one word to one work',
-    lede: 'This is not an exam. Each step shows you the move and jumps you straight to the page — finish it and you know this land. Leave anytime, return anytime; progress stays in your browser.',
-    footer: 'Missed a step? Hit “Start over” at the bottom-left. Nothing here is irreversible.',
+    title: 'From one word to one work: a seven-step onboarding',
+    lede: 'This is not an exam or a promise to finish in minutes. Each step shows the move and points to the relevant page. A completion mark means only that you checked it off, not that the system observed the task; marks stay in this browser and last only for this page when storage is unavailable.',
+    footer: 'To start again, press “Start over (clear local progress)”. The tour itself does not publish, delete or call a model; actions after a link opens belong to the destination page.',
     guideHint: 'Want the full manual?',
   },
 };

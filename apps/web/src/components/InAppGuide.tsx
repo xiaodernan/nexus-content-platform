@@ -1,7 +1,9 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { GUIDE_COPY } from '@/lib/guideCopy';
+import { searchGuideSections } from '@/lib/guideSearch';
 import type { Locale } from '@/lib/i18n';
 
 /**
@@ -14,10 +16,10 @@ import type { Locale } from '@/lib/i18n';
  * 纪律：
  * - 文案真值只有 `@/lib/guideCopy` 一份——/guide 页与抽屉共用同一份内容
  *   （这就是这一片的意义：不再允许「文档写的一套、产品展示的一套」）；
- * - 整册仍是纯静态的账本数据，没有网络请求、没有大模型调用，按 F1/Esc 才开、或按顶栏「帮助」；
- * - 抽屉关掉之后模块卸载，不占 UI 长期开销；指针键 Esc/F1 关闭。
+ * - 整册仍是纯静态的账本数据，没有网络请求、没有大模型调用；顶栏「帮助」打开，Esc/F1 关闭；
+ * - 抽屉关掉之后模块卸载，不占 UI 长期开销。
  */
-export function InAppGuide({ locale = 'zh', open, onClose }: { locale?: Locale; open: boolean; onClose: () => void }) {
+export function InAppGuide({ locale = 'zh', open, onClose, projectId }: { locale?: Locale; open: boolean; onClose: () => void; projectId?: string }) {
   const [query, setQuery] = useState('');
   const copy = GUIDE_COPY[locale];
 
@@ -30,14 +32,10 @@ export function InAppGuide({ locale = 'zh', open, onClose }: { locale?: Locale; 
     return () => window.removeEventListener('keydown', onKey);
   }, [open, onClose]);
 
-  // 仅按字面宽度收敛——不追求语义，只拒绝为「找内容」而增重算法
-  const hits = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return copy.sections;
-    return copy.sections.filter(
-      (s) => s.heading.toLowerCase().includes(q) || s.body.some((p) => p.toLowerCase().includes(q)),
-    );
-  }, [query, copy]);
+  const hits = useMemo(
+    () => searchGuideSections(copy.sections, query),
+    [query, copy],
+  );
 
   if (!open) return null;
 
@@ -69,21 +67,23 @@ export function InAppGuide({ locale = 'zh', open, onClose }: { locale?: Locale; 
       </div>
       <div className="tsg-body">
         <nav className="tsg-toc" aria-label={locale === 'zh' ? '目录' : 'TOC'} data-help-toc>
-          {copy.sections.map((section) => {
-            const id = section.heading.slice(2).replace(/\s+/g, '-');
-            return (
-              <a key={section.heading} href={`#${id}`} className="tsg-tocLink">
-                {section.heading}
-              </a>
-            );
-          })}
+          {hits.map((section) => (
+            <a key={section.anchor} href={`#${section.anchor}`} className="tsg-tocLink">
+              {section.heading}
+            </a>
+          ))}
         </nav>
         <div className="tsg-content" data-help-content>
           {hits.length === 0 ? (
-            <p className="tsg-empty" data-help-empty>{locale === 'zh' ? '没找到——换个关键词再试。' : 'Nothing found — try another keyword.'}</p>
+            <div className="tsg-empty" data-help-empty>
+              <p>{locale === 'zh' ? '没找到——试试更短的关键词，或清空搜索后从目录逐节查找。' : 'Nothing found — try a shorter keyword, or clear the search and browse the table of contents.'}</p>
+              <button type="button" className="tsg-clearSearch" onClick={() => setQuery('')} data-help-clear-search>
+                {locale === 'zh' ? '清空搜索' : 'Clear search'}
+              </button>
+            </div>
           ) : (
             hits.map((section) => (
-              <section key={section.heading} id={section.heading.slice(2).replace(/\s+/g, '-')} className="tsg-section" data-guide-section={section.heading.slice(2)}>
+              <section key={section.anchor} id={section.anchor} className="tsg-section" data-guide-section={section.anchor}>
                 <h3 className="tsg-sectionHeading">{section.heading}</h3>
                 {section.body.map((para, i) => (
                   <p key={i} className="tsg-para">{para}</p>
@@ -95,6 +95,13 @@ export function InAppGuide({ locale = 'zh', open, onClose }: { locale?: Locale; 
       </div>
       <footer className="tsg-foot">
         <span>{locale === 'zh' ? '本文档就是用户打开后的第一眼。它不是帮助，是门。' : 'This is the first thing a user should see. Not a help page — a room.'}</span>
+        <Link
+          className="tsg-fullGuide"
+          href={projectId ? `/guide?project=${encodeURIComponent(projectId)}` : '/guide'}
+          data-help-full-guide
+        >
+          {locale === 'zh' ? '打开完整指南 →' : 'Open the full guide →'}
+        </Link>
       </footer>
     </aside>
   );

@@ -15,6 +15,13 @@ import { getDb } from '../db/client';
 
 export interface ObserverDailyPoint {
   day: string;
+  /** null = 当天没有采集行；0 = 有采集行且确实没有有效打开。 */
+  opens: number | null;
+}
+
+export interface ObserverDailyAggregateRow {
+  day: string;
+  suspectedBot: boolean;
   opens: number;
 }
 
@@ -45,6 +52,7 @@ export interface ObserverMetrics {
   completionsGame: number;
   completionsWork: number;
   suspectedBots7d: number;
+  observedDays7d: number;
   tasks: {
     queued: number;
     running: number;
@@ -60,6 +68,30 @@ export interface ObserverMetrics {
 const n = (rows: unknown[]): { n: number } => (rows as unknown as { n: number }[])[0]!;
 const f = (rows: unknown[]): { pct: number | null; ms: number | null } =>
   (rows as unknown as { pct: number | null; ms: number | null }[])[0]!;
+
+export function aggregateObserverDaily(
+  rows: readonly ObserverDailyAggregateRow[],
+): { day: string; opens: number }[] {
+  const byDay = new Map<string, number>();
+  for (const row of rows) {
+    const opens = byDay.get(row.day) ?? 0;
+    byDay.set(row.day, opens + (row.suspectedBot ? 0 : row.opens));
+  }
+  return [...byDay].map(([day, opens]) => ({ day, opens })).sort((a, b) => a.day.localeCompare(b.day));
+}
+
+export function completeObserverDaily(
+  rows: readonly { day: string; opens: number }[],
+  today = new Date(),
+): ObserverDailyPoint[] {
+  const byDay = new Map(rows.map((row) => [row.day, row.opens]));
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(today);
+    date.setUTCDate(date.getUTCDate() - (6 - index));
+    const day = date.toISOString().slice(0, 10);
+    return { day, opens: byDay.get(day) ?? null };
+  });
+}
 
 export async function readObserverMetrics(): Promise<ObserverMetrics> {
   const db = getDb();
@@ -112,21 +144,14 @@ export async function readObserverMetrics(): Promise<ObserverMetrics> {
   const topWorks = topRows.map((r) => ({ path: r.path, name: r.name, views: Number(r.views), likes: r.likes }));
 
   const dailyRows = (await db.execute(sql`
-    select day::text as day, coalesce(sum(opens), 0)::int as opens
+    select day::text as day, suspected_bot, coalesce(sum(opens), 0)::int as opens
     from publication_visits
-    where day >= (now() - interval '6 days')::date and suspected_bot = false
-    group by day
-    order by day
-  `)) as unknown as ObserverDailyPoint[];
-  // 补齐近 7 天没有行的日期——图要连成线，缺口必须是 0 而不是凭空断线
-  const byDay = new Map(dailyRows.map((r) => [r.day, r.opens]));
-  const daily: ObserverDailyPoint[] = [];
-  for (let i = 6; i >= 0; i -= 1) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    const key = d.toISOString().slice(0, 10);
-    daily.push({ day: key, opens: byDay.get(key) ?? 0 });
-  }
+    where day >= (now() - interval '6 days')::date
+    group by day, suspected_bot
+    order by day, suspected_bot
+  `)) as unknown as ObserverDailyAggregateRow[];
+  const daily = completeObserverDaily(aggregateObserverDaily(dailyRows));
+  const observedDays7d = daily.filter((d) => d.opens !== null).length;
 
   return {
     usersTotal,
@@ -148,6 +173,7 @@ export async function readObserverMetrics(): Promise<ObserverMetrics> {
     completionsGame,
     completionsWork,
     suspectedBots7d,
+    observedDays7d,
     tasks,
     plans,
     topWorks,
@@ -158,7 +184,7 @@ export async function readObserverMetrics(): Promise<ObserverMetrics> {
 export type ObserverAdviceSeverity = 'good' | 'warn' | 'bad';
 
 export interface ObserverProjection {
-  /** 样本量 < 4 或方差 0 时不做预测——先承认不知道，别编一个曲线 */
+  /** 真实观测日 < 4、没有观测或全零时不预测——先承认不知道，别编一条平线。 */
   valid: boolean;
   reasonZh: string | null;
   reasonEn: string | null;
@@ -169,11 +195,11 @@ export interface ObserverProjection {
   r2: number | null;
   /** 残差标准差（样本，ddof=2）——预测误差的量纲是 opens/day */
   residualStdDev: number | null;
-  /** 第 n+1 天的点预测（opens） */
+  /** 最后一个观测日的下一个日历日点预测（opens） */
   next1: number | null;
-  /** 未来 3 天的平均点预测 */
+  /** 从下一个日历日起，未来 3 天的平均点预测 */
   next3: number | null;
-  /** 未来 7 天的平均点预测 */
+  /** 从下一个日历日起，未来 7 天的平均点预测 */
   next7: number | null;
   /** 斜率死区 ±0.5 opens/day 以内算平 */
   trend: 'up' | 'flat' | 'down' | null;
@@ -181,28 +207,36 @@ export interface ObserverProjection {
 
 /**
  * 线性外推（最小二乘）——纯函数，确定性，零 AI。
- * 输入只认实库来的 daily[]（按天升序的打开数）；不掺任何前瞻偏差、不加平滑幻觉。
- * 空区间（全 0）也算"有效预测"（斜率 0、平线），但理由是真的平线，不是"没数据"。
+ * 缺失日不补零、不参与拟合；横轴保留真实日历间隔。全零只说明没打开，不构成趋势。
  */
 export function buildObserverProjection(daily: ObserverDailyPoint[]): ObserverProjection {
-  const n = daily.length;
-  if (n < 4) {
-    return {
-      valid: false,
-      reasonZh: `只采到 ${n} 天——少于 4 天不拟合，免得把噪声当趋势画给你。`,
-      reasonEn: `Only ${n} day(s) sampled — fewer than 4 days is not fitted, so noise is never drawn as a trend.`,
-      slopePerDay: null,
-      intercept: null,
-      r2: null,
-      residualStdDev: null,
-      next1: null,
-      next3: null,
-      next7: null,
-      trend: null,
-    };
+  const observed = daily.filter((point): point is ObserverDailyPoint & { opens: number } => point.opens !== null);
+  const n = observed.length;
+  const invalid = (reasonZh: string, reasonEn: string): ObserverProjection => ({
+    valid: false,
+    reasonZh,
+    reasonEn,
+    slopePerDay: null,
+    intercept: null,
+    r2: null,
+    residualStdDev: null,
+    next1: null,
+    next3: null,
+    next7: null,
+    trend: null,
+  });
+  if (n === 0) {
+    return invalid('近 7 天没有有效观测日——未采集不是 0，不做预测。', 'No observed days in the last 7 days — missing is not zero, so no projection is made.');
   }
-  const xs = daily.map((_, i) => i);
-  const ys = daily.map((d) => d.opens);
+  if (n < 4) {
+    return invalid(`只采到 ${n} 个观测日——少于 4 天不拟合，免得把噪声当趋势画给你。`, `Only ${n} observed day(s) — fewer than 4 days is not fitted, so noise is never drawn as a trend.`);
+  }
+  const ys = observed.map((point) => point.opens);
+  if (ys.every((y) => y === 0)) {
+    return invalid(`${n} 个观测日的有效打开全为 0——没有趋势样本，不做平线预测。`, `All ${n} observed days have zero effective opens — there is no trend sample, so no flat projection is made.`);
+  }
+  const firstDay = Date.parse(observed[0]!.day);
+  const xs = observed.map((point) => (Date.parse(point.day) - firstDay) / 86_400_000);
   const meanX = xs.reduce((a, b) => a + b, 0) / n;
   const meanY = ys.reduce((a, b) => a + b, 0) / n;
   const sxy = xs.reduce((acc, x, i) => acc + (x - meanX) * (ys[i]! - meanY), 0);
@@ -215,9 +249,10 @@ export function buildObserverProjection(daily: ObserverDailyPoint[]): ObserverPr
   const r2 = sst === 0 ? null : Math.max(0, 1 - sse / sst);
   const residualStdDev = Math.sqrt(sse / Math.max(1, n - 2));
   const predict = (x: number) => slope * x + intercept;
-  const next1 = predict(n);
-  const next3 = (predict(n) + predict(n + 1) + predict(n + 2)) / 3;
-  const next7 = [n, n + 1, n + 2, n + 3, n + 4, n + 5, n + 6].map(predict).reduce((a, b) => a + b, 0) / 7;
+  const nextX = xs[xs.length - 1]! + 1;
+  const next1 = predict(nextX);
+  const next3 = (predict(nextX) + predict(nextX + 1) + predict(nextX + 2)) / 3;
+  const next7 = Array.from({ length: 7 }, (_, i) => predict(nextX + i)).reduce((a, b) => a + b, 0) / 7;
   const trend: 'up' | 'flat' | 'down' = slope > 0.5 ? 'up' : slope < -0.5 ? 'down' : 'flat';
   return {
     valid: true,
@@ -249,7 +284,6 @@ export interface ObserverAdvice {
  */
 export function buildObserverAdvice(m: ObserverMetrics): ObserverAdvice[] {
   const advice: ObserverAdvice[] = [];
-  const openRate = m.viewsTotal > 0 ? (m.opens30d / Math.max(1, m.opens30d + m.opens7d)) : 0;
 
   if (m.opens7d === 0) {
     advice.push({
@@ -307,6 +341,5 @@ export function buildObserverAdvice(m: ObserverMetrics): ObserverAdvice[] {
       textEn: 'The data chain is alive: people open, finish, sign up. Next step is wiring an AI suggestion panel onto this page — never disguised as measurement.',
     });
   }
-  void openRate;
   return advice;
 }

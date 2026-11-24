@@ -34,8 +34,8 @@ const HOME_TXT = {
     navNote: '公开在跑的作品与全平台的内容搜索；数据与通知只对登录后的你自己可见',
     helpKicker: '第一次来？',
     helpText:
-      '先花两分钟走一遍 6 步上手漫游，再打开随手可用的简明说明书；Ctrl+K（Mac 用 ⌘K）随时调出命令面板，直奔任何页面。',
-    helpOnboarding: '上手漫游 · 6 步',
+      '先走一遍 7 步上手漫游，再打开随手可用的简明说明书；Ctrl+K（Mac 用 ⌘K）随时调出命令面板，前往已经登记的页面。',
+    helpOnboarding: '上手漫游 · 7 步',
     helpGuide: '简明说明书',
     hintSearch: '全站作品、作者与内容关键词',
     hintDiscover: '公开跑着的作品 · 按热度/最新',
@@ -92,8 +92,8 @@ const HOME_TXT = {
     navNote: 'Works publicly on the platform and platform-wide search; your data and notifications are visible only to you, signed in.',
     helpKicker: 'First time here?',
     helpText:
-      'Take the 6-step onboarding first, then keep the in-app guide handy; press Ctrl+K (⌘K on Mac) to pull up the command palette anywhere.',
-    helpOnboarding: 'Onboarding — 6 steps',
+      'Take the seven-step onboarding first, then keep the in-app guide handy; press Ctrl+K (⌘K on Mac) to open the command palette for registered pages.',
+    helpOnboarding: 'Onboarding — 7 steps',
     helpGuide: 'In-app guide',
     hintSearch: 'Works, authors, keywords across the platform',
     hintDiscover: 'Public works in motion — trending or fresh',

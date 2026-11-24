@@ -18,11 +18,13 @@ import { readStable } from './helpers/stable-text';
  */
 const ROOT = process.cwd();
 const REAL = join(ROOT, 'apps/web/src/app/guide/page.tsx');
+const PROGRESS = join(ROOT, 'apps/web/src/components/GuideReadingProgress.tsx');
 const LIB = join(ROOT, 'apps/web/src/lib/guideCopy.ts');
 const GLOBALS = join(ROOT, 'apps/web/src/app/globals.css');
 const TOKENS = join(ROOT, 'apps/web/src/styles/tokens.css');
 
 const page = readStable(REAL);
+const progress = readStable(PROGRESS);
 const dictSrc = readStable(LIB);
 const globals = readStable(GLOBALS);
 const tokens = readStable(TOKENS);
@@ -81,8 +83,8 @@ describe('§FE-Guide /guide 使用指南', () => {
     const en = codeLib.indexOf('en: {');
     expect(zh).toBeGreaterThan(0);
     expect(en).toBeGreaterThan(0);
-    // 每语必须有 10 个节标题（①-⑥ 原版 + ⑦ 分镜 / ⑧ 世界 / ⑨ 市场团队 / ⑩ 安全网）
-    for (const heading of ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩']) {
+    // 十三枚编号章节加一节无编号 StateGraph 小课；两种语言按同一 index 对齐。
+    for (const heading of ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩', '⑪', '⑫', '⑬']) {
       expect(codeLib, `双语字典缺节 ${heading}`).toContain(heading);
     }
     for (const key of ['kicker', 'title', 'lede', 'sections']) {
@@ -96,7 +98,10 @@ describe('§FE-Guide /guide 使用指南', () => {
     // 任一侧多一节/少一节，后面所有段落都会被错位比较，审计报出来的"漏译"全是假象。
     const zh = GUIDE_COPY.zh.sections;
     const en = GUIDE_COPY.en.sections;
-    expect(zh.length).toBe(en.length);
+    expect(zh.length).toBe(14);
+    expect(en.length).toBe(14);
+    expect(zh.map((section) => section.anchor)).toEqual(Array.from({ length: 14 }, (_, i) => `guide-section-${i + 1}`));
+    expect(en.map((section) => section.anchor)).toEqual(zh.map((section) => section.anchor));
     const ordinal = (h: string) => (h.match(/[\u2460-\u2473]/) ?? [''])[0];
     expect(zh.map((x) => ordinal(x.heading))).toEqual(en.map((x) => ordinal(x.heading)));
     // 序号可以缺（StateGraph 小课没有编号），但同一语种内不许出现两次同一个编号：
@@ -112,6 +117,21 @@ describe('§FE-Guide /guide 使用指南', () => {
         expect(sec.body.length, `${locale} / ${sec.heading} 正文为空`).toBeGreaterThan(0);
       }
     }
+    for (let index = 0; index < zh.length; index++) {
+      expect(en[index]!.body.length, `第 ${index + 1} 节中英正文段落数不一致`).toBe(zh[index]!.body.length);
+    }
+  });
+
+  it('③/⑧/⑪ 的正文按原文位置配对，不用同数量掩盖错位与漏译', () => {
+    const zh = GUIDE_COPY.zh.sections;
+    const en = GUIDE_COPY.en.sections;
+    expect(zh[3]!.body[2]).toContain('AI 续写编年');
+    expect(en[3]!.body[2]).toContain('AI write chronicle');
+    expect(en[8]!.body[4]).toContain('131 questions');
+    expect(en[8]!.body[4]).toContain('Ask the Canon');
+    expect(en[8]!.body[5]).toContain('/analytics');
+    expect(en[11]!.body[6]).toContain('/daily');
+    expect(en[11]!.body[7]).toContain('/tide-wire');
   });
 
   it('字面 className 只认 .gd-* 与 .am-linkImplicit', () => {
@@ -145,17 +165,63 @@ describe('§FE-Guide /guide 使用指南', () => {
   });
 
   it('data-guide-* 钩子守恒', () => {
-    for (const hook of ['data-guide-root', 'data-guide-locale=', 'data-guide-section=']) {
-      expect(code, `Guide 丢了钩子 ${hook}`).toContain(hook);
+    for (const hook of [
+      'data-guide-root', 'data-guide-locale=', 'data-guide-section=', 'data-guide-search-form',
+      'data-guide-search-panel', 'data-guide-search', 'data-guide-hit-count', 'data-guide-toc',
+      'data-guide-empty', 'data-guide-clear-search', 'data-guide-project-link',
+      'data-guide-project-warning', 'data-guide-project-input',
+    ]) {
+      expect(code + progress, `Guide 丢了钩子 ${hook}`).toContain(hook);
     }
+  });
+
+  it('服务端 GET 检索使用纯函数；稳定锚点贯穿目录与正文', () => {
+    expect(code).toContain("from '@/lib/guideSearch'");
+    expect(code).toContain('searchGuideSections(copy.sections, query)');
+    expect(code).toContain('action="/guide"');
+    expect(code).toContain('method="get"');
+    expect(code).toContain('Promise<{ q?: string | string[]; project?: string | string[] }>');
+    expect(code).toContain('firstParam(params.q)');
+    expect(code).toContain('href={`#${section.anchor}`}');
+    expect(code).toContain('id={section.anchor}');
+    expect(code).toContain('data-guide-section={section.anchor}');
+    expect(code).toContain('<GuideReadingProgress');
+  });
+
+  it('项目上下文只接受单一 UUID 校验器认定的值，并在检索时保留', () => {
+    expect(code).toContain("from '@/server/domain/ids'");
+    expect(code).toContain('isUuid(projectParam) ? projectParam : null');
+    expect(code).toContain('name="project" value={projectId}');
+    expect(code).toContain('`/studio/${projectId}`');
+    expect(code).toContain('projectParam && !projectId');
+    expect(code).not.toMatch(/z\.string\(\)\.uuid|UUID_SHAPE|[0-9a-f]{8}-[0-9a-f]{4}-/i);
+  });
+
+  it('阅读记录是本地视口记录：存储失败诚实降级，不冒充理解或任务完成', () => {
+    expect(progress).toContain("'use client'");
+    expect(progress).toContain('IntersectionObserver');
+    expect(progress).toContain('localStorage');
+    expect(progress).toMatch(/try\s*\{[\s\S]*?localStorage[\s\S]*?\}\s*catch/);
+    expect(progress).toContain('visibleAnchors');
+    expect(progress).toContain('data-guide-read-count');
+    expect(progress).toContain('data-guide-read-reset');
+    expect(progress).toContain('data-guide-storage-unavailable');
+    expect(progress).toContain('role="progressbar"');
+    expect(progress).toContain('aria-valuenow={read.size}');
+    expect(progress).toContain('不代表读懂、完成操作或完成任务');
+    expect(progress).toContain('not comprehension, completed actions or finished tasks');
+    expect(progress).not.toMatch(/\bfetch\s*\(|XMLHttpRequest|WebSocket|sendBeacon|\/api\//);
+    expect(globals).toContain('.gd-progress {');
+    expect(globals).toContain('.gd-section[data-guide-read="true"]');
+    expect(globals).toContain('.gd-storageNote');
   });
 
   // 2026-11-22 重钉：页脚「世界全图 · The Atlas →」→「世界全图 →」；
   // metadata 改 generateMetadata 跟随语言（英文标签页 'User guide — NEXUS'）。
   // 中文模式不再中英夹杂；正文仍在 lib/guideCopy（未动）。
-  it('SHA256 钉死（瘦壳 · v788，正文已抽进 lib/guideCopy）', () => {
+  it('SHA256 钉死（瘦壳 · 服务端检索与本机阅读记录）', () => {
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      '6284242d39bb9584cb2fd0e8ed214e52754235860842dc1073ad2153506f1c20',
+      'cf53828766151a226158dfc0fec89ddd733966e0783f2696158d78ff9969192e',
     );
   });
 });
