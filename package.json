@@ -165,6 +165,8 @@
     "dev:web": "npm run dev -w @nexus/web",
     "dev:web:clean": "node scripts/start-web-clean.mjs dev",
     "start:web:clean": "node scripts/start-web-clean.mjs start",
+    "web:health": "node scripts/check-web-health.mjs",
+    "web:heal": "node scripts/check-web-health.mjs --auto",
     "dev:ai": "bash infra/dev-ai.sh",
     "build:main": "npm run build -w @nexus/web",
     "start": "npm run start -w @nexus/web",
