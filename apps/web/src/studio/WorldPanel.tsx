@@ -35,6 +35,7 @@ import { fillableKinds, formatWorldFillError, parseChronicleReply, parseEchoRepl
 import { rollFate, type FateCard } from '@/lib/worldFate';
 import { mergeImportedWorld, parseWorldMarkdown, worldFileName, worldToMarkdown } from '@/lib/worldExport';
 import { formatWorldStats, worldStats } from '@/lib/worldStats';
+import { formatWorldCohesion, worldCohesion } from '@/lib/worldCohesion';
 import { filterWorldNodes } from '@/lib/worldFilter';
 import { sortWorldNodes, type WorldSortMode } from '@/lib/worldSort';
 import { auditSuggestion, auditWorld, formatWorldAudit } from '@/lib/worldAudit';
@@ -814,6 +815,7 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
           {aiGenError ? <p className="wd-danger11" data-world-ai-error>{aiGenError}</p> : null}
         </div>
         <p className="wd-body11Mt2" data-world-stats>{formatWorldStats(worldStats(world), locale)}</p>
+        <p className="wd-body11Mt2" data-world-cohesion>{formatWorldCohesion(worldCohesion(world), locale)}</p>
         <input
           type="search"
           value={nodeFilter}
