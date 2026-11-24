@@ -31033,6 +31033,162 @@ At night the line of marks sounded softly by itself — as if someone had read t
 `,
   },
   {
+    order: 226,
+    slug: 'echo-226-watchman-walks-around-well',
+    titleZh: '巡夜人绕开那口井走',
+    titleEn: 'The Watchman Walks Around the Well',
+    eraLineZh: '纪元：铁月纪 · 第四十一次大会之后（同 Echo #4「盐在井里等潮」与正典《巡逻路札记》）。',
+    eraLineEn: 'Era: the Iron-Moon Age — after the 41st Convocation (as in Echo #4 "Salt Waiting for the Tide in the Well" and the canon chapter "Watch-Route Notes").',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 226): The Watchman Walks Around the Well
+
+> 回响不替正典续写——它只是页边另一层长出来的盐。
+> 本篇写给巡夜路线上一处没人写进札记的细节：每个守夜人都会在井前拐一个弯，从不往井里看。
+> 纪律同前：锚句逐字；不新增正典专名，只在既有的巡夜路线与盐井旁添细节。
+>
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written for a detail no watch-log ever recorded: every watchman turns a corner before the well, and never looks into it.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail along the watch route and beside the salt well.
+
+> 纪元：铁月纪 · 第四十一次大会之后（同 Echo #4「盐在井里等潮」与正典《巡逻路札记》）。
+> Era: the Iron-Moon Age — after the 41st Convocation (as in Echo #4 "Salt Waiting for the Tide in the Well" and the canon chapter "Watch-Route Notes").
+
+---
+
+## 一 · 拐弯
+
+巡夜路线本可以直着走过去，可每个守夜人都会在井前拐一个弯。
+**锚句**：每个守夜人都会在井前拐一个弯。
+**Anchor sentence**: every watchman turns a corner before the well.
+
+---
+
+## 二 · 不看
+
+他们不是怕井——是从不往井里看。
+**锚句**：他们不是怕井——是从不往井里看。
+**Anchor sentence**: they are not afraid of the well — they simply never look into it.
+
+---
+
+## 三 · 桶沿的盐
+
+桶沿上总有一小袋没人认领的盐，他们数得清，却从不碰。
+**锚句**：桶沿上总有一小袋没人认领的盐，他们数得清，却从不碰。
+**Anchor sentence**: on the rim there is always a small bag of unclaimed salt — they can count it, but never touch it.
+
+---
+
+## 四 · 新来的
+
+新来的守夜人问为什么要绕，老守夜人说：走直了会听见井不回答。
+**锚句**：走直了会听见井不回答。
+**Anchor sentence**: walk straight and you will hear the well not answering.
+
+---
+
+## 五 · 不回答也是回答
+
+后来他们才懂：井的不回答也是一种回答——它只接住放下去的盐，不接问题。
+**锚句**：井的不回答也是一种回答——它只接住放下去的盐，不接问题。
+**Anchor sentence**: the well's not answering is an answer too — it takes only the salt set down, not questions.
+
+---
+
+## 六 · 路因此弯了
+
+所以那条巡夜路线在井前留了个弯——不是井挡了路，是问题不该被带到井边。
+**锚句**：不是井挡了路，是问题不该被带到井边。
+**Anchor sentence**: it is not the well blocking the road — it is that questions should not be brought to the well.
+
+---
+
+## 七 · Mapping（Echo No. 226 · world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | the watch route bends before the well · the well takes salt not questions · silence is an answer | 一、二、五、六 |
+| geography | the watch route · the salt well · the bucket rim | 一、三、六 |
+| characters | the old watchman · the new watchman | 四 |
+| story | a small detail beside Echo #4 and the watch-route canon: why the road bends | 全篇 |
+| items | the small bag of unclaimed salt · the bucket rim | 三 |
+| history | the Iron-Moon Age after the 41st Convocation (links Echo #4) | 纪元 |
+
+> 世界没有写完——连一处拐弯都有它没说出口的理由。
+> The world is not finished — even a bend in the road has a reason it never spoke aloud.
+`,
+    markdownEn: `
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written for a detail no watch-log ever recorded: every watchman turns a corner before the well, and never looks into it.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail along the watch route and beside the salt well.
+
+> Era: the Iron-Moon Age — after the 41st Convocation (as in Echo #4 "Salt Waiting for the Tide in the Well" and the canon chapter "Watch-Route Notes").
+
+---
+
+## One · The Corner
+
+The watch route could have gone straight, but every watchman turns a corner before the well.
+**锚句**：每个守夜人都会在井前拐一个弯。
+**Anchor sentence**: every watchman turns a corner before the well.
+
+---
+
+## Two · Not Looking
+
+They are not afraid of the well — they simply never look into it.
+**锚句**：他们不是怕井——是从不往井里看。
+**Anchor sentence**: they are not afraid of the well — they simply never look into it.
+
+---
+
+## Three · The Salt on the Rim
+
+On the rim there is always a small bag of unclaimed salt — they can count it, but never touch it.
+**锚句**：桶沿上总有一小袋没人认领的盐，他们数得清，却从不碰。
+**Anchor sentence**: on the rim there is always a small bag of unclaimed salt — they can count it, but never touch it.
+
+---
+
+## Four · The Newcomer
+
+The new watchman asked why they detour; the old one said: walk straight and you will hear the well not answering.
+**锚句**：走直了会听见井不回答。
+**Anchor sentence**: walk straight and you will hear the well not answering.
+
+---
+
+## Five · Silence Is an Answer
+
+Only later did they understand: the well's not answering is an answer too — it takes only the salt set down, not questions.
+**锚句**：井的不回答也是一种回答——它只接住放下去的盐，不接问题。
+**Anchor sentence**: the well's not answering is an answer too — it takes only the salt set down, not questions.
+
+---
+
+## Six · The Road Bends
+
+So the watch route keeps a bend before the well — it is not the well blocking the road — it is that questions should not be brought to the well.
+**锚句**：不是井挡了路，是问题不该被带到井边。
+**Anchor sentence**: it is not the well blocking the road — it is that questions should not be brought to the well.
+
+---
+
+## Seven · Mapping (Echo No. 226 · world model)
+
+| Dimension | Value | Chapters |
+| --- | --- | --- |
+| lore | the watch route bends before the well · the well takes salt not questions · silence is an answer | 一、二、五、六 |
+| geography | the watch route · the salt well · the bucket rim | 一、三、六 |
+| characters | the old watchman · the new watchman | 四 |
+| story | a small detail beside Echo #4 and the watch-route canon: why the road bends | 全篇 |
+| items | the small bag of unclaimed salt · the bucket rim | 三 |
+| history | the Iron-Moon Age after the 41st Convocation (links Echo #4) | 纪元 |
+
+> The world is not finished — even a bend in the road has a reason it never spoke aloud.
+> 世界没有写完——连一处拐弯都有它没说出口的理由。
+`,
+  },
+  {
     order: 23,
     slug: 'echo-023-the-ship-that-appears-only-at-dusk',
     titleZh: '雾港里那艘只在黄昏出现的船',

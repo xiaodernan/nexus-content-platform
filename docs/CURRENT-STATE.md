@@ -8880,3 +8880,9 @@ Reader (post-continuum trace):
 - **重导**：gen:bible-snapshot 重生 generated.ts / digest（276,174 chars, sha a7beb489…）；锚句 1358→1364；回响 224→225。
 - **计数对齐**：guideCopy 224→225 / 1353→1359 / two hundred twenty-four→twenty-five；bible-ask-behavior pin 1353→1359；canon-answer-graph 224→225（14+225）。问答数 131 保持不变。
 - **验证**：world-bible / bible-snapshot / anchor-echo / record-encoding 全 exit 0；vitest 25 passed；typecheck:main、fe-gates 全绿。
+
+## cont. 486 (2026-11-25) — Echo #226《巡夜人绕开那口井走》· 225→226 回响（魔鬼在细节）
+- **细节场景（需求六「魔鬼在细节」）**：独立支线——巡夜路线本可直走，但每个守夜人都在井前拐弯、从不往井里看；桶沿总有一小袋没人认领的盐，数得清却不碰；新守夜人问为什么绕，老守夜人说走直了会听见井不回答；后来才懂井的不回答也是一种回答——它只接住放下去的盐，不接问题；路因此弯了。把 Echo #4「盐在井里等潮」与正典《巡逻路札记》接起来，给一处拐弯补上没说出口的理由。6 组锚句 zh/en 逐字对应、全典唯一。
+- **重导**：gen:bible-snapshot 重生 generated.ts / digest（276,461 chars, sha 2bc86485…）；锚句 1364→1370；回响 225→226。
+- **计数对齐**：guideCopy 225→226 / 1359→1365 / two hundred twenty-five→twenty-six；bible-ask-behavior pin 1359→1365；canon-answer-graph 225→226（14+226）。问答数 131 保持不变。
+- **验证**：world-bible / bible-snapshot / anchor-echo / record-encoding 全 exit 0；vitest 25 passed；typecheck:main、fe-gates 全绿。

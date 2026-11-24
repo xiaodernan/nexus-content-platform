@@ -3825,6 +3825,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [5] 他们照着那声音，在问句旁边画了一行只有高低、没有词的记号。
 - [6] 夜里，那行记号自己轻声响起——像有人把问句念了一遍，没有回答。
 
+### Echo 226 · 巡夜人绕开那口井走 / The Watchman Walks Around the Well
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 每个守夜人都会在井前拐一个弯。
+- [2] 他们不是怕井——是从不往井里看。
+- [3] 桶沿上总有一小袋没人认领的盐，他们数得清，却从不碰。
+- [4] 走直了会听见井不回答。
+- [5] 井的不回答也是一种回答——它只接住放下去的盐，不接问题。
+- [6] 不是井挡了路，是问题不该被带到井边。
+
 ### Echo 23 · 雾港里那艘只在黄昏出现的船 / The Ship That Appears Only at Dusk in Fog Harbor
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 雾港黄昏起雾的时候，码头口总有一艘船不在值守的名册上。
