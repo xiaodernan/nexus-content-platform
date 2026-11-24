@@ -137,6 +137,9 @@ const MOTIFS: readonly MotifSpec[] = [
   { id: 'brass-anchor', kind: 'object', labelZh: '铜锚', labelEn: 'the brass anchor', zh: ['铜锚'], en: ['brass anchor'] },
   { id: 'hourglass', kind: 'object', labelZh: '沙漏', labelEn: 'the hourglass', zh: ['沙漏'], en: ['hourglass'] },
   { id: 'rice-salt-stone', kind: 'object', labelZh: '米盐石', labelEn: 'the rice-and-salt stone', zh: ['米盐石'], en: ['salt stone', 'rice-and-salt'] },
+  // 盐井：Echo #4「盐在井里等潮」首写，E226/E227/E228 续写（巡夜人绕井、数盐、放盐人的竖琴）。
+  // 它符合"两篇以上写到同一件有名字的东西"的收录判据，补进来让这几篇可被顺藤摸瓜。
+  { id: 'salt-well', kind: 'object', labelZh: '盐井', labelEn: 'the salt well', zh: ['盐井', '井里', '井边', '井不'], en: ['salt well', 'the well', 'well rim'] },
   { id: 'paper-boat', kind: 'object', labelZh: '纸船', labelEn: 'the paper boat', zh: ['纸船'], en: ['paper boat'] },
   { id: 'iron-door', kind: 'object', labelZh: '铁门', labelEn: 'the iron door', zh: ['铁门'], en: ['iron door'] },
   { id: 'whalebone-harp', kind: 'object', labelZh: '鲸骨竖琴', labelEn: 'the whalebone harp', zh: ['竖琴', '鲸骨'], en: ['harp'] },
