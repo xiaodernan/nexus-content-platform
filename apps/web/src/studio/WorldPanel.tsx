@@ -152,6 +152,7 @@ const COPY = {
     modelHint: '在 3D 世界里渲染哪个模型；加载不出来时退回类别几何体，不会留空白',
     saveToLibrary: '保存到库',
     addOne: '加一条',
+    addOneTitle: '在左边选中的类别下加一条空条目，然后自己写正文；立即存库，不进画布撤销栈。',
     editsNote: '改完即写库（失焦或点删除都会保存）。世界编辑不进画布的撤销栈：Ctrl+Z 只管设计文档。',
     missingKinds: (names: string) => ` ${names} 这一类还没有条目，可以用上面的下拉补。`,
     newEntryLabel: (kind: string) => `${kind} · 新条目`,
@@ -278,6 +279,7 @@ tidalTerrainHeading: 'Terrain (walkable plateaus and cones)',
     modelHint: 'Which model to render in the 3D world; falls back to category geometry if load fails — never a blank',
     saveToLibrary: 'Save to library',
     addOne: 'Add one',
+    addOneTitle: 'Add an empty entry under the section selected on the left, then write the body yourself; saved immediately, outside the canvas undo stack.',
     editsNote: 'Edits write to the library immediately (blur or delete saves). World edits stay out of the canvas undo stack: Ctrl+Z only covers the design document.',
     missingKinds: (names: string) => ` No entries of these kinds yet: ${names} — add them from the dropdown above.`,
     newEntryLabel: (kind: string) => `${kind} · new entry`,
@@ -320,6 +322,9 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
   const studio = useStudioReady();
   const snapshot = useWorld();
   const [newKind, setNewKind] = useState<WorldKind>('lore');
+  // 必须早于下方 `if (!world) return`：hooks 不能跨条件返回跳过（真浏览器抓到过渲染期崩溃）。
+  const [nodeFilter, setNodeFilter] = useState('');
+  const [sortMode, setSortMode] = useState<WorldSortMode>('insertion');
   const world = snapshot.world;
 
   useEffect(() => {
@@ -736,8 +741,6 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
     if (save) void worldStore.commit();
   };
 
-  const [nodeFilter, setNodeFilter] = useState('');
-  const [sortMode, setSortMode] = useState<WorldSortMode>('insertion');
   const SORT_CYCLE: readonly WorldSortMode[] = ['insertion', 'era', 'title'];
   const cycleSort = () => setSortMode((m) => SORT_CYCLE[(SORT_CYCLE.indexOf(m) + 1) % SORT_CYCLE.length]!);
   const visibleNodes = sortWorldNodes(filterWorldNodes(world.nodes, nodeFilter), sortMode);
@@ -1035,6 +1038,7 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
               onClick={() =>
                 edit(addWorldNode(world, { kind: newKind, title: c.newEntryLabel(kindLabel(newKind, locale)) }), true)
               }
+              title={c.addOneTitle}
               data-world-add={newKind}
               className="wd-ghostBtn"
             >

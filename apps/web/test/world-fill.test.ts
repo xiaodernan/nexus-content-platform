@@ -127,6 +127,17 @@ describe('WorldPanel 四种填料按钮接线（web 侧限流期间的静态保�
     expect(panel).toContain('groupLocal:');
     expect(panel).toContain('groupAi:');
   });
+  it('所有 hooks 都在 `if (!world)` 早退之前（真浏览器抓到过跨条件返回的渲染崩溃）', () => {
+    const panelStart = panel.indexOf('export function WorldPanel(');
+    const panelEnd = panel.indexOf('function TerrainSection(');
+    expect(panelStart).toBeGreaterThan(0);
+    expect(panelEnd).toBeGreaterThan(panelStart);
+    const early = panel.indexOf('if (!world) {', panelStart);
+    expect(early).toBeGreaterThan(panelStart);
+    const after = panel.slice(early, panelEnd); // 只看 WorldPanel 自己的函数体
+    const hooks = after.match(/\b(useState|useRef|useEffect|useMemo)\s*[<(]/g) ?? [];
+    expect(hooks, `早退之后还有 hooks：${hooks.join(', ')}`).toEqual([]);
+  });
   it('三种写回都走 setLocal + commit，不绕过契约直写库', () => {
     expect(panel).toContain('worldStore.setLocal');
     expect(panel).toContain('worldStore.commit()');
