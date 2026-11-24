@@ -154,7 +154,7 @@ function maskLiterals(expr: string): string {
 // 2026-11-21 §I18N-NO-MIX：有意改了两处 quickStartKicker 文案（去掉「中文 · ENGLISH」
 // 并列夹杂，见 test/i18n-no-mix.test.ts），因此剥类后的字节基准随之更新。除此之外
 // 三态 / 四个 map / data 钩子 / 业务调用一个字节没动——这是登记过的文案变更，不是行为溢出。
-const STRIP_CLASS_SHA256 = 'b7ef669bda369378055c0c475c9835f383043752d76c34f83b1b5a663118771d';
+const STRIP_CLASS_SHA256 = 'aefed74e39e60256590496015a30b62bf7ee94f7b4538f303c8c384c4f384668';
 function stripClassNames(src: string): string {
   const s = src.replace(/\r\n/g, '\n');
   let out = '';
