@@ -68,7 +68,8 @@ describe('§INSIGHT-2 /insight 观察哨', () => {
   it('口令门：默认 123、环境变量可覆盖、httpOnly Cookie、IP 限流', () => {
     expect(login).toContain("process.env.NEXUS_INSIGHT_PASSWORD ?? '123'");
     expect(login).toContain('httpOnly: true');
-    expect(login).toContain('30, 300_000');
+    // 限额与窗口从唯一真值表读，不再在路由里手写 30/300_000（管理员面板能端出这道闸）。
+    expect(login).toContain("IP_RATE_RULES['insight/login']");
     expect(gate).toContain("fetch('/api/insight/login'");
     expect(gate).not.toMatch(/fetch\('\/api\/(?!insight\/login)/);
     expect(logout).toContain("fetch('/api/insight/logout'");
