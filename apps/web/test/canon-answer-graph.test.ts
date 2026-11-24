@@ -82,7 +82,7 @@ describe('§GRAPH-1 检索与机检（确定性，不烧 token）', () => {
     const chapters = segments.filter((s) => s.startsWith('## Chapter'));
     const echoes = segments.filter((s) => s.startsWith('### Echo'));
     expect(chapters).toHaveLength(14);
-    expect(echoes).toHaveLength(221);
+    expect(echoes).toHaveLength(230);
   });
 
   it('「米缸」问句命中米缸回响 Echo 36（而不是随机段落）', () => {

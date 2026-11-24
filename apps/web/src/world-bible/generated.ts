@@ -30254,65 +30254,71 @@ The chalk line wore thin under heels, but the dots remained. The blank is still 
   },
   {
     order: 221,
-    slug: 'echo-221-footsteps-at-the-far-end-of-the-blank',
-    titleZh: '空白那一头的脚步',
-    titleEn: 'Footsteps at the Far End of the Blank',
+    slug: 'echo-221-smaller-page-inside-the-square',
+    titleZh: '空位里那页更小的点',
+    titleEn: 'The Smaller Page of Dots Inside the Square',
     eraLineZh: '纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E220）。',
-    eraLineEn: 'Era: the Institute — after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E220).',
-    markdownZh: `
+    eraLineEn: 'Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E220).',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 221): The Smaller Page of Dots Inside the Square
+
 > 回响不替正典续写——它只是页边另一层长出来的盐。
-> 写在 E220 之后：线已经铺在地上、也已经被走过一遍。这一篇写的是第一个越过空白的人，回头时看见了什么。
-> 纪律同前：锚句逐字；不新增正典专名，只在既有的灰棚与抄本院里添细节。
+> 写在 E220 之后：灯留在空白这一头，孩子停在空白前面。这一篇写的是天亮以后那一格空位里有什么。
+> 纪律同前：锚句逐字；不新增正典专名，只在既有的抄本院与页边添细节。
+>
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E220: the lamp stayed at this end of the blank and the child stopped before it. This one writes what the empty square holds by morning.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail within the copy hall and the margins.
 
 > 纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E220）。
+> Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E220).
 
 ---
 
-## 一 · 越过
+## 一 · 灯在另一头
 
-第一个越过空白的人没有跨，是把脚落在空白里才走的。灰棚的盐面在他鞋底轻轻响了一声，像翻过一页。
-**锚句**：第一个越过空白的人把脚落在空白里才走。
-**Anchor sentence**: the first to cross the blank set a foot into the blank before walking on.
-
----
-
-## 二 · 回头
-
-走到那边之后他回头，看见来路变得很细。粉笔线被来来回回的脚步磨成一线灰，七页点缩成一小串白。
-**锚句**：走到那边之后他回头，看见来路变得很细。
-**Anchor sentence**: once he was across he looked back and saw the way he had come grown thin.
+天亮时灯在空白的另一头——没有人走过那一截。
+**锚句**：天亮时灯在空白的另一头——没有人走过那一截。
+**Anchor sentence**: at dawn the lamp stood at the other end of the blank — no one had walked it.
 
 ---
 
-## 三 · 另一盏灯
+## 二 · 空位里
 
-空白的这一头原来也有一盏灯，灯芯是旧的，却还亮着。抄本师那盏留在这一边，这一盏一直在那边等着。
-**锚句**：空白的这一头原来也有一盏灯，灯芯是旧的，却还亮着。
-**Anchor sentence**: at that end of the blank there was another lamp, its wick old but still lit.
-
----
-
-## 四 · 两盏之间
-
-两盏灯之间隔着一段没有人走过的空。他把手里那盏举高，才发现对面的光不是反光，是另一只手刚点的。
-**锚句**：他把手里那盏举高，才发现对面的光不是反光。
-**Anchor sentence**: he raised the lamp in his hand and saw the light opposite was no reflection.
+那一格空位里没有答案，只有更小的一页点。
+**锚句**：那一格空位里没有答案，只有更小的一页点。
+**Anchor sentence**: the empty square held no answer, only a smaller page of dots.
 
 ---
 
-## 五 · 记一笔
+## 三 · 收进袖子
 
-他回身在空白边上记了一笔：不是写名字，是画了一道短横——表示这里有人走过，路是通的。
-**锚句**：他回身在空白边上记了一笔，画了一道表示这里走得通的短横。
-**Anchor sentence**: he turned back and set one mark by the blank — a short stroke meaning the way was passable.
+最年长的抄本师把那页点收进袖子，没有铺开。
+**锚句**：最年长的抄本师把那页点收进袖子，没有铺开。
+**Anchor sentence**: the eldest copyist folded the page into his sleeve and did not spread it.
 
 ---
 
-## 六 · 路的两头
+## 四 · 等有人问
 
-后来的人从两头各走一半，在中间碰头。他们没说什么，只把两盏灯挪到一处，让这段空也有了两头。
-**锚句**：后来的人从两头各走一半，在中间碰头。
-**Anchor sentence**: those who came later walked half from each end and met in the middle.
+他说，等有人问起这一格，再铺。
+**锚句**：他说，等有人问起这一格，再铺。
+**Anchor sentence**: he said to spread it when someone asked about the square.
+
+---
+
+## 五 · 袖子轻了
+
+那天没有人问——可第二天，袖子里那页点自己轻了。
+**锚句**：那天没有人问——可第二天，袖子里那页点自己轻了。
+**Anchor sentence**: no one asked that day — but by morning the page in his sleeve had grown lighter.
+
+---
+
+## 六 · 朝里开的门
+
+空位不是尽头，是一扇朝里开的门。
+**锚句**：空位不是尽头，是一扇朝里开的门。
+**Anchor sentence**: the square is no end — it is a door that opens inward.
 
 ---
 
@@ -30320,70 +30326,70 @@ The chalk line wore thin under heels, but the dots remained. The blank is still 
 
 | 维度 | 值 | 对应章节 |
 | --- | --- | --- |
-| lore | the blank is a crossing, not an absence · a way has two ends once both are lit | 一、三、六 |
-| geography | the Institute's copy hall · the salt floor of the grey shed · the two ends of the blank | 一、三、六 |
-| characters | the first crosser · the copyist who kept his lamp · the later walkers from both ends | 一、四、六 |
-| story | after E220: the line is crossed, the return is seen, the blank gains two ends | 全篇 |
-| items | the lamp carried · the old lamp already lit · the short stroke in the salt | 三、四、五 |
+| lore | the square holds a smaller page of dots · an inward door · no answer | 二、四、六 |
+| geography | the copy hall · the empty square · the far end of the blank | 一、二 |
+| characters | the eldest copyist · the child who stopped · those who will ask | 一、三、四 |
+| story | after E220: the lamp crosses itself; each answer opens another road | 全篇 |
+| items | the lamp · the smaller page · the sleeve | 一、二、三、五 |
 | history | the 140th year after the 44th Convocation (continues E206–E220) | 纪元 |
 
-> 空白不是少了一页——是还没人从两头把它走成一段路。
-> The blank is not a missing page — it is a stretch no one has yet walked from both ends into a road.
+> 世界没有写完——空位里还有一页点，等一个问句。
+> The world is not finished — the square holds another page of dots, waiting for a question.
 `,
     markdownEn: `
 > An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
-> Written after E220: the line was laid on the floor and walked once. This echo is about the first person to cross the blank, and what he saw when he looked back.
-> Same discipline: anchors verbatim; no new canon proper nouns, only detail within the established grey shed and copy hall.
+> Written after E220: the lamp stayed at this end of the blank and the child stopped before it. This one writes what the empty square holds by morning.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail within the copy hall and the margins.
 
-> Era: the Institute — after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E220).
-
----
-
-## One · Crossing
-
-The first to cross the blank did not leap — he set a foot into the blank before walking on, and the salt of the grey shed gave a soft sound under his sole, like turning a page.
-**锚句**：第一个越过空白的人把脚落在空白里才走。
-**Anchor sentence**: the first to cross the blank set a foot into the blank before walking on.
+> Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E220).
 
 ---
 
-## Two · Looking back
+## One · The Lamp at the Other End
 
-Once he was across he looked back and saw the way he had come grown thin — the chalk line worn to a thread of grey by the going and returning, the seven pages of dots shrunk to a short string of white.
-**锚句**：走到那边之后他回头，看见来路变得很细。
-**Anchor sentence**: once he was across he looked back and saw the way he had come grown thin.
-
----
-
-## Three · The other lamp
-
-At that end of the blank there was another lamp, its wick old but still lit — the copyist's lamp stayed on this side, this one had been waiting all along on the far side.
-**锚句**：空白的这一头原来也有一盏灯，灯芯是旧的，却还亮着。
-**Anchor sentence**: at that end of the blank there was another lamp, its wick old but still lit.
+At dawn the lamp stood at the other end of the blank — no one had walked it.
+**锚句**：天亮时灯在空白的另一头——没有人走过那一截。
+**Anchor sentence**: at dawn the lamp stood at the other end of the blank — no one had walked it.
 
 ---
 
-## Four · Between two lamps
+## Two · Inside the Square
 
-Between the two lamps lay a stretch no one had walked. He raised the lamp in his hand and saw the light opposite was no reflection — it was another hand, just now, lighting its own.
-**锚句**：他把手里那盏举高，才发现对面的光不是反光。
-**Anchor sentence**: he raised the lamp in his hand and saw the light opposite was no reflection.
-
----
-
-## Five · One mark
-
-He turned back and set one mark by the edge of the blank — not a name, but a short stroke in the salt meaning someone had passed and the way was open.
-**锚句**：他回身在空白边上记了一笔，画了一道表示这里走得通的短横。
-**Anchor sentence**: he turned back and set one mark by the blank — a short stroke meaning the way was passable.
+The empty square held no answer, only a smaller page of dots.
+**锚句**：那一格空位里没有答案，只有更小的一页点。
+**Anchor sentence**: the empty square held no answer, only a smaller page of dots.
 
 ---
 
-## Six · Two ends
+## Three · Into the Sleeve
 
-Those who came later walked half from each end and met in the middle. They said nothing — only moved the two lamps together, so the empty stretch had two ends at last.
-**锚句**：后来的人从两头各走一半，在中间碰头。
-**Anchor sentence**: those who came later walked half from each end and met in the middle.
+The eldest copyist folded the page into his sleeve and did not spread it.
+**锚句**：最年长的抄本师把那页点收进袖子，没有铺开。
+**Anchor sentence**: the eldest copyist folded the page into his sleeve and did not spread it.
+
+---
+
+## Four · Wait for the Question
+
+He said to spread it when someone asked about the square.
+**锚句**：他说，等有人问起这一格，再铺。
+**Anchor sentence**: he said to spread it when someone asked about the square.
+
+---
+
+## Five · The Sleeve Grows Lighter
+
+No one asked that day — but by morning the page in his sleeve had grown lighter.
+**锚句**：那天没有人问——可第二天，袖子里那页点自己轻了。
+**Anchor sentence**: no one asked that day — but by morning the page in his sleeve had grown lighter.
+
+---
+
+## Six · A Door Opening Inward
+
+The square is no end — it is a door that opens inward.
+**锚句**：空位不是尽头，是一扇朝里开的门。
+**Anchor sentence**: the square is no end — it is a door that opens inward.
 
 ---
 
@@ -30391,15 +30397,1263 @@ Those who came later walked half from each end and met in the middle. They said 
 
 | Dimension | Value | Chapters |
 | --- | --- | --- |
-| lore | the blank is a crossing, not an absence · a way has two ends once both are lit | 1, 3, 6 |
-| geography | the Institute's copy hall · the salt floor of the grey shed · the two ends of the blank | 1, 3, 6 |
-| characters | the first crosser · the copyist who kept his lamp · the later walkers from both ends | 1, 4, 6 |
-| story | after E220: the line is crossed, the return is seen, the blank gains two ends | all |
-| items | the lamp carried · the old lamp already lit · the short stroke in the salt | 3, 4, 5 |
-| history | the 140th year after the 44th Convocation (continues E206–E220) | era |
+| lore | the square holds a smaller page of dots · an inward door · no answer | 二、四、六 |
+| geography | the copy hall · the empty square · the far end of the blank | 一、二 |
+| characters | the eldest copyist · the child who stopped · those who will ask | 一、三、四 |
+| story | after E220: the lamp crosses itself; each answer opens another road | 全篇 |
+| items | the lamp · the smaller page · the sleeve | 一、二、三、五 |
+| history | the 140th year after the 44th Convocation (continues E206–E220) | 纪元 |
 
-> The blank is not a missing page — it is a stretch no one has yet walked from both ends into a road.
-> 空白不是少了一页——是还没人从两头把它走成一段路。
+> The world is not finished — the square holds another page of dots, waiting for a question.
+> 世界没有写完——空位里还有一页点，等一个问句。
+`,
+  },
+  {
+    order: 222,
+    slug: 'echo-222-someone-asked-about-the-square',
+    titleZh: '有人问起那一格',
+    titleEn: 'Someone Asked About the Square',
+    eraLineZh: '纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E221）。',
+    eraLineEn: 'Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E221).',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 222): Someone Asked About the Square
+
+> 回响不替正典续写——它只是页边另一层长出来的盐。
+> 写在 E221 之后：抄本师说等有人问起这一格再铺。这一篇写的是那个问句终于来了之后的事。
+> 纪律同前：锚句逐字；不新增正典专名，只在既有的抄本院与页边添细节。
+>
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E221: the copyist said to spread the page when someone asked about the square. This one writes what happens when the question finally comes.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail within the copy hall and the margins.
+
+> 纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E221）。
+> Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E221).
+
+---
+
+## 一 · 问句
+
+那天下午，一个抄写学徒问：那一格空位，通向哪里？
+**锚句**：那天下午，一个抄写学徒问：那一格空位，通向哪里？
+**Anchor sentence**: that afternoon an apprentice copyist asked: where does that empty square lead?
+
+---
+
+## 二 · 铺开
+
+最年长的抄本师从袖子里取出那页点，铺在空位上。
+**锚句**：最年长的抄本师从袖子里取出那页点，铺在空位上。
+**Anchor sentence**: the eldest copyist took the page of dots from his sleeve and spread it over the square.
+
+---
+
+## 三 · 挪过的点
+
+点已经不在原来的位置——它们自己挪过，连成的线通向书架上没有的一格。
+**锚句**：点已经不在原来的位置——它们自己挪过，连成的线通向书架上没有的一格。
+**Anchor sentence**: the dots were no longer where they had been — they had moved themselves, and the line they made led to a square the shelves did not hold.
+
+---
+
+## 四 · 没有人写过
+
+那一格里没有正文，只有一行小字：这里还没有人写过。
+**锚句**：那一格里没有正文，只有一行小字：这里还没有人写过。
+**Anchor sentence**: that square held no body text, only a small line: no one has written here yet.
+
+---
+
+## 五 · 第一笔
+
+学徒拿起笔，写下第一个字——那一格从此不再是空的。
+**锚句**：学徒拿起笔，写下第一个字——那一格从此不再是空的。
+**Anchor sentence**: the apprentice took up the pen and wrote the first word — and the square was empty no longer.
+
+---
+
+## 六 · 又空了一格
+
+可在这页的尽头，又出现了一格新的空白——和第一格一模一样。
+**锚句**：可在这页的尽头，又出现了一格新的空白——和第一格一模一样。
+**Anchor sentence**: but at the end of the page a new blank appeared — exactly like the first one.
+
+---
+
+## 七 · Mapping（Echo No. 222 · world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | the question finally comes · the dots move themselves · every first word opens a new blank | 一、三、五、六 |
+| geography | the copy hall · the square the shelves do not hold | 二、三 |
+| characters | the apprentice who asked · the eldest copyist | 一、二、五 |
+| story | after E221: the inward door is walked through; the world grows one square further | 全篇 |
+| items | the page of dots · the pen · the small line "no one has written here yet" | 二、四、五 |
+| history | the 140th year after the 44th Convocation (continues E206–E221) | 纪元 |
+
+> 世界没有写完——每写下第一个字，尽头就再长出一格空白。
+> The world is not finished — every first word writes, and the end grows another blank.
+`,
+    markdownEn: `
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E221: the copyist said to spread the page when someone asked about the square. This one writes what happens when the question finally comes.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail within the copy hall and the margins.
+
+> Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E221).
+
+---
+
+## One · The Question
+
+That afternoon an apprentice copyist asked: where does that empty square lead?
+**锚句**：那天下午，一个抄写学徒问：那一格空位，通向哪里？
+**Anchor sentence**: that afternoon an apprentice copyist asked: where does that empty square lead?
+
+---
+
+## Two · Spread
+
+The eldest copyist took the page of dots from his sleeve and spread it over the square.
+**锚句**：最年长的抄本师从袖子里取出那页点，铺在空位上。
+**Anchor sentence**: the eldest copyist took the page of dots from his sleeve and spread it over the square.
+
+---
+
+## Three · The Moved Dots
+
+The dots were no longer where they had been — they had moved themselves, and the line they made led to a square the shelves did not hold.
+**锚句**：点已经不在原来的位置——它们自己挪过，连成的线通向书架上没有的一格。
+**Anchor sentence**: the dots were no longer where they had been — they had moved themselves, and the line they made led to a square the shelves did not hold.
+
+---
+
+## Four · No One Has Written
+
+That square held no body text, only a small line: no one has written here yet.
+**锚句**：那一格里没有正文，只有一行小字：这里还没有人写过。
+**Anchor sentence**: that square held no body text, only a small line: no one has written here yet.
+
+---
+
+## Five · The First Word
+
+The apprentice took up the pen and wrote the first word — and the square was empty no longer.
+**锚句**：学徒拿起笔，写下第一个字——那一格从此不再是空的。
+**Anchor sentence**: the apprentice took up the pen and wrote the first word — and the square was empty no longer.
+
+---
+
+## Six · Another Blank
+
+But at the end of the page a new blank appeared — exactly like the first one.
+**锚句**：可在这页的尽头，又出现了一格新的空白——和第一格一模一样。
+**Anchor sentence**: but at the end of the page a new blank appeared — exactly like the first one.
+
+---
+
+## Seven · Mapping (Echo No. 222 · world model)
+
+| Dimension | Value | Chapters |
+| --- | --- | --- |
+| lore | the question finally comes · the dots move themselves · every first word opens a new blank | 一、三、五、六 |
+| geography | the copy hall · the square the shelves do not hold | 二、三 |
+| characters | the apprentice who asked · the eldest copyist | 一、二、五 |
+| story | after E221: the inward door is walked through; the world grows one square further | 全篇 |
+| items | the page of dots · the pen · the small line "no one has written here yet" | 二、四、五 |
+| history | the 140th year after the 44th Convocation (continues E206–E221) | 纪元 |
+
+> The world is not finished — every first word writes, and the end grows another blank.
+> 世界没有写完——每写下第一个字，尽头就再长出一格空白。
+`,
+  },
+  {
+    order: 223,
+    slug: 'echo-223-blank-waits-for-question',
+    titleZh: '那格空白等的不是字',
+    titleEn: 'The Blank Waits Not for Words',
+    eraLineZh: '纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E222）。',
+    eraLineEn: 'Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E222).',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 223): The Blank Waits Not for Words
+
+> 回响不替正典续写——它只是页边另一层长出来的盐。
+> 写在 E222 之后：学徒写下第一个字，那格不再是空的，可尽头又长出一格新空白。这一篇写的是那格空白到底在等什么。
+> 纪律同前：锚句逐字；不新增正典专名，只在既有的抄本院与页边添细节。
+>
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E222: the apprentice wrote the first word, the square was no longer empty, yet a new blank grew at the end. This one writes what that blank is actually waiting for.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail within the copy hall and the margins.
+
+> 纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E222）。
+> Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E222).
+
+---
+
+## 一 · 又想填
+
+第二天，学徒拿起笔，想把新长出的那格也填满。
+**锚句**：第二天，学徒拿起笔，想把新长出的那格也填满。
+**Anchor sentence**: the next day the apprentice took up the pen to fill the new blank as well.
+
+---
+
+## 二 · 拦住
+
+最年长的抄本师按住他的手：这一格不是在等字。
+**锚句**：最年长的抄本师按住他的手：这一格不是在等字。
+**Anchor sentence**: the eldest copyist stayed his hand: this square is not waiting for words.
+
+---
+
+## 三 · 等问句
+
+它在等一个新问题——有人问起，它才会变成一处可以写的地方。
+**锚句**：它在等一个新问题——有人问起，它才会变成一处可以写的地方。
+**Anchor sentence**: it waits for a new question — only when someone asks does it become a place that can be written.
+
+---
+
+## 四 · 没人问就空着
+
+那天没有人问，那一格就空着——空着不算没写完，算还没被问到。
+**锚句**：那天没有人问，那一格就空着——空着不算没写完，算还没被问到。
+**Anchor sentence**: no one asked that day, and the square stayed blank — blank does not mean unfinished, it means not yet asked about.
+
+---
+
+## 五 · 提问先于回答
+
+抄本师们这才明白：先有问句，后有字——他们抄的从来不是答案，是问句的回声。
+**锚句**：先有问句，后有字——他们抄的从来不是答案，是问句的回声。
+**Anchor sentence**: the question comes first, then the words — what they had copied was never answers, but the echo of questions.
+
+---
+
+## 六 · 灯给问句留着
+
+那盏灯被放在空白旁边，不为照亮字，只为照亮下一个走过来、准备发问的人。
+**锚句**：那盏灯被放在空白旁边，不为照亮字，只为照亮下一个走过来、准备发问的人。
+**Anchor sentence**: the lamp was set beside the blank — not to light words, but to light the next person who comes walking up, ready to ask.
+
+---
+
+## 七 · Mapping（Echo No. 223 · world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | the blank waits for a question · question before words · copied text is an echo of questions | 三、五 |
+| geography | the copy hall · the blank beside the lamp | 一、六 |
+| characters | the eldest copyist · the apprentice with the pen | 一、二、六 |
+| story | after E222: the blank's purpose is revealed; the world grows by being asked | 全篇 |
+| items | the pen · the lamp · the blank square | 一、二、六 |
+| history | the 140th year after the 44th Convocation (continues E206–E222) | 纪元 |
+
+> 世界没有写完——它还等着有人开口问下一句。
+> The world is not finished — it still waits for someone to ask the next question.
+`,
+    markdownEn: `
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E222: the apprentice wrote the first word, the square was no longer empty, yet a new blank grew at the end. This one writes what that blank is actually waiting for.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail within the copy hall and the margins.
+
+> Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E222).
+
+---
+
+## One · To Fill Again
+
+The next day the apprentice took up the pen to fill the new blank as well.
+**锚句**：第二天，学徒拿起笔，想把新长出的那格也填满。
+**Anchor sentence**: the next day the apprentice took up the pen to fill the new blank as well.
+
+---
+
+## Two · Stayed
+
+The eldest copyist stayed his hand: this square is not waiting for words.
+**锚句**：最年长的抄本师按住他的手：这一格不是在等字。
+**Anchor sentence**: the eldest copyist stayed his hand: this square is not waiting for words.
+
+---
+
+## Three · Waiting for a Question
+
+It waits for a new question — only when someone asks does it become a place that can be written.
+**锚句**：它在等一个新问题——有人问起，它才会变成一处可以写的地方。
+**Anchor sentence**: it waits for a new question — only when someone asks does it become a place that can be written.
+
+---
+
+## Four · Blank Is Not Unfinished
+
+No one asked that day, and the square stayed blank — blank does not mean unfinished, it means not yet asked about.
+**锚句**：那天没有人问，那一格就空着——空着不算没写完，算还没被问到。
+**Anchor sentence**: no one asked that day, and the square stayed blank — blank does not mean unfinished, it means not yet asked about.
+
+---
+
+## Five · The Question First
+
+Only then did the copyists understand: the question comes first, then the words — what they had copied was never answers, but the echo of questions.
+**锚句**：先有问句，后有字——他们抄的从来不是答案，是问句的回声。
+**Anchor sentence**: the question comes first, then the words — what they had copied was never answers, but the echo of questions.
+
+---
+
+## Six · The Lamp for the Question
+
+The lamp was set beside the blank — not to light words, but to light the next person who comes walking up, ready to ask.
+**锚句**：那盏灯被放在空白旁边，不为照亮字，只为照亮下一个走过来、准备发问的人。
+**Anchor sentence**: the lamp was set beside the blank — not to light words, but to light the next person who comes walking up, ready to ask.
+
+---
+
+## Seven · Mapping (Echo No. 223 · world model)
+
+| Dimension | Value | Chapters |
+| --- | --- | --- |
+| lore | the blank waits for a question · question before words · copied text is an echo of questions | 三、五 |
+| geography | the copy hall · the blank beside the lamp | 一、六 |
+| characters | the eldest copyist · the apprentice with the pen | 一、二、六 |
+| story | after E222: the blank's purpose is revealed; the world grows by being asked | 全篇 |
+| items | the pen · the lamp · the blank square | 一、二、六 |
+| history | the 140th year after the 44th Convocation (continues E206–E222) | 纪元 |
+
+> The world is not finished — it still waits for someone to ask the next question.
+> 世界没有写完——它还等着有人开口问下一句。
+`,
+  },
+  {
+    order: 224,
+    slug: 'echo-224-question-as-first-entry',
+    titleZh: '那个问句被抄成了新的一条',
+    titleEn: 'The Question Was Copied as a New Entry',
+    eraLineZh: '纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E223）。',
+    eraLineEn: 'Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E223).',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 224): The Question Was Copied as a New Entry
+
+> 回响不替正典续写——它只是页边另一层长出来的盐。
+> 写在 E223 之后：抄本师们明白了先有问句后有字。这一篇写的是那个问句自己被抄进册子的那一刻。
+> 纪律同前：锚句逐字；不新增正典专名，只在既有的抄本院与页边添细节。
+>
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E223: the copyists understood that the question comes before the words. This one writes the moment the question itself was copied into the ledger.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail within the copy hall and the margins.
+
+> 纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E223）。
+> Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E223).
+
+---
+
+## 一 · 抄什么
+
+学徒问：既然先有问句，那我们抄的第一条，该是答案还是问句？
+**锚句**：既然先有问句，那我们抄的第一条，该是答案还是问句？
+**Anchor sentence**: if the question comes first, should the first entry we copy be the answer or the question?
+
+---
+
+## 二 · 抄问句
+
+最年长的抄本师说：抄问句——答案会老，问句不会。
+**锚句**：抄问句——答案会老，问句不会。
+**Anchor sentence**: copy the question — answers age, questions do not.
+
+---
+
+## 三 · 那一格
+
+于是他们把学徒的那句问话抄进新长出的那一格，当作这一格的第一条。
+**锚句**：他们把学徒的那句问话抄进新长出的那一格，当作这一格的第一条。
+**Anchor sentence**: they copied the apprentice's question into the newly grown square as its first entry.
+
+---
+
+## 四 · 条目活了
+
+那一格从此不再是空白——它现在装着一个问句，等着被回答，也等着被追问。
+**锚句**：它现在装着一个问句，等着被回答，也等着被追问。
+**Anchor sentence**: it now holds a question, waiting to be answered and waiting to be asked further.
+
+---
+
+## 五 · 自己长
+
+从那天起，册子不再等人来写——每抄进一个问句，页边就长出一格新的。
+**锚句**：每抄进一个问句，页边就长出一格新的。
+**Anchor sentence**: every question copied in grows a new square at the margin.
+
+---
+
+## 六 · 没有尽头
+
+抄本师们终于不再问"什么时候写完"——他们知道，写完的那天不会来。
+**锚句**：他们知道，写完的那天不会来。
+**Anchor sentence**: they knew the day of finishing would not come.
+
+---
+
+## 七 · Mapping（Echo No. 224 · world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | copy the question, not the answer · questions age not · each question grows a new square | 一、二、五 |
+| geography | the copy hall · the newly grown square · the margin | 三、五 |
+| characters | the apprentice who asked · the eldest copyist | 一、二、三 |
+| story | after E223: the question becomes the first entry; the world grows itself | 全篇 |
+| items | the ledger · the question entry · the new square | 三、四、五 |
+| history | the 140th year after the 44th Convocation (continues E206–E223) | 纪元 |
+
+> 世界没有写完——因为第一格抄的是问句，而问句只会引出更多问句。
+> The world is not finished — because the first entry was a question, and questions only lead to more questions.
+`,
+    markdownEn: `
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E223: the copyists understood that the question comes before the words. This one writes the moment the question itself was copied into the ledger.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail within the copy hall and the margins.
+
+> Era: the Institute · after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E223).
+
+---
+
+## One · What to Copy
+
+The apprentice asked: if the question comes first, should the first entry we copy be the answer or the question?
+**锚句**：既然先有问句，那我们抄的第一条，该是答案还是问句？
+**Anchor sentence**: if the question comes first, should the first entry we copy be the answer or the question?
+
+---
+
+## Two · Copy the Question
+
+The eldest copyist said: copy the question — answers age, questions do not.
+**锚句**：抄问句——答案会老，问句不会。
+**Anchor sentence**: copy the question — answers age, questions do not.
+
+---
+
+## Three · The Square
+
+So they copied the apprentice's question into the newly grown square as its first entry.
+**锚句**：他们把学徒的那句问话抄进新长出的那一格，当作这一格的第一条。
+**Anchor sentence**: they copied the apprentice's question into the newly grown square as its first entry.
+
+---
+
+## Four · The Entry Lives
+
+The square was blank no longer — it now holds a question, waiting to be answered and waiting to be asked further.
+**锚句**：它现在装着一个问句，等着被回答，也等着被追问。
+**Anchor sentence**: it now holds a question, waiting to be answered and waiting to be asked further.
+
+---
+
+## Five · It Grows Itself
+
+From that day the ledger no longer waited for someone to write — every question copied in grows a new square at the margin.
+**锚句**：每抄进一个问句，页边就长出一格新的。
+**Anchor sentence**: every question copied in grows a new square at the margin.
+
+---
+
+## Six · No End
+
+The copyists stopped asking "when will it be finished" — they knew the day of finishing would not come.
+**锚句**：他们知道，写完的那天不会来。
+**Anchor sentence**: they knew the day of finishing would not come.
+
+---
+
+## Seven · Mapping (Echo No. 224 · world model)
+
+| Dimension | Value | Chapters |
+| --- | --- | --- |
+| lore | copy the question, not the answer · questions age not · each question grows a new square | 一、二、五 |
+| geography | the copy hall · the newly grown square · the margin | 三、五 |
+| characters | the apprentice who asked · the eldest copyist | 一、二、三 |
+| story | after E223: the question becomes the first entry; the world grows itself | 全篇 |
+| items | the ledger · the question entry · the new square | 三、四、五 |
+| history | the 140th year after the 44th Convocation (continues E206–E223) | 纪元 |
+
+> The world is not finished — because the first entry was a question, and questions only lead to more questions.
+> 世界没有写完——因为第一格抄的是问句，而问句只会引出更多问句。
+`,
+  },
+  {
+    order: 225,
+    slug: 'echo-225-questions-have-a-sound',
+    titleZh: '问句也有声音',
+    titleEn: 'Questions Have a Sound Too',
+    eraLineZh: '纪元：冬潮月第一百四十年，抄本院；笔落在问句上的那一刻，与铁月纪第八盏灯下那阵无稿纸的轻音，是同一种声音。',
+    eraLineEn: 'Era: the 140th year of the winter-tide month, in the copy hall; the moment the pen touched the question was the same sound as the manuscript-less resonance under the Eighth Lamp in the Iron-Moon Age.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 225): Questions Have a Sound Too
+
+> 回响不替正典续写——它只是页边另一层长出来的盐。
+> 写在 E224 之后：册子第一格抄的是问句，世界靠问句自己生长。这一篇写的是问句被抄下时发出的声音。
+> 纪律同前：锚句逐字；不新增正典专名，只在既有的抄本院与第八盏灯的旧闻里添细节。
+>
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E224: the first entry was a question, and the world grows by questions. This one writes the sound a question makes when it is copied down.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail within the copy hall and the old account of the Eighth Lamp.
+
+> 纪元：冬潮月第一百四十年，抄本院；笔落在问句上的那一刻，与铁月纪第八盏灯下那阵无稿纸的轻音，是同一种声音。
+> Era: the 140th year of the winter-tide month, in the copy hall; the moment the pen touched the question was the same sound as the manuscript-less resonance under the Eighth Lamp in the Iron-Moon Age.
+
+---
+
+## 一 · 笔落下去
+
+抄本师把问句抄进那一格时，听见笔尖发出一声很轻的响。
+**锚句**：抄本师把问句抄进那一格时，听见笔尖发出一声很轻的响。
+**Anchor sentence**: as the copyist wrote the question into the square, he heard a very soft sound from the pen tip.
+
+---
+
+## 二 · 不是笔的声音
+
+可那不是笔的声音——笔早停了，声音还在。
+**锚句**：那不是笔的声音——笔早停了，声音还在。
+**Anchor sentence**: it was not the pen — the pen had stopped, yet the sound remained.
+
+---
+
+## 三 · 旧闻
+
+有个老抄本师说，这声音他听过一次：铁月纪，第八盏灯底下，一阵找不到稿纸的轻音。
+**锚句**：这声音他听过一次：铁月纪，第八盏灯底下，一阵找不到稿纸的轻音。
+**Anchor sentence**: he had heard it once: in the Iron-Moon Age, beneath the Eighth Lamp, a soft resonance with no manuscript to be found.
+
+---
+
+## 四 · 原来问句有声
+
+他们这才明白：问句也有声音——只是一直没有人把它记下来。
+**锚句**：问句也有声音——只是一直没有人把它记下来。
+**Anchor sentence**: questions have a sound too — only no one had ever written it down.
+
+---
+
+## 五 · 记谱
+
+于是他们照着那声音，在问句旁边画了一行只有高低、没有词的记号。
+**锚句**：他们照着那声音，在问句旁边画了一行只有高低、没有词的记号。
+**Anchor sentence**: they traced that sound beside the question — a line of marks with pitch but no words.
+
+---
+
+## 六 · 灯下的回响
+
+夜里，那行记号自己轻声响起——像有人把问句念了一遍，没有回答。
+**锚句**：夜里，那行记号自己轻声响起——像有人把问句念了一遍，没有回答。
+**Anchor sentence**: at night the line of marks sounded softly by itself — as if someone had read the question aloud, with no answer.
+
+---
+
+## 七 · Mapping（Echo No. 225 · world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | questions have a sound · the sound predates the ledger (Eighth Lamp) · pitch without words | 二、三、四、五 |
+| geography | the copy hall · the Eighth Lamp of the Iron-Moon Age | 一、三 |
+| characters | the copyist who heard · the old copyist who remembered | 一、三 |
+| story | after E224: the question-line and the score-line meet; the world gains a soundtrack | 全篇 |
+| items | the pen · the wordless pitch-marks · the manuscript-less resonance | 一、五、六 |
+| history | the 140th winter-tide year echoes the Iron-Moon Age (links E6) | 三、纪元 |
+
+> 世界没有写完——问句出声，而声音会引出下一个问句。
+> The world is not finished — questions make a sound, and the sound leads to the next question.
+`,
+    markdownEn: `
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E224: the first entry was a question, and the world grows by questions. This one writes the sound a question makes when it is copied down.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail within the copy hall and the old account of the Eighth Lamp.
+
+> Era: the 140th year of the winter-tide month, in the copy hall; the moment the pen touched the question was the same sound as the manuscript-less resonance under the Eighth Lamp in the Iron-Moon Age.
+
+---
+
+## One · The Pen Falls
+
+As the copyist wrote the question into the square, he heard a very soft sound from the pen tip.
+**锚句**：抄本师把问句抄进那一格时，听见笔尖发出一声很轻的响。
+**Anchor sentence**: as the copyist wrote the question into the square, he heard a very soft sound from the pen tip.
+
+---
+
+## Two · Not the Pen
+
+It was not the pen — the pen had stopped, yet the sound remained.
+**锚句**：那不是笔的声音——笔早停了，声音还在。
+**Anchor sentence**: it was not the pen — the pen had stopped, yet the sound remained.
+
+---
+
+## Three · The Old Account
+
+An old copyist said he had heard it once: in the Iron-Moon Age, beneath the Eighth Lamp, a soft resonance with no manuscript to be found.
+**锚句**：这声音他听过一次：铁月纪，第八盏灯底下，一阵找不到稿纸的轻音。
+**Anchor sentence**: he had heard it once: in the Iron-Moon Age, beneath the Eighth Lamp, a soft resonance with no manuscript to be found.
+
+---
+
+## Four · Questions Have a Sound
+
+Only then did they understand: questions have a sound too — only no one had ever written it down.
+**锚句**：问句也有声音——只是一直没有人把它记下来。
+**Anchor sentence**: questions have a sound too — only no one had ever written it down.
+
+---
+
+## Five · Noting the Pitch
+
+They traced that sound beside the question — a line of marks with pitch but no words.
+**锚句**：他们照着那声音，在问句旁边画了一行只有高低、没有词的记号。
+**Anchor sentence**: they traced that sound beside the question — a line of marks with pitch but no words.
+
+---
+
+## Six · The Resonance at Night
+
+At night the line of marks sounded softly by itself — as if someone had read the question aloud, with no answer.
+**锚句**：夜里，那行记号自己轻声响起——像有人把问句念了一遍，没有回答。
+**Anchor sentence**: at night the line of marks sounded softly by itself — as if someone had read the question aloud, with no answer.
+
+---
+
+## Seven · Mapping (Echo No. 225 · world model)
+
+| Dimension | Value | Chapters |
+| --- | --- | --- |
+| lore | questions have a sound · the sound predates the ledger (Eighth Lamp) · pitch without words | 二、三、四、五 |
+| geography | the copy hall · the Eighth Lamp of the Iron-Moon Age | 一、三 |
+| characters | the copyist who heard · the old copyist who remembered | 一、三 |
+| story | after E224: the question-line and the score-line meet; the world gains a soundtrack | 全篇 |
+| items | the pen · the wordless pitch-marks · the manuscript-less resonance | 一、五、六 |
+| history | the 140th winter-tide year echoes the Iron-Moon Age (links E6) | 三、纪元 |
+
+> The world is not finished — questions make a sound, and the sound leads to the next question.
+> 世界没有写完——问句出声，而声音会引出下一个问句。
+`,
+  },
+  {
+    order: 226,
+    slug: 'echo-226-watchman-walks-around-well',
+    titleZh: '巡夜人绕开那口井走',
+    titleEn: 'The Watchman Walks Around the Well',
+    eraLineZh: '纪元：铁月纪 · 第四十一次大会之后（同 Echo #4「盐在井里等潮」与正典《巡逻路札记》）。',
+    eraLineEn: 'Era: the Iron-Moon Age — after the 41st Convocation (as in Echo #4 "Salt Waiting for the Tide in the Well" and the canon chapter "Watch-Route Notes").',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 226): The Watchman Walks Around the Well
+
+> 回响不替正典续写——它只是页边另一层长出来的盐。
+> 本篇写给巡夜路线上一处没人写进札记的细节：每个守夜人都会在井前拐一个弯，从不往井里看。
+> 纪律同前：锚句逐字；不新增正典专名，只在既有的巡夜路线与盐井旁添细节。
+>
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written for a detail no watch-log ever recorded: every watchman turns a corner before the well, and never looks into it.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail along the watch route and beside the salt well.
+
+> 纪元：铁月纪 · 第四十一次大会之后（同 Echo #4「盐在井里等潮」与正典《巡逻路札记》）。
+> Era: the Iron-Moon Age — after the 41st Convocation (as in Echo #4 "Salt Waiting for the Tide in the Well" and the canon chapter "Watch-Route Notes").
+
+---
+
+## 一 · 拐弯
+
+巡夜路线本可以直着走过去，可每个守夜人都会在井前拐一个弯。
+**锚句**：每个守夜人都会在井前拐一个弯。
+**Anchor sentence**: every watchman turns a corner before the well.
+
+---
+
+## 二 · 不看
+
+他们不是怕井——是从不往井里看。
+**锚句**：他们不是怕井——是从不往井里看。
+**Anchor sentence**: they are not afraid of the well — they simply never look into it.
+
+---
+
+## 三 · 桶沿的盐
+
+桶沿上总有一小袋没人认领的盐，他们数得清，却从不碰。
+**锚句**：桶沿上总有一小袋没人认领的盐，他们数得清，却从不碰。
+**Anchor sentence**: on the rim there is always a small bag of unclaimed salt — they can count it, but never touch it.
+
+---
+
+## 四 · 新来的
+
+新来的守夜人问为什么要绕，老守夜人说：走直了会听见井不回答。
+**锚句**：走直了会听见井不回答。
+**Anchor sentence**: walk straight and you will hear the well not answering.
+
+---
+
+## 五 · 不回答也是回答
+
+后来他们才懂：井的不回答也是一种回答——它只接住放下去的盐，不接问题。
+**锚句**：井的不回答也是一种回答——它只接住放下去的盐，不接问题。
+**Anchor sentence**: the well's not answering is an answer too — it takes only the salt set down, not questions.
+
+---
+
+## 六 · 路因此弯了
+
+所以那条巡夜路线在井前留了个弯——不是井挡了路，是问题不该被带到井边。
+**锚句**：不是井挡了路，是问题不该被带到井边。
+**Anchor sentence**: it is not the well blocking the road — it is that questions should not be brought to the well.
+
+---
+
+## 七 · Mapping（Echo No. 226 · world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | the watch route bends before the well · the well takes salt not questions · silence is an answer | 一、二、五、六 |
+| geography | the watch route · the salt well · the bucket rim | 一、三、六 |
+| characters | the old watchman · the new watchman | 四 |
+| story | a small detail beside Echo #4 and the watch-route canon: why the road bends | 全篇 |
+| items | the small bag of unclaimed salt · the bucket rim | 三 |
+| history | the Iron-Moon Age after the 41st Convocation (links Echo #4) | 纪元 |
+
+> 世界没有写完——连一处拐弯都有它没说出口的理由。
+> The world is not finished — even a bend in the road has a reason it never spoke aloud.
+`,
+    markdownEn: `
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written for a detail no watch-log ever recorded: every watchman turns a corner before the well, and never looks into it.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail along the watch route and beside the salt well.
+
+> Era: the Iron-Moon Age — after the 41st Convocation (as in Echo #4 "Salt Waiting for the Tide in the Well" and the canon chapter "Watch-Route Notes").
+
+---
+
+## One · The Corner
+
+The watch route could have gone straight, but every watchman turns a corner before the well.
+**锚句**：每个守夜人都会在井前拐一个弯。
+**Anchor sentence**: every watchman turns a corner before the well.
+
+---
+
+## Two · Not Looking
+
+They are not afraid of the well — they simply never look into it.
+**锚句**：他们不是怕井——是从不往井里看。
+**Anchor sentence**: they are not afraid of the well — they simply never look into it.
+
+---
+
+## Three · The Salt on the Rim
+
+On the rim there is always a small bag of unclaimed salt — they can count it, but never touch it.
+**锚句**：桶沿上总有一小袋没人认领的盐，他们数得清，却从不碰。
+**Anchor sentence**: on the rim there is always a small bag of unclaimed salt — they can count it, but never touch it.
+
+---
+
+## Four · The Newcomer
+
+The new watchman asked why they detour; the old one said: walk straight and you will hear the well not answering.
+**锚句**：走直了会听见井不回答。
+**Anchor sentence**: walk straight and you will hear the well not answering.
+
+---
+
+## Five · Silence Is an Answer
+
+Only later did they understand: the well's not answering is an answer too — it takes only the salt set down, not questions.
+**锚句**：井的不回答也是一种回答——它只接住放下去的盐，不接问题。
+**Anchor sentence**: the well's not answering is an answer too — it takes only the salt set down, not questions.
+
+---
+
+## Six · The Road Bends
+
+So the watch route keeps a bend before the well — it is not the well blocking the road — it is that questions should not be brought to the well.
+**锚句**：不是井挡了路，是问题不该被带到井边。
+**Anchor sentence**: it is not the well blocking the road — it is that questions should not be brought to the well.
+
+---
+
+## Seven · Mapping (Echo No. 226 · world model)
+
+| Dimension | Value | Chapters |
+| --- | --- | --- |
+| lore | the watch route bends before the well · the well takes salt not questions · silence is an answer | 一、二、五、六 |
+| geography | the watch route · the salt well · the bucket rim | 一、三、六 |
+| characters | the old watchman · the new watchman | 四 |
+| story | a small detail beside Echo #4 and the watch-route canon: why the road bends | 全篇 |
+| items | the small bag of unclaimed salt · the bucket rim | 三 |
+| history | the Iron-Moon Age after the 41st Convocation (links Echo #4) | 纪元 |
+
+> The world is not finished — even a bend in the road has a reason it never spoke aloud.
+> 世界没有写完——连一处拐弯都有它没说出口的理由。
+`,
+  },
+  {
+    order: 227,
+    slug: 'echo-227-watchman-counts-salt',
+    titleZh: '巡夜人数井边的盐',
+    titleEn: 'The Watchman Counts the Salt by the Well',
+    eraLineZh: '纪元：铁月纪 · 第四十一次大会之后（同 Echo #4「盐在井里等潮」与 E226「巡夜人绕开那口井走」）。',
+    eraLineEn: 'Era: the Iron-Moon Age — after the 41st Convocation (as in Echo #4 "Salt Waiting for the Tide in the Well" and E226 "The Watchman Walks Around the Well").',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 227): The Watchman Counts the Salt by the Well
+
+> 回响不替正典续写——它只是页边另一层长出来的盐。
+> 写在 E226 之后：巡夜人绕开井、不往井里看，却能数清桶沿的盐袋。这一篇写的是数盐这件小事。
+> 纪律同前：锚句逐字；不新增正典专名，只在既有的巡夜路线与盐井旁添细节。
+>
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E226: the watchman walks around the well and never looks in, yet can count the salt bags on the rim. This one writes the small act of counting.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail along the watch route and beside the salt well.
+
+> 纪元：铁月纪 · 第四十一次大会之后（同 Echo #4「盐在井里等潮」与 E226「巡夜人绕开那口井走」）。
+> Era: the Iron-Moon Age — after the 41st Convocation (as in Echo #4 "Salt Waiting for the Tide in the Well" and E226 "The Watchman Walks Around the Well").
+
+---
+
+## 一 · 数得清
+
+守夜人绕井时从不看井里，可桶沿的盐袋，他一眼就数得清。
+**锚句**：桶沿的盐袋，他一眼就数得清。
+**Anchor sentence**: the salt bags on the rim — he could count them at a single glance.
+
+---
+
+## 二 · 昨晚三袋
+
+昨晚是三袋，今晚是五袋——多出来的两袋，没人说过是谁放的。
+**锚句**：昨晚是三袋，今晚是五袋。
+**Anchor sentence**: three bags last night, five tonight.
+
+---
+
+## 三 · 记在心里
+
+他不记在札记上，只记在心里——因为盐袋不是账，是潮信。
+**锚句**：盐袋不是账，是潮信。
+**Anchor sentence**: the salt bags are not an account — they are a tide-sign.
+
+---
+
+## 四 · 多两袋
+
+多两袋，说明昨晚有两个人来过，各自放下一袋，各自走掉，谁也没等到潮。
+**锚句**：多两袋，说明昨晚有两个人各自放下一袋，各自走掉。
+**Anchor sentence**: two more means two people came last night — each set down a bag, each walked away.
+
+---
+
+## 五 · 不认领
+
+盐袋从不写名字——放的人不回来认领，数的人也不去问。
+**锚句**：放的人不回来认领，数的人也不去问。
+**Anchor sentence**: those who set them down never come back to claim them, and those who count never ask.
+
+---
+
+## 六 · 井记得
+
+守夜人数完就走，井不说话——可井记得每一袋盐落下的重量。
+**锚句**：井不说话——可井记得每一袋盐落下的重量。
+**Anchor sentence**: the well says nothing — yet it remembers the weight of every bag set down.
+
+---
+
+## 七 · Mapping（Echo No. 227 · world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | salt bags are a tide-sign, not an account · the well remembers weight | 三、六 |
+| geography | the well rim · the watch route | 一、六 |
+| characters | the counting watchman · the unseen givers | 二、四、五 |
+| story | a small detail after E226: counting the salt reads the tide without looking in | 全篇 |
+| items | the salt bags (three → five) · the watch-log left blank | 二、三 |
+| history | the Iron-Moon Age after the 41st Convocation (links Echo #4, E226) | 纪元 |
+
+> 世界没有写完——井记得的每一袋盐，都是一个没讲完的人。
+> The world is not finished — every bag the well remembers is a person whose story was not told.
+`,
+    markdownEn: `
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E226: the watchman walks around the well and never looks in, yet can count the salt bags on the rim. This one writes the small act of counting.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail along the watch route and beside the salt well.
+
+> Era: the Iron-Moon Age — after the 41st Convocation (as in Echo #4 "Salt Waiting for the Tide in the Well" and E226 "The Watchman Walks Around the Well").
+
+---
+
+## One · Countable
+
+The watchman never looks into the well as he detours, yet the salt bags on the rim — he could count them at a single glance.
+**锚句**：桶沿的盐袋，他一眼就数得清。
+**Anchor sentence**: the salt bags on the rim — he could count them at a single glance.
+
+---
+
+## Two · Three, Then Five
+
+Three bags last night, five tonight — no one said who set down the two extra.
+**锚句**：昨晚是三袋，今晚是五袋。
+**Anchor sentence**: three bags last night, five tonight.
+
+---
+
+## Three · In Memory
+
+He writes none of it in the watch-log, only in memory — the salt bags are not an account — they are a tide-sign.
+**锚句**：盐袋不是账，是潮信。
+**Anchor sentence**: the salt bags are not an account — they are a tide-sign.
+
+---
+
+## Four · Two More
+
+Two more means two people came last night — each set down a bag, each walked away.
+**锚句**：多两袋，说明昨晚有两个人各自放下一袋，各自走掉。
+**Anchor sentence**: two more means two people came last night — each set down a bag, each walked away.
+
+---
+
+## Five · Unclaimed
+
+The bags bear no name — those who set them down never come back to claim them, and those who count never ask.
+**锚句**：放的人不回来认领，数的人也不去问。
+**Anchor sentence**: those who set them down never come back to claim them, and those who count never ask.
+
+---
+
+## Six · The Well Remembers
+
+The watchman counts and moves on; the well says nothing — yet it remembers the weight of every bag set down.
+**锚句**：井不说话——可井记得每一袋盐落下的重量。
+**Anchor sentence**: the well says nothing — yet it remembers the weight of every bag set down.
+
+---
+
+## Seven · Mapping (Echo No. 227 · world model)
+
+| Dimension | Value | Chapters |
+| --- | --- | --- |
+| lore | salt bags are a tide-sign, not an account · the well remembers weight | 三、六 |
+| geography | the well rim · the watch route | 一、六 |
+| characters | the counting watchman · the unseen givers | 二、四、五 |
+| story | a small detail after E226: counting the salt reads the tide without looking in | 全篇 |
+| items | the salt bags (three → five) · the watch-log left blank | 二、三 |
+| history | the Iron-Moon Age after the 41st Convocation (links Echo #4, E226) | 纪元 |
+
+> The world is not finished — every bag the well remembers is a person whose story was not told.
+> 世界没有写完——井记得的每一袋盐，都是一个没讲完的人。
+`,
+  },
+  {
+    order: 228,
+    slug: 'echo-228-old-harp-in-sand-hall',
+    titleZh: '沙厅里那架被灰埋了却还在暗自调音的旧竖琴',
+    titleEn: 'The Old Harp in the Sand Hall, Buried in Dust, Still Tuning Itself',
+    eraLineZh: '纪元：铁月纪 · 第四十一次大会之后（同 Echo #4 盐井、E169 旧竖琴、E227 巡夜人数盐）。',
+    eraLineEn: 'Era: the Iron-Moon Age — after the 41st Convocation (as in Echo #4 salt well, E169 old harp, E227 watchman counting salt).',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 228): The Old Harp in the Sand Hall, Buried in Dust, Still Tuning Itself
+
+> 回响不替正典续写——它只是页边另一层长出来的盐。
+> 本篇写给一个放盐人的来历：他每晚在井边放一袋盐，没人知道他从沙厅来，也不会说那架旧竖琴的事。
+> 纪律同前：锚句逐字；不新增正典专名，只在既有的沙厅与旧竖琴（E169）旁添细节。
+>
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written for the backstory of one salt-setter: each night he leaves a bag by the well; no one knows he came from the sand hall, or that he would not speak of the old harp.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail beside the sand hall and the old harp (E169).
+
+> 纪元：铁月纪 · 第四十一次大会之后（同 Echo #4 盐井、E169 旧竖琴、E227 巡夜人数盐）。
+> Era: the Iron-Moon Age — after the 41st Convocation (as in Echo #4 salt well, E169 old harp, E227 watchman counting salt).
+
+---
+
+## 一 · 从沙厅来
+
+那个每晚放盐的人，是从沙厅来的——没人问，他也不说。
+**锚句**：那个每晚放盐的人，是从沙厅来的。
+**Anchor sentence**: the one who set down salt each night had come from the sand hall.
+
+---
+
+## 二 · 灰里的竖琴
+
+沙厅角落有一架旧竖琴，被灰埋了半边，弦却还在暗自调音。
+**锚句**：被灰埋了半边，弦却还在暗自调音。
+**Anchor sentence**: buried halfway in dust, its strings were still tuning themselves.
+
+---
+
+## 三 · 他听得出
+
+别人听不见那调音，他听得出——他年轻时为这架琴调过弦。
+**锚句**：别人听不见那调音，他听得出。
+**Anchor sentence**: no one else could hear that tuning, but he could.
+
+---
+
+## 四 · 为什么不回去
+
+有人问他为什么不回沙厅，他说：琴自己会调，可人不会自己回来。
+**锚句**：琴自己会调，可人不会自己回来。
+**Anchor sentence**: a harp tunes itself, but a person does not come back by himself.
+
+---
+
+## 五 · 盐是音
+
+他每晚放在井边的盐，其实是琴音落下来的重量——一袋，就是一个没弹完的音。
+**锚句**：一袋，就是一个没弹完的音。
+**Anchor sentence**: one bag is one note left unplayed.
+
+---
+
+## 六 · 井收着
+
+井不回答，却收着这些音——像那架琴收着灰，谁也不催它弹完。
+**锚句**：井不回答，却收着这些音。
+**Anchor sentence**: the well does not answer, yet it keeps those notes.
+
+---
+
+## 七 · Mapping（Echo No. 228 · world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | the salt-setter came from the sand hall · each bag is an unplayed note · the harp tunes itself | 一、二、五 |
+| geography | the sand hall · the well rim | 一、六 |
+| characters | the salt-setter who once tuned the harp | 三、四 |
+| story | after E227: one "unfinished person" behind the salt bags, tied to E169's old harp | 全篇 |
+| items | the old harp · the dust · the salt bags as notes | 二、五 |
+| history | the Iron-Moon Age after the 41st Convocation (links Echo #4, E169, E227) | 纪元 |
+
+> 世界没有写完——一个人不回来，一个音没弹完，井就替他们收着。
+> The world is not finished — a person does not return, a note is not finished, and the well keeps them both.
+`,
+    markdownEn: `
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written for the backstory of one salt-setter: each night he leaves a bag by the well; no one knows he came from the sand hall, or that he would not speak of the old harp.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail beside the sand hall and the old harp (E169).
+
+> Era: the Iron-Moon Age — after the 41st Convocation (as in Echo #4 salt well, E169 old harp, E227 watchman counting salt).
+
+---
+
+## One · From the Sand Hall
+
+The one who set down salt each night had come from the sand hall — no one asked, and he did not say.
+**锚句**：那个每晚放盐的人，是从沙厅来的。
+**Anchor sentence**: the one who set down salt each night had come from the sand hall.
+
+---
+
+## Two · The Harp in the Dust
+
+In a corner of the sand hall an old harp lay half-buried in dust, its strings still tuning themselves.
+**锚句**：被灰埋了半边，弦却还在暗自调音。
+**Anchor sentence**: buried halfway in dust, its strings were still tuning themselves.
+
+---
+
+## Three · He Could Hear It
+
+No one else could hear that tuning, but he could — in his youth he had tuned that harp.
+**锚句**：别人听不见那调音，他听得出。
+**Anchor sentence**: no one else could hear that tuning, but he could.
+
+---
+
+## Four · Why Not Return
+
+They asked why he did not go back to the sand hall; he said: a harp tunes itself, but a person does not come back by himself.
+**锚句**：琴自己会调，可人不会自己回来。
+**Anchor sentence**: a harp tunes itself, but a person does not come back by himself.
+
+---
+
+## Five · Salt Is Sound
+
+The salt he left by the well each night was the weight of the harp's notes falling — one bag is one note left unplayed.
+**锚句**：一袋，就是一个没弹完的音。
+**Anchor sentence**: one bag is one note left unplayed.
+
+---
+
+## Six · The Well Keeps It
+
+The well does not answer, yet it keeps those notes — as the harp keeps the dust, with no one urging it to finish.
+**锚句**：井不回答，却收着这些音。
+**Anchor sentence**: the well does not answer, yet it keeps those notes.
+
+---
+
+## Seven · Mapping (Echo No. 228 · world model)
+
+| Dimension | Value | Chapters |
+| --- | --- | --- |
+| lore | the salt-setter came from the sand hall · each bag is an unplayed note · the harp tunes itself | 一、二、五 |
+| geography | the sand hall · the well rim | 一、六 |
+| characters | the salt-setter who once tuned the harp | 三、四 |
+| story | after E227: one "unfinished person" behind the salt bags, tied to E169's old harp | 全篇 |
+| items | the old harp · the dust · the salt bags as notes | 二、五 |
+| history | the Iron-Moon Age after the 41st Convocation (links Echo #4, E169, E227) | 纪元 |
+
+> The world is not finished — a person does not return, a note is not finished, and the well keeps them both.
+> 世界没有写完——一个人不回来，一个音没弹完，井就替他们收着。
+`,
+  },
+  {
+    order: 229,
+    slug: 'echo-229-tide-table-without-shore',
+    titleZh: '潮候船上那张不写岸的潮汐表',
+    titleEn: 'The Tide-Table on the Ship That Writes No Shore',
+    eraLineZh: '纪元：铁月纪 · 第四十一次大会之后（同正典第 16 章《潮候船上没有岸》、第 43 章《雾港第九潮汐表》）。',
+    eraLineEn: 'Era: the Iron-Moon Age — after the 41st Convocation (as in canon chapter 16 "No Shore on the Tide Ship" and chapter 43 "The Ninth Tide-Table at Fog Harbor").',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 229): The Tide-Table on the Ship That Writes No Shore
+
+> 回响不替正典续写——它只是页边另一层长出来的盐。
+> 本篇写给第 16 章《潮候船上没有岸》里那张表：它记潮，却从不记岸，因为船工说岸会骗人。
+> 纪律同前：锚句逐字；不新增正典专名，只在既有的潮候船与潮汐表旁添细节。
+>
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written for the table in chapter 16 "No Shore on the Tide Ship": it records tides but never shores, because the boatmen say shores lie.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail beside the tide ship and its tide-table.
+
+> 纪元：铁月纪 · 第四十一次大会之后（同正典第 16 章《潮候船上没有岸》、第 43 章《雾港第九潮汐表》）。
+> Era: the Iron-Moon Age — after the 41st Convocation (as in canon chapter 16 "No Shore on the Tide Ship" and chapter 43 "The Ninth Tide-Table at Fog Harbor").
+
+---
+
+## 一 · 表上只有潮
+
+潮候船上的那张表记满了潮——时辰、高低、涨落，一项不缺。
+**锚句**：那张表记满了潮——时辰、高低、涨落，一项不缺。
+**Anchor sentence**: that table was full of tides — hour, height, rise and fall, nothing missing.
+
+---
+
+## 二 · 没有岸
+
+可整张表上，一个岸名都没有。
+**锚句**：整张表上，一个岸名都没有。
+**Anchor sentence**: on the whole table, not one shore was named.
+
+---
+
+## 三 · 岸会骗人
+
+船工说：岸会骗人——今天的码头，明天可能就不在了。
+**锚句**：岸会骗人——今天的码头，明天可能就不在了。
+**Anchor sentence**: shores lie — a quay that stands today may be gone tomorrow.
+
+---
+
+## 四 · 潮不会
+
+潮不会。你记下的那一涨，它下次还照样涨——表只记不会骗你的东西。
+**锚句**：表只记不会骗你的东西。
+**Anchor sentence**: the table records only what does not lie.
+
+---
+
+## 五 · 新学徒
+
+新学徒忍不住问：那我们往哪里靠？老船工指着表上的潮：往潮去的地方。
+**锚句**：老船工指着表上的潮：往潮去的地方。
+**Anchor sentence**: the old boatman pointed at the tides on the table: toward where the tide goes.
+
+---
+
+## 六 · 海没有边
+
+于是船一直开——表上的潮没有尽，海也就没有边；岸不在表上，也就不在船上。
+**锚句**：表上的潮没有尽，海也就没有边。
+**Anchor sentence**: the tides on the table have no end, so the sea has no edge.
+
+---
+
+## 七 · Mapping（Echo No. 229 · world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | the table records tides not shores · shores lie, tides do not · the sea has no edge | 二、三、六 |
+| geography | the tide ship · the open sea (no shore) · Fog Harbor's table | 一、六 |
+| characters | the old boatman · the new apprentice | 五 |
+| story | a new geography beyond the copy hall: chapter 16's shoreless ship, tied to Fog Harbor's table | 全篇 |
+| items | the tide-table (hour/height/rise/fall) · the unnamed shore | 一、二 |
+| history | the Iron-Moon Age after the 41st Convocation (links ch.16, ch.43) | 纪元 |
+
+> 世界没有写完——海没有边，因为潮没有尽。
+> The world is not finished — the sea has no edge, because the tide has no end.
+`,
+    markdownEn: `
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written for the table in chapter 16 "No Shore on the Tide Ship": it records tides but never shores, because the boatmen say shores lie.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail beside the tide ship and its tide-table.
+
+> Era: the Iron-Moon Age — after the 41st Convocation (as in canon chapter 16 "No Shore on the Tide Ship" and chapter 43 "The Ninth Tide-Table at Fog Harbor").
+
+---
+
+## One · Only Tides
+
+That table on the tide ship was full of tides — hour, height, rise and fall, nothing missing.
+**锚句**：那张表记满了潮——时辰、高低、涨落，一项不缺。
+**Anchor sentence**: that table was full of tides — hour, height, rise and fall, nothing missing.
+
+---
+
+## Two · No Shore
+
+Yet on the whole table, not one shore was named.
+**锚句**：整张表上，一个岸名都没有。
+**Anchor sentence**: on the whole table, not one shore was named.
+
+---
+
+## Three · Shores Lie
+
+The boatman said: shores lie — a quay that stands today may be gone tomorrow.
+**锚句**：岸会骗人——今天的码头，明天可能就不在了。
+**Anchor sentence**: shores lie — a quay that stands today may be gone tomorrow.
+
+---
+
+## Four · Tides Do Not
+
+Tides do not. The rise you wrote down rises again — the table records only what does not lie.
+**锚句**：表只记不会骗你的东西。
+**Anchor sentence**: the table records only what does not lie.
+
+---
+
+## Five · The Apprentice
+
+The new apprentice could not help asking: where do we land then? The old boatman pointed at the tides on the table: toward where the tide goes.
+**锚句**：老船工指着表上的潮：往潮去的地方。
+**Anchor sentence**: the old boatman pointed at the tides on the table: toward where the tide goes.
+
+---
+
+## Six · The Sea Has No Edge
+
+So the ship sails on — the tides on the table have no end, so the sea has no edge; the shore is not on the table, and so not on the ship.
+**锚句**：表上的潮没有尽，海也就没有边。
+**Anchor sentence**: the tides on the table have no end, so the sea has no edge.
+
+---
+
+## Seven · Mapping (Echo No. 229 · world model)
+
+| Dimension | Value | Chapters |
+| --- | --- | --- |
+| lore | the table records tides not shores · shores lie, tides do not · the sea has no edge | 二、三、六 |
+| geography | the tide ship · the open sea (no shore) · Fog Harbor's table | 一、六 |
+| characters | the old boatman · the new apprentice | 五 |
+| story | a new geography beyond the copy hall: chapter 16's shoreless ship, tied to Fog Harbor's table | 全篇 |
+| items | the tide-table (hour/height/rise/fall) · the unnamed shore | 一、二 |
+| history | the Iron-Moon Age after the 41st Convocation (links ch.16, ch.43) | 纪元 |
+
+> The world is not finished — the sea has no edge, because the tide has no end.
+> 世界没有写完——海没有边，因为潮没有尽。
 `,
   },
   {
@@ -30582,6 +31836,156 @@ The Fog Harbor keepers met again the next day — nothing was decided, because t
 
 > 每一下黄昏，雾港只看见两盏灯——谁去看第三盏，谁就要离开这个世界。
 > Every dusk, Fog Harbor sees only two lights — whoever looks for the third leaves the world.
+`,
+  },
+  {
+    order: 230,
+    slug: 'echo-230-footsteps-at-the-far-end-of-the-blank',
+    titleZh: '空白那一头的脚步',
+    titleEn: 'Footsteps at the Far End of the Blank',
+    eraLineZh: '纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E229）。',
+    eraLineEn: 'Era: the Institute — after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E229).',
+    markdownZh: `
+> 回响不替正典续写——它只是页边另一层长出来的盐。
+> 写在 E220 之后：线已经铺在地上、也已经被走过一遍。这一篇写的是第一个越过空白的人，回头时看见了什么。
+> 纪律同前：锚句逐字；不新增正典专名，只在既有的灰棚与抄本院里添细节。
+
+> 纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E229）。
+
+---
+
+## 一 · 越过
+
+第一个越过空白的人没有跨，是把脚落在空白里才走的。灰棚的盐面在他鞋底轻轻响了一声，像翻过一页。
+**锚句**：第一个越过空白的人把脚落在空白里才走。
+**Anchor sentence**: the first to cross the blank set a foot into the blank before walking on.
+
+---
+
+## 二 · 回头
+
+走到那边之后他回头，看见来路变得很细。粉笔线被来来回回的脚步磨成一线灰，七页点缩成一小串白。
+**锚句**：走到那边之后他回头，看见来路变得很细。
+**Anchor sentence**: once he was across he looked back and saw the way he had come grown thin.
+
+---
+
+## 三 · 另一盏灯
+
+空白的这一头原来也有一盏灯，灯芯是旧的，却还亮着。抄本师那盏留在这一边，这一盏一直在那边等着。
+**锚句**：空白的这一头原来也有一盏灯，灯芯是旧的，却还亮着。
+**Anchor sentence**: at that end of the blank there was another lamp, its wick old but still lit.
+
+---
+
+## 四 · 两盏之间
+
+两盏灯之间隔着一段没有人走过的空。他把手里那盏举高，才发现对面的光不是反光，是另一只手刚点的。
+**锚句**：他把手里那盏举高，才发现对面的光不是反光。
+**Anchor sentence**: he raised the lamp in his hand and saw the light opposite was no reflection.
+
+---
+
+## 五 · 记一笔
+
+他回身在空白边上记了一笔：不是写名字，是画了一道短横——表示这里有人走过，路是通的。
+**锚句**：他回身在空白边上记了一笔，画了一道表示这里走得通的短横。
+**Anchor sentence**: he turned back and set one mark by the blank — a short stroke meaning the way was passable.
+
+---
+
+## 六 · 路的两头
+
+后来的人从两头各走一半，在中间碰头。他们没说什么，只把两盏灯挪到一处，让这段空也有了两头。
+**锚句**：后来的人从两头各走一半，在中间碰头。
+**Anchor sentence**: those who came later walked half from each end and met in the middle.
+
+---
+
+## 七 · Mapping（Echo No. 230 · world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | the blank is a crossing, not an absence · a way has two ends once both are lit | 一、三、六 |
+| geography | the Institute's copy hall · the salt floor of the grey shed · the two ends of the blank | 一、三、六 |
+| characters | the first crosser · the copyist who kept his lamp · the later walkers from both ends | 一、四、六 |
+| story | after E229: the line is crossed, the return is seen, the blank gains two ends | 全篇 |
+| items | the lamp carried · the old lamp already lit · the short stroke in the salt | 三、四、五 |
+| history | the 140th year after the 44th Convocation (continues E206–E229) | 纪元 |
+
+> 空白不是少了一页——是还没人从两头把它走成一段路。
+> The blank is not a missing page — it is a stretch no one has yet walked from both ends into a road.
+`,
+    markdownEn: `
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E229: the line was laid on the floor and walked once. This echo is about the first person to cross the blank, and what he saw when he looked back.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail within the established grey shed and copy hall.
+
+> Era: the Institute — after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E229).
+
+---
+
+## One · Crossing
+
+The first to cross the blank did not leap — he set a foot into the blank before walking on, and the salt of the grey shed gave a soft sound under his sole, like turning a page.
+**锚句**：第一个越过空白的人把脚落在空白里才走。
+**Anchor sentence**: the first to cross the blank set a foot into the blank before walking on.
+
+---
+
+## Two · Looking back
+
+Once he was across he looked back and saw the way he had come grown thin — the chalk line worn to a thread of grey by the going and returning, the seven pages of dots shrunk to a short string of white.
+**锚句**：走到那边之后他回头，看见来路变得很细。
+**Anchor sentence**: once he was across he looked back and saw the way he had come grown thin.
+
+---
+
+## Three · The other lamp
+
+At that end of the blank there was another lamp, its wick old but still lit — the copyist's lamp stayed on this side, this one had been waiting all along on the far side.
+**锚句**：空白的这一头原来也有一盏灯，灯芯是旧的，却还亮着。
+**Anchor sentence**: at that end of the blank there was another lamp, its wick old but still lit.
+
+---
+
+## Four · Between two lamps
+
+Between the two lamps lay a stretch no one had walked. He raised the lamp in his hand and saw the light opposite was no reflection — it was another hand, just now, lighting its own.
+**锚句**：他把手里那盏举高，才发现对面的光不是反光。
+**Anchor sentence**: he raised the lamp in his hand and saw the light opposite was no reflection.
+
+---
+
+## Five · One mark
+
+He turned back and set one mark by the edge of the blank — not a name, but a short stroke in the salt meaning someone had passed and the way was open.
+**锚句**：他回身在空白边上记了一笔，画了一道表示这里走得通的短横。
+**Anchor sentence**: he turned back and set one mark by the blank — a short stroke meaning the way was passable.
+
+---
+
+## Six · Two ends
+
+Those who came later walked half from each end and met in the middle. They said nothing — only moved the two lamps together, so the empty stretch had two ends at last.
+**锚句**：后来的人从两头各走一半，在中间碰头。
+**Anchor sentence**: those who came later walked half from each end and met in the middle.
+
+---
+
+## Seven · Mapping (Echo No. 230 · world model)
+
+| Dimension | Value | Chapters |
+| --- | --- | --- |
+| lore | the blank is a crossing, not an absence · a way has two ends once both are lit | 1, 3, 6 |
+| geography | the Institute's copy hall · the salt floor of the grey shed · the two ends of the blank | 1, 3, 6 |
+| characters | the first crosser · the copyist who kept his lamp · the later walkers from both ends | 1, 4, 6 |
+| story | after E229: the line is crossed, the return is seen, the blank gains two ends | all |
+| items | the lamp carried · the old lamp already lit · the short stroke in the salt | 3, 4, 5 |
+| history | the 140th year after the 44th Convocation (continues E206–E229) | era |
+
+> The blank is not a missing page — it is a stretch no one has yet walked from both ends into a road.
+> 空白不是少了一页——是还没人从两头把它走成一段路。
 `,
   },
   {

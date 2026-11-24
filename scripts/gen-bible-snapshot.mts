@@ -277,7 +277,16 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E218-潮候院抄本院页边空出来的那一格': 'echo-218-the-gap-left-behind',
   'E219-潮候院抄本院点账': 'echo-219-the-ledger-of-dots',
   'E220-潮候院抄本院照着点走一遍': 'echo-220-walking-the-line-of-dots',
-  'E221-潮候院抄本院空白那一头的脚步': 'echo-221-footsteps-at-the-far-end-of-the-blank',
+  'E221-潮候院抄本院空位里那页更小的点': 'echo-221-smaller-page-inside-the-square',
+  'E222-潮候院抄本院有人问起那一格': 'echo-222-someone-asked-about-the-square',
+  'E223-潮候院抄本院那格空白等的不是字': 'echo-223-blank-waits-for-question',
+  'E224-潮候院抄本院那个问句被抄成了新的一条': 'echo-224-question-as-first-entry',
+  'E225-潮候院抄本院问句也有声音': 'echo-225-questions-have-a-sound',
+  'E226-潮候院巡夜人绕开那口井走': 'echo-226-watchman-walks-around-well',
+  'E227-潮候院巡夜人数井边的盐': 'echo-227-watchman-counts-salt',
+  'E228-潮候院沙厅里那架被灰埋了却还在暗自调音的旧竖琴': 'echo-228-old-harp-in-sand-hall',
+  'E229-潮候船上那张不写岸的潮汐表': 'echo-229-tide-table-without-shore',
+  'E230-潮候院抄本院空白那一头的脚步': 'echo-230-footsteps-at-the-far-end-of-the-blank',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');
