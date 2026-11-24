@@ -280,6 +280,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E221-潮候院抄本院空位里那页更小的点': 'echo-221-smaller-page-inside-the-square',
   'E222-潮候院抄本院有人问起那一格': 'echo-222-someone-asked-about-the-square',
   'E223-潮候院抄本院那格空白等的不是字': 'echo-223-blank-waits-for-question',
+  'E224-潮候院抄本院那个问句被抄成了新的一条': 'echo-224-question-as-first-entry',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');

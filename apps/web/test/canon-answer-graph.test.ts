@@ -76,13 +76,13 @@ describe('§GRAPH-1 检索与机检（确定性，不烧 token）', () => {
   });
 
   // 2026-11-22 并轨 origin/master：正典 13 章 → 14 章、212 回响 → 217 回响
-  // E218 → … → E222《有人问起那一格》→ E223《那格空白等的不是字》：218 → … → 223。
-  it('digest 段落切分出 14 章 + 223 回响', () => {
+  // E218 → … → E223《那格空白等的不是字》→ E224《那个问句被抄成了新的一条》：218 → … → 224。
+  it('digest 段落切分出 14 章 + 224 回响', () => {
     const segments = splitDigestSegments(CANON_DIGEST);
     const chapters = segments.filter((s) => s.startsWith('## Chapter'));
     const echoes = segments.filter((s) => s.startsWith('### Echo'));
     expect(chapters).toHaveLength(14);
-    expect(echoes).toHaveLength(223);
+    expect(echoes).toHaveLength(224);
   });
 
   it('「米缸」问句命中米缸回响 Echo 36（而不是随机段落）', () => {

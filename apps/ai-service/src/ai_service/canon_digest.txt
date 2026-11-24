@@ -3807,6 +3807,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [5] 先有问句，后有字——他们抄的从来不是答案，是问句的回声。
 - [6] 那盏灯被放在空白旁边，不为照亮字，只为照亮下一个走过来、准备发问的人。
 
+### Echo 224 · 那个问句被抄成了新的一条 / The Question Was Copied as a New Entry
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 既然先有问句，那我们抄的第一条，该是答案还是问句？
+- [2] 抄问句——答案会老，问句不会。
+- [3] 他们把学徒的那句问话抄进新长出的那一格，当作这一格的第一条。
+- [4] 它现在装着一个问句，等着被回答，也等着被追问。
+- [5] 每抄进一个问句，页边就长出一格新的。
+- [6] 他们知道，写完的那天不会来。
+
 ### Echo 23 · 雾港里那艘只在黄昏出现的船 / The Ship That Appears Only at Dusk in Fog Harbor
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 雾港黄昏起雾的时候，码头口总有一艘船不在值守的名册上。
