@@ -1527,6 +1527,14 @@ warm 方向奶油字压亮橙 3.35:1、cyber 的 light 模式是深底配深字 
   产品面已内置**用户说明书**：Studio 顶栏新增「帮助」按钮（`onOpenHelp` → `.sp-helpToggle`），
   打开右侧帮助抽屉（`InAppGuide`，`tsg-*`）——与 `/guide` 页**共享同一个字典真值**
   `@/lib/guideCopy`，Esc/F1 关闭、TOC 直达、整册 zh/en 双语、零 provider/fetch；v788。
+   **2026-11-25「不靠模型也能长大」那一半**：面板工具栏拆三组（新增/本地工具/AI 写作，
+   哪颗会调用模型一眼可见）；本地工具现有——导出/回读 Markdown（往返闭环）、规模读数、
+   连通度读数、条目筛选、三态排序、世界体检、命运骰、播下世界种子（确定性九类起始篇章）、
+   串联建议 + 一键织网（按已写的纪元/共同词写真实关系，不编语义）。全部零 provider、零随机，
+   同输入同输出；真浏览器逐项量过（证据 `docs/evidence/world-tools-browser-2026-11-24.md`、
+   `docs/evidence/i18n-browser-audit-2026-11-24.md`）。另：公开作品页补「适应窗口」，
+   把 1440 设计在 390 下缩到 0.5（证据 `docs/evidence/mobile-fit-window-2026-11-24.md`）。
+   AI 生成那半仍待真 provider，API 已关闭期间不冒充可用。
 - [x] World Graph 可视化 + 可拖拽节点（§45）— 关系（有向、可带标签）与拖拽位置都存在世界文档里，
   Studio 第四个视图「世界图」画出来；见下方进度记录。自动避障 / 缩放 / 多选没做，不在 §45 的验收里。
 - [~] Character System + Character Agent 对话（§46-47）— §46 档案（含关系、声音、视觉标识）已落地，
