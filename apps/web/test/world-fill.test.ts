@@ -101,6 +101,7 @@ describe('WorldPanel 四种填料按钮接线（web 侧限流期间的静态保�
       ['data-world-audit', 'runAudit', 'formatWorldAudit(a'],
       ['data-world-link-hints', 'runLinkHints', 'suggestWorldLinks(doc'],
       ['data-world-seed', 'sowSeed', 'generateSeedChapter'],
+      ['data-world-weave', 'weaveAll', 'weaveSuggestedLinks'],
     ] as const) {
       expect(panel, hook).toContain(hook);
       expect(panel, flag).toContain(flag);

@@ -3,7 +3,7 @@
  * 只根据已经写下的真实字段（纪元、题名、正文里的共同词）指出"这两条可能有关"，
  * 不替用户编造关系内容；已经连过的不再建议。同输入永远同输出。
  */
-import type { WorldDocument } from '@nexus/world-model';
+import { linkWorldNodes, type WorldDocument } from '@nexus/world-model';
 
 export type LinkReason = 'same-era' | 'shared-word';
 export type LinkSuggestion = {
@@ -82,4 +82,32 @@ export function formatSuggestion(s: LinkSuggestion, locale: 'zh' | 'en'): string
   return locale === 'zh'
     ? `${s.fromTitle} ↔ ${s.toTitle}：${s.reason === 'same-era' ? `同属「${s.evidence}」` : `都写到「${s.evidence}」`}`
     : `${s.fromTitle} ↔ ${s.toTitle}: ${s.reason === 'same-era' ? `both in “${s.evidence}”` : `both mention “${s.evidence}”`}`;
+}
+
+export type WeaveResult = { document: WorldDocument; added: number; skipped: number; labels: string[] };
+
+/**
+ * 一键织网：把 suggestWorldLinks 给出的建议批量写成真实关系。
+ * 纪律与单条采纳完全相同——每条都过 linkWorldNodes 的自环/重复门；只写"可能有关"
+ * 的判定依据（同纪元 / 共同词）作 label，不编造关系语义；上限受 limit 约束且从高分开始。
+ * 纯函数、零 provider、零随机；同输入永远同输出。
+ */
+export function weaveSuggestedLinks(world: WorldDocument, limit = 6): WeaveResult {
+  const hints = suggestWorldLinks(world, Math.max(0, Math.min(limit, 20)));
+  let doc = world;
+  let added = 0;
+  let skipped = 0;
+  const labels: string[] = [];
+  for (const h of hints) {
+    const before = (doc.links ?? []).length;
+    const result = linkWorldNodes(doc, h.fromId, h.toId, h.evidence);
+    if (result.reason || (result.document.links ?? []).length === before) {
+      skipped += 1;
+      continue;
+    }
+    doc = result.document;
+    added += 1;
+    labels.push(`${h.fromTitle} ↔ ${h.toTitle}`);
+  }
+  return { document: doc, added, skipped, labels };
 }

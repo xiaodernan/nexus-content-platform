@@ -38,7 +38,7 @@ import { formatWorldStats, worldStats } from '@/lib/worldStats';
 import { filterWorldNodes } from '@/lib/worldFilter';
 import { sortWorldNodes, type WorldSortMode } from '@/lib/worldSort';
 import { auditSuggestion, auditWorld, formatWorldAudit } from '@/lib/worldAudit';
-import { formatSuggestion, suggestWorldLinks, type LinkSuggestion } from '@/lib/worldLinks';
+import { formatSuggestion, suggestWorldLinks, weaveSuggestedLinks, type LinkSuggestion } from '@/lib/worldLinks';
 import { generateSeedChapter } from '@/lib/worldSeed';
 import { saveBlob } from '@/lib/download';
 import { useStudioReady } from './store';
@@ -87,6 +87,9 @@ const COPY = {
     linkHintsTitle: '只根据你已写的纪元与正文里的共同词，指出哪些条目可能有关；不会替你编造关系。点「连上」才真正写一条关系。已经连过的不重复建议。',
     linkHintEmpty: '目前没有可建议的串联——至少要两条有正文的条目，且它们同纪元或写到共同词。',
     linkMake: '连上',
+    weave: '一键织网',
+    weaveTitle: '把所有高置信的串联建议一次写成真实关系：只依据你写下的同纪元与共同词，不编造关系含义；每条都过重复/自环门，再点不会重复加。',
+    weaveDone: (n: number, skipped: number) => `已织上 ${n} 条关系${skipped ? `，跳过 ${skipped} 条（已存在或不合法）` : ''}。`,
     seedWorld: '播下世界种子',
     seedWorldTitle: '从当前世界名确定性地长出一个九类齐全的起始篇章：地名、势力、角色、生物、物品互相引用，读起来是一片连贯的土地。程序生成、只追加、不覆盖，不是作者写的史实；同一世界每次点会得到不同的种子。',
     seedWorldDone: (titles: string[]) => `已播下 ${titles.length} 条起始条目：${titles.join('、')}。程序生成、可随意改写。`,
@@ -214,6 +217,9 @@ const COPY = {
     linkHintsTitle: 'Points out entries that may be related, using only the eras and shared words you actually wrote — it never invents a relation. Press “Connect” to really write the edge. Already-connected pairs are not suggested again.',
     linkHintEmpty: 'No hints yet — you need at least two entries with bodies that share an era or a word.',
     linkMake: 'Connect',
+    weave: 'Weave all',
+    weaveTitle: 'Write every high-confidence connection hint as a real edge at once — based only on the eras and shared words you actually wrote, never invented meaning. Each edge passes the duplicate/self-loop gate; pressing again adds nothing.',
+    weaveDone: (n: number, skipped: number) => `Wove ${n} connections${skipped ? `, skipped ${skipped} (already present or invalid)` : ''}.`,
     seedWorld: 'Sow a world seed',
     seedWorldTitle: 'Grow a coherent nine-section starting chapter from the current world name — geography, factions, characters, creatures and items all reference each other. Procedural, append-only, never author-written lore; each press on the same world yields a different seed.',
     seedWorldDone: (titles: string[]) => `Sowed ${titles.length} starting entries: ${titles.join(', ')}. Procedural — rewrite them freely.`,
@@ -522,6 +528,20 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
     }
     edit(result.document, true);
     setLinkHints((prev) => prev.filter((h) => h !== hint));
+  };
+
+  const [weaveNote, setWeaveNote] = useState('');
+  const weaveAll = () => {
+    const doc = worldStore.getSnapshot().world;
+    if (!doc) return;
+    const { document: merged, added, skipped } = weaveSuggestedLinks(doc);
+    if (!added) {
+      setWeaveNote(locale === 'zh' ? '没有新的高置信建议可织——先多写几条有正文的条目，或点「串联建议」看单条。' : 'No new high-confidence hints to weave — write a few more entries with bodies, or open “Connection hints”.');
+      return;
+    }
+    edit(merged, true);
+    setWeaveNote(c.weaveDone(added, skipped));
+    setLinkHints([]); // 已织进去了，清掉旧建议列表，避免再点单条造成重复门
   };
 
   const [seedCount, setSeedCount] = useState(0);
@@ -1157,8 +1177,19 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
         {auditNote ? <p className="wd-body11Mt2" data-world-audit-note>{auditNote}</p> : null}
         {hintNote ? <p className="wd-body11Mt2" data-world-hint-note>{hintNote}</p> : null}
         {seedNote ? <p className="wd-body11Mt2" data-world-seed-note>{seedNote}</p> : null}
+        {weaveNote ? <p className="wd-body11Mt2" data-world-weave-note>{weaveNote}</p> : null}
         {linkHints.length ? (
-          <ul className="wd-col2" data-world-link-hints-list>
+          <>
+            <button
+              type="button"
+              onClick={weaveAll}
+              title={c.weaveTitle}
+              data-world-weave
+              className="wd-ghostBtn"
+            >
+              {c.weave}（{linkHints.length}）
+            </button>
+            <ul className="wd-col2" data-world-link-hints-list>
             {linkHints.map((hint) => (
               <li key={`${hint.fromId}-${hint.toId}`} className="wd-row1" data-world-link-hint>
                 <span className="wd-faint11">{formatSuggestion(hint, locale)}</span>
@@ -1173,7 +1204,8 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
                 </button>
               </li>
             ))}
-          </ul>
+            </ul>
+          </>
         ) : null}
         {fateCard ? (
           <button
