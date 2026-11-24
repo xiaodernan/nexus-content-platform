@@ -8867,3 +8867,10 @@ Reader (post-continuum trace):
 - **计数对齐**：guideCopy 221→222 / 1335→1341 / two hundred twenty-one→twenty-two / 131→132 questions；bible-ask-behavior pin 1335→1341；canon-answer-graph 221→222（14+222）。
 - **验证**：world-bible / bible-snapshot / anchor-echo / record-encoding 全 exit 0；vitest 25 passed；typecheck:main exit 0。
 - **网络**：本日已彻底解除 Clash 依赖（用户级代理/失效中转站清除、其它 agent 软件确认无绑定、直连端点全部可达），不开 Clash 正常工作。
+
+## cont. 484 (2026-11-25) — Echo #223《那格空白等的不是字》· 222→223 回响
+- **无尽世界（需求六）**：承接 E222「每写下第一个字，尽头就再长出一格」——学徒想填满新空白，最年长的抄本师按住他的手：这一格不是在等字，是在等一个新问题，有人问起它才会变成可以写的地方；那天没人问，它就空着——空着不算没写完，算还没被问到；「先有问句，后有字——他们抄的从来不是答案，是问句的回声」；灯放在空白旁不为照字，只为照下一个走过来准备发问的人。6 组锚句 zh/en 逐字对应、全典唯一。
+- **重导**：gen:bible-snapshot 重生 generated.ts / digest（275,550 chars, sha 0aa668b9…）；锚句 1346→1352；回响 222→223。
+- **计数对齐**：guideCopy 222→223 / 1341→1347 / two hundred twenty-two→twenty-three；bible-ask-behavior pin 1341→1347；canon-answer-graph 222→223（14+223）。
+- **验证**：world-bible / bible-snapshot / anchor-echo / record-encoding 全 exit 0；vitest 25 passed；typecheck:main exit 0。
+- **需求七核验**：/guide 内嵌说明书已充分暴露（首页 data-help-guide + 快速上手链接、典籍室/地图/新手教程均有入口），guideSearch 6/6 绿——无需补。

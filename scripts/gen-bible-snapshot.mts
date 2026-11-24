@@ -279,6 +279,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E220-潮候院抄本院照着点走一遍': 'echo-220-walking-the-line-of-dots',
   'E221-潮候院抄本院空位里那页更小的点': 'echo-221-smaller-page-inside-the-square',
   'E222-潮候院抄本院有人问起那一格': 'echo-222-someone-asked-about-the-square',
+  'E223-潮候院抄本院那格空白等的不是字': 'echo-223-blank-waits-for-question',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');
