@@ -16,5 +16,10 @@
 - 我装的 `nexus-web-watchdog` 每 5 分钟探测 3100，若端口被并行线服务占着它会跳过
   （探测 200 即退出），不会杀别人的进程；但这意味着它此刻守护的是那台服务而非本仓 dev。
   本仓 dev 由 3101 单独跑。
-- 按纪律不杀并行线进程。若要让 watcher 守护本仓端口，需用户确认端口归属策略后改
-  `scripts/check-web-health.mjs` 的 BASE 为 3101。
+- 按纪律不杀并行线进程。让 watcher 守护本仓端口的办法（已实施）：计划任务 action 改为
+  `scripts/watchdog-start-dev.cmd`（前台 `next dev -p 3101`），`MultipleInstancesPolicy=IgnoreNew`
+  保证单实例；服务在跑时新 tick 因端口占用退出（无副作用），挂了则下个 tick 拉起并持续运行。
+- 关键教训（2026-11-25 实测）：在计划任务上下文里用 node `detached spawn` 拉 next dev，
+  子进程会随任务结束被终止（日志 `WEB_RECOVER_FAILED`，手动跑同样命令却 `WEB_RECOVERED`）；
+  必须让服务进程就是任务进程本身。两次真机杀 3101 监听进程，分别于 05:04、05:08 自动恢复 200。
+- probe 超时从 8s 调到 15s：首编译（E221 页 16s）会让 8s 探测误判 DOWN 而重复拉起。
