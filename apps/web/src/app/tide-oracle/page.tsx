@@ -29,7 +29,7 @@ export default async function TideOraclePage() {
     ? [
         { href: '/bible', label: '← 先去典籍室读两章' },
         { href: '/bible/quiz', label: '潮汐挑战（正典问答）' },
-        { href: '/tide-wire', label: '今日潮声 · 公开 aggregates' },
+        { href: '/tide-wire', label: '今日潮声 · 公开聚合读数' },
         { href: '/insight', label: '观察坞 · 解锁（口令 123）' },
         { href: '/guide', label: '使用指南' },
       ]
