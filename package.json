@@ -231,7 +231,8 @@
     "gen:latest": "tsx scripts/gen-latest.mts",
     "sync:showcase": "tsx scripts/sync-showcase.mts",
     "i18n:audit": "tsx --tsconfig apps/web/tsconfig.json scripts/i18n-audit.mts",
-    "i18n:audit:model": "tsx --tsconfig apps/web/tsconfig.json scripts/i18n-audit.mts --model"
+    "i18n:audit:model": "tsx --tsconfig apps/web/tsconfig.json scripts/i18n-audit.mts --model",
+    "repin:echoes": "tsx scripts/repin-echo-counts.mts"
   },
   "devDependencies": {
     "turbo": "^2.3.3",
