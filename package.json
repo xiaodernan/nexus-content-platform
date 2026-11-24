@@ -163,6 +163,8 @@
     "verify:census": "node tools/ci/facade-census.mjs",
     "verify:proofs": "node tools/ci/proof-set.mjs",
     "dev:web": "npm run dev -w @nexus/web",
+    "dev:web:clean": "node scripts/start-web-clean.mjs dev",
+    "start:web:clean": "node scripts/start-web-clean.mjs start",
     "dev:ai": "bash infra/dev-ai.sh",
     "build:main": "npm run build -w @nexus/web",
     "start": "npm run start -w @nexus/web",
