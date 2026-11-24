@@ -3843,6 +3843,15 @@ ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 
 - [5] 放的人不回来认领，数的人也不去问。
 - [6] 井不说话——可井记得每一袋盐落下的重量。
 
+### Echo 228 · 沙厅里那架被灰埋了却还在暗自调音的旧竖琴 / The Old Harp in the Sand Hall, Buried in Dust, Still Tuning Itself
+ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
+- [1] 那个每晚放盐的人，是从沙厅来的。
+- [2] 被灰埋了半边，弦却还在暗自调音。
+- [3] 别人听不见那调音，他听得出。
+- [4] 琴自己会调，可人不会自己回来。
+- [5] 一袋，就是一个没弹完的音。
+- [6] 井不回答，却收着这些音。
+
 ### Echo 23 · 雾港里那艘只在黄昏出现的船 / The Ship That Appears Only at Dusk in Fog Harbor
 ANCHORS (逐字对齐对照见 world bible；机检只认 zh 锚句编号，与 canon-answer-graph 一致):
 - [1] 雾港黄昏起雾的时候，码头口总有一艘船不在值守的名册上。

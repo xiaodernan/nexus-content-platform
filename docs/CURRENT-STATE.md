@@ -8893,3 +8893,9 @@ Reader (post-continuum trace):
 - **重导**：gen:bible-snapshot 重生 generated.ts / digest（276,736 chars, sha 5604327b…）；锚句 1370→1376；回响 226→227。
 - **计数对齐**：guideCopy 226→227 / 1365→1371 / two hundred twenty-six→twenty-seven；bible-ask-behavior pin 1365→1371（quiz 口径，比 world-bible 锚句数少 5）；canon-answer-graph 226→227（14+227）。问答数 131 保持不变。
 - **验证**：world-bible / bible-snapshot / anchor-echo / record-encoding 全 exit 0；vitest 25 passed；typecheck:main、fe-gates 全绿。
+
+## cont. 488 (2026-11-25) — Echo #228《沙厅里那架被灰埋了却还在暗自调音的旧竖琴》· 227→228 回响
+- **细节场景（需求六「魔鬼在细节）**：承接 E227「井记得的每一袋盐都是一个没讲完的人」——写出其中一个人的来历：他每晚放盐，是从沙厅来的；沙厅角落一架旧竖琴被灰埋了半边，弦却还在暗自调音，只有他年轻时调过弦的人才听得出；他不回沙厅，因为「琴自己会调，人不会自己回来」；他放的每袋盐其实是琴音落下的重量——一袋就是一个没弹完的音。把 E169 旧竖琴、Echo #4 盐井、E227 数盐三条线接在一起。6 组锚句 zh/en 逐字对应、全典唯一。
+- **重导**：gen:bible-snapshot 重生 generated.ts / digest（277,038 chars, sha 9bbba0f2…）；锚句 1376→1382；回响 227→228。
+- **计数对齐**（repin:echoes 工具）：guideCopy 227→228 / 1371→1377 / two hundred twenty-seven→twenty-eight；bible-ask-behavior pin 1371→1377（quiz 口径，比锚句总数少 5）；canon-answer-graph 227→228（14+228）。问答数 131 保持不变。
+- **验证**：world-bible / bible-snapshot / anchor-echo / record-encoding 全 exit 0；vitest 25 passed；typecheck:main、fe-gates 全绿。

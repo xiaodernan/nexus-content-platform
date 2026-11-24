@@ -284,6 +284,7 @@ const ECHO_WEB_SLUGS: Record<string, string> = {
   'E225-潮候院抄本院问句也有声音': 'echo-225-questions-have-a-sound',
   'E226-潮候院巡夜人绕开那口井走': 'echo-226-watchman-walks-around-well',
   'E227-潮候院巡夜人数井边的盐': 'echo-227-watchman-counts-salt',
+  'E228-潮候院沙厅里那架被灰埋了却还在暗自调音的旧竖琴': 'echo-228-old-harp-in-sand-hall',
 };
 
 const ECHOES_DIR = join(ROOT, 'docs', 'world-bible', 'echoes');

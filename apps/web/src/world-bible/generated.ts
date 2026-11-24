@@ -31345,6 +31345,162 @@ The watchman counts and moves on; the well says nothing — yet it remembers the
 `,
   },
   {
+    order: 228,
+    slug: 'echo-228-old-harp-in-sand-hall',
+    titleZh: '沙厅里那架被灰埋了却还在暗自调音的旧竖琴',
+    titleEn: 'The Old Harp in the Sand Hall, Buried in Dust, Still Tuning Itself',
+    eraLineZh: '纪元：铁月纪 · 第四十一次大会之后（同 Echo #4 盐井、E169 旧竖琴、E227 巡夜人数盐）。',
+    eraLineEn: 'Era: the Iron-Moon Age — after the 41st Convocation (as in Echo #4 salt well, E169 old harp, E227 watchman counting salt).',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 228): The Old Harp in the Sand Hall, Buried in Dust, Still Tuning Itself
+
+> 回响不替正典续写——它只是页边另一层长出来的盐。
+> 本篇写给一个放盐人的来历：他每晚在井边放一袋盐，没人知道他从沙厅来，也不会说那架旧竖琴的事。
+> 纪律同前：锚句逐字；不新增正典专名，只在既有的沙厅与旧竖琴（E169）旁添细节。
+>
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written for the backstory of one salt-setter: each night he leaves a bag by the well; no one knows he came from the sand hall, or that he would not speak of the old harp.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail beside the sand hall and the old harp (E169).
+
+> 纪元：铁月纪 · 第四十一次大会之后（同 Echo #4 盐井、E169 旧竖琴、E227 巡夜人数盐）。
+> Era: the Iron-Moon Age — after the 41st Convocation (as in Echo #4 salt well, E169 old harp, E227 watchman counting salt).
+
+---
+
+## 一 · 从沙厅来
+
+那个每晚放盐的人，是从沙厅来的——没人问，他也不说。
+**锚句**：那个每晚放盐的人，是从沙厅来的。
+**Anchor sentence**: the one who set down salt each night had come from the sand hall.
+
+---
+
+## 二 · 灰里的竖琴
+
+沙厅角落有一架旧竖琴，被灰埋了半边，弦却还在暗自调音。
+**锚句**：被灰埋了半边，弦却还在暗自调音。
+**Anchor sentence**: buried halfway in dust, its strings were still tuning themselves.
+
+---
+
+## 三 · 他听得出
+
+别人听不见那调音，他听得出——他年轻时为这架琴调过弦。
+**锚句**：别人听不见那调音，他听得出。
+**Anchor sentence**: no one else could hear that tuning, but he could.
+
+---
+
+## 四 · 为什么不回去
+
+有人问他为什么不回沙厅，他说：琴自己会调，可人不会自己回来。
+**锚句**：琴自己会调，可人不会自己回来。
+**Anchor sentence**: a harp tunes itself, but a person does not come back by himself.
+
+---
+
+## 五 · 盐是音
+
+他每晚放在井边的盐，其实是琴音落下来的重量——一袋，就是一个没弹完的音。
+**锚句**：一袋，就是一个没弹完的音。
+**Anchor sentence**: one bag is one note left unplayed.
+
+---
+
+## 六 · 井收着
+
+井不回答，却收着这些音——像那架琴收着灰，谁也不催它弹完。
+**锚句**：井不回答，却收着这些音。
+**Anchor sentence**: the well does not answer, yet it keeps those notes.
+
+---
+
+## 七 · Mapping（Echo No. 228 · world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | the salt-setter came from the sand hall · each bag is an unplayed note · the harp tunes itself | 一、二、五 |
+| geography | the sand hall · the well rim | 一、六 |
+| characters | the salt-setter who once tuned the harp | 三、四 |
+| story | after E227: one "unfinished person" behind the salt bags, tied to E169's old harp | 全篇 |
+| items | the old harp · the dust · the salt bags as notes | 二、五 |
+| history | the Iron-Moon Age after the 41st Convocation (links Echo #4, E169, E227) | 纪元 |
+
+> 世界没有写完——一个人不回来，一个音没弹完，井就替他们收着。
+> The world is not finished — a person does not return, a note is not finished, and the well keeps them both.
+`,
+    markdownEn: `
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written for the backstory of one salt-setter: each night he leaves a bag by the well; no one knows he came from the sand hall, or that he would not speak of the old harp.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail beside the sand hall and the old harp (E169).
+
+> Era: the Iron-Moon Age — after the 41st Convocation (as in Echo #4 salt well, E169 old harp, E227 watchman counting salt).
+
+---
+
+## One · From the Sand Hall
+
+The one who set down salt each night had come from the sand hall — no one asked, and he did not say.
+**锚句**：那个每晚放盐的人，是从沙厅来的。
+**Anchor sentence**: the one who set down salt each night had come from the sand hall.
+
+---
+
+## Two · The Harp in the Dust
+
+In a corner of the sand hall an old harp lay half-buried in dust, its strings still tuning themselves.
+**锚句**：被灰埋了半边，弦却还在暗自调音。
+**Anchor sentence**: buried halfway in dust, its strings were still tuning themselves.
+
+---
+
+## Three · He Could Hear It
+
+No one else could hear that tuning, but he could — in his youth he had tuned that harp.
+**锚句**：别人听不见那调音，他听得出。
+**Anchor sentence**: no one else could hear that tuning, but he could.
+
+---
+
+## Four · Why Not Return
+
+They asked why he did not go back to the sand hall; he said: a harp tunes itself, but a person does not come back by himself.
+**锚句**：琴自己会调，可人不会自己回来。
+**Anchor sentence**: a harp tunes itself, but a person does not come back by himself.
+
+---
+
+## Five · Salt Is Sound
+
+The salt he left by the well each night was the weight of the harp's notes falling — one bag is one note left unplayed.
+**锚句**：一袋，就是一个没弹完的音。
+**Anchor sentence**: one bag is one note left unplayed.
+
+---
+
+## Six · The Well Keeps It
+
+The well does not answer, yet it keeps those notes — as the harp keeps the dust, with no one urging it to finish.
+**锚句**：井不回答，却收着这些音。
+**Anchor sentence**: the well does not answer, yet it keeps those notes.
+
+---
+
+## Seven · Mapping (Echo No. 228 · world model)
+
+| Dimension | Value | Chapters |
+| --- | --- | --- |
+| lore | the salt-setter came from the sand hall · each bag is an unplayed note · the harp tunes itself | 一、二、五 |
+| geography | the sand hall · the well rim | 一、六 |
+| characters | the salt-setter who once tuned the harp | 三、四 |
+| story | after E227: one "unfinished person" behind the salt bags, tied to E169's old harp | 全篇 |
+| items | the old harp · the dust · the salt bags as notes | 二、五 |
+| history | the Iron-Moon Age after the 41st Convocation (links Echo #4, E169, E227) | 纪元 |
+
+> The world is not finished — a person does not return, a note is not finished, and the well keeps them both.
+> 世界没有写完——一个人不回来，一个音没弹完，井就替他们收着。
+`,
+  },
+  {
     order: 23,
     slug: 'echo-023-the-ship-that-appears-only-at-dusk',
     titleZh: '雾港里那艘只在黄昏出现的船',
