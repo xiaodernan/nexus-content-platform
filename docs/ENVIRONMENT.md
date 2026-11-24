@@ -80,6 +80,7 @@ wkapi.pro 线退役；新线（用户提供）：key 经 `apps/ai-service/.env`�
 - Windows 系统代理曾再次被 Clash Verge（`verge-mihomo.exe`，监听 `127.0.0.1:7897`）写成 `ProxyEnable=1 / ProxyServer=127.0.0.1:7897`，把浏览器也绑了上去。已手动置 `ProxyEnable=0` 且清空 `ProxyServer`；清空进程代理后直连 `https://github.com/` 实测 200，`http://127.0.0.1:3100/` 实测 200。**Clash 进程仍在跑，下次启动它可能再次打开系统代理；不再需要就从托盘退出。** 上一节 2026-11-16 的「必须经 Clash」是当日 provider 实测记录，保留原文不改写，**当前已不成立**。
 - 本机 User/Machine 作用域都没有 `HTTP_PROXY/HTTPS_PROXY`；仍在进程里看到的是从启动 shell 继承来的，要彻底清掉需从干净 shell 重启对应进程，不是系统级绑定。
 - 本地访问报错与代理无关：`ECONNREFUSED` 是 web 进程没在跑；`500` 且 cause 为 `connect ECONNREFUSED 127.0.0.1:5433` 或 Postgres `57P03 the database system is starting up` 是 DB 容器停了/正在崩溃恢复。先看 `docker ps --filter name=nexus` 与对应 `docker logs`，不要去改代理。
+- **根治 ECONNREFUSED（2026-11-25）**：环境/会话重启会杀掉 dev server，是反复报 ECONNREFUSED 的真因。已装用户级计划任务 `nexus-web-watchdog`（每 5 分钟跑 `scripts/web-watchdog.cmd` → `check-web-health.mjs --auto`，只在服务挂时用无代理方式拉起）。真机验证：杀掉 3100 监听进程后，下一个 tick 自动恢复 200，全程无 Clash、无手动干预。安装脚本 `scripts/install-web-watchdog.ps1`（需 UTF-8 BOM，否则 PS5.1 把中文路径按 GBK 解码）；卸载 `schtasks /Delete /TN nexus-web-watchdog /F`。手动一键恢复用 `npm run web:heal`。
 
 
 ## 已有容器（不属于本项目，禁止复用/删除）
