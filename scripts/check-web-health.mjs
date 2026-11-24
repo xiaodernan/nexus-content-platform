@@ -13,9 +13,18 @@
  */
 import http from 'node:http';
 import { spawn } from 'node:child_process';
+import { appendFileSync, mkdirSync } from 'node:fs';
+import { join } from 'node:path';
 
 const BASE = 'http://127.0.0.1:3100';
 const auto = process.argv.includes('--auto');
+const LOG = join(process.cwd(), '.scratch', 'web-watchdog.log');
+function log(msg) {
+  const line = `[${new Date().toISOString()}] ${msg}\n`;
+  try { mkdirSync(join(process.cwd(), '.scratch'), { recursive: true }); appendFileSync(LOG, line); }
+  catch { /* 日志失败不影响自检本身 */ }
+  if (!auto) console.log(msg);
+}
 
 function probe() {
   return new Promise((resolve) => {
@@ -33,15 +42,15 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 async function main() {
   let code = await probe();
   if (code === 200) {
-    console.log(`WEB_OK ${BASE} -> 200`);
+    log(`WEB_OK ${BASE} -> 200`);
     return;
   }
-  console.log(`WEB_DOWN ${BASE} -> ${code || 'ECONNREFUSED'}`);
+  log(`WEB_DOWN ${BASE} -> ${code || 'ECONNREFUSED'}`);
   if (!auto) {
     process.exitCode = 1;
     return;
   }
-  console.log('AUTO_RESTART via start-web-clean.mjs dev');
+  log('AUTO_RESTART via start-web-clean.mjs dev');
   const env = { ...process.env };
   for (const k of ['HTTP_PROXY','HTTPS_PROXY','ALL_PROXY','http_proxy','https_proxy','all_proxy']) delete env[k];
   env.NO_PROXY = 'localhost,127.0.0.1,::1';
@@ -54,11 +63,11 @@ async function main() {
     await wait(2000);
     code = await probe();
     if (code === 200) {
-      console.log(`WEB_RECOVERED after ${(i + 1) * 2}s -> 200`);
+      log(`WEB_RECOVERED after ${(i + 1) * 2}s -> 200`);
       return;
     }
   }
-  console.error('WEB_RECOVER_FAILED after 60s');
+  log('WEB_RECOVER_FAILED after 60s');
   process.exitCode = 1;
 }
 main();
