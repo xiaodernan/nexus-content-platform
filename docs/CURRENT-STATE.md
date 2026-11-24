@@ -8874,3 +8874,9 @@ Reader (post-continuum trace):
 - **计数对齐**：guideCopy 222→223 / 1341→1347 / two hundred twenty-two→twenty-three；bible-ask-behavior pin 1341→1347；canon-answer-graph 222→223（14+223）。
 - **验证**：world-bible / bible-snapshot / anchor-echo / record-encoding 全 exit 0；vitest 25 passed；typecheck:main exit 0。
 - **需求七核验**：/guide 内嵌说明书已充分暴露（首页 data-help-guide + 快速上手链接、典籍室/地图/新手教程均有入口），guideSearch 6/6 绿——无需补。
+
+## cont. 485 (2026-11-25) — Echo #225《问句也有声音》· 224→225 回响（问句线与歌谱线交织）
+- **新支线（需求六「包罗万象）**：承接 E224，但把"问句线"与正典 Echo #6《教团没有买的歌谱》的"声音线"交织——抄本师把问句抄进那一格时听见笔尖一声轻响，笔停了声音还在；老抄本师认出那是铁月纪第八盏灯下"找不到稿纸的轻音"；他们明白问句也有声音，只是一直没人记下，于是照着声音在问句旁画了一行只有高低、没有词的记号；夜里那行记号自己轻声响起。宏观上给世界加了一条"声音"维度，细节落在既有设定上。6 组锚句 zh/en 逐字对应、全典唯一。
+- **重导**：gen:bible-snapshot 重生 generated.ts / digest（276,174 chars, sha a7beb489…）；锚句 1358→1364；回响 224→225。
+- **计数对齐**：guideCopy 224→225 / 1353→1359 / two hundred twenty-four→twenty-five；bible-ask-behavior pin 1353→1359；canon-answer-graph 224→225（14+225）。问答数 131 保持不变。
+- **验证**：world-bible / bible-snapshot / anchor-echo / record-encoding 全 exit 0；vitest 25 passed；typecheck:main、fe-gates 全绿。

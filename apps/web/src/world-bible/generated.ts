@@ -30877,6 +30877,162 @@ The copyists stopped asking "when will it be finished" — they knew the day of 
 `,
   },
   {
+    order: 225,
+    slug: 'echo-225-questions-have-a-sound',
+    titleZh: '问句也有声音',
+    titleEn: 'Questions Have a Sound Too',
+    eraLineZh: '纪元：冬潮月第一百四十年，抄本院；笔落在问句上的那一刻，与铁月纪第八盏灯下那阵无稿纸的轻音，是同一种声音。',
+    eraLineEn: 'Era: the 140th year of the winter-tide month, in the copy hall; the moment the pen touched the question was the same sound as the manuscript-less resonance under the Eighth Lamp in the Iron-Moon Age.',
+    markdownZh: `# The Whispers' Kings · World Bible · Echo (No. 225): Questions Have a Sound Too
+
+> 回响不替正典续写——它只是页边另一层长出来的盐。
+> 写在 E224 之后：册子第一格抄的是问句，世界靠问句自己生长。这一篇写的是问句被抄下时发出的声音。
+> 纪律同前：锚句逐字；不新增正典专名，只在既有的抄本院与第八盏灯的旧闻里添细节。
+>
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E224: the first entry was a question, and the world grows by questions. This one writes the sound a question makes when it is copied down.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail within the copy hall and the old account of the Eighth Lamp.
+
+> 纪元：冬潮月第一百四十年，抄本院；笔落在问句上的那一刻，与铁月纪第八盏灯下那阵无稿纸的轻音，是同一种声音。
+> Era: the 140th year of the winter-tide month, in the copy hall; the moment the pen touched the question was the same sound as the manuscript-less resonance under the Eighth Lamp in the Iron-Moon Age.
+
+---
+
+## 一 · 笔落下去
+
+抄本师把问句抄进那一格时，听见笔尖发出一声很轻的响。
+**锚句**：抄本师把问句抄进那一格时，听见笔尖发出一声很轻的响。
+**Anchor sentence**: as the copyist wrote the question into the square, he heard a very soft sound from the pen tip.
+
+---
+
+## 二 · 不是笔的声音
+
+可那不是笔的声音——笔早停了，声音还在。
+**锚句**：那不是笔的声音——笔早停了，声音还在。
+**Anchor sentence**: it was not the pen — the pen had stopped, yet the sound remained.
+
+---
+
+## 三 · 旧闻
+
+有个老抄本师说，这声音他听过一次：铁月纪，第八盏灯底下，一阵找不到稿纸的轻音。
+**锚句**：这声音他听过一次：铁月纪，第八盏灯底下，一阵找不到稿纸的轻音。
+**Anchor sentence**: he had heard it once: in the Iron-Moon Age, beneath the Eighth Lamp, a soft resonance with no manuscript to be found.
+
+---
+
+## 四 · 原来问句有声
+
+他们这才明白：问句也有声音——只是一直没有人把它记下来。
+**锚句**：问句也有声音——只是一直没有人把它记下来。
+**Anchor sentence**: questions have a sound too — only no one had ever written it down.
+
+---
+
+## 五 · 记谱
+
+于是他们照着那声音，在问句旁边画了一行只有高低、没有词的记号。
+**锚句**：他们照着那声音，在问句旁边画了一行只有高低、没有词的记号。
+**Anchor sentence**: they traced that sound beside the question — a line of marks with pitch but no words.
+
+---
+
+## 六 · 灯下的回响
+
+夜里，那行记号自己轻声响起——像有人把问句念了一遍，没有回答。
+**锚句**：夜里，那行记号自己轻声响起——像有人把问句念了一遍，没有回答。
+**Anchor sentence**: at night the line of marks sounded softly by itself — as if someone had read the question aloud, with no answer.
+
+---
+
+## 七 · Mapping（Echo No. 225 · world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | questions have a sound · the sound predates the ledger (Eighth Lamp) · pitch without words | 二、三、四、五 |
+| geography | the copy hall · the Eighth Lamp of the Iron-Moon Age | 一、三 |
+| characters | the copyist who heard · the old copyist who remembered | 一、三 |
+| story | after E224: the question-line and the score-line meet; the world gains a soundtrack | 全篇 |
+| items | the pen · the wordless pitch-marks · the manuscript-less resonance | 一、五、六 |
+| history | the 140th winter-tide year echoes the Iron-Moon Age (links E6) | 三、纪元 |
+
+> 世界没有写完——问句出声，而声音会引出下一个问句。
+> The world is not finished — questions make a sound, and the sound leads to the next question.
+`,
+    markdownEn: `
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E224: the first entry was a question, and the world grows by questions. This one writes the sound a question makes when it is copied down.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail within the copy hall and the old account of the Eighth Lamp.
+
+> Era: the 140th year of the winter-tide month, in the copy hall; the moment the pen touched the question was the same sound as the manuscript-less resonance under the Eighth Lamp in the Iron-Moon Age.
+
+---
+
+## One · The Pen Falls
+
+As the copyist wrote the question into the square, he heard a very soft sound from the pen tip.
+**锚句**：抄本师把问句抄进那一格时，听见笔尖发出一声很轻的响。
+**Anchor sentence**: as the copyist wrote the question into the square, he heard a very soft sound from the pen tip.
+
+---
+
+## Two · Not the Pen
+
+It was not the pen — the pen had stopped, yet the sound remained.
+**锚句**：那不是笔的声音——笔早停了，声音还在。
+**Anchor sentence**: it was not the pen — the pen had stopped, yet the sound remained.
+
+---
+
+## Three · The Old Account
+
+An old copyist said he had heard it once: in the Iron-Moon Age, beneath the Eighth Lamp, a soft resonance with no manuscript to be found.
+**锚句**：这声音他听过一次：铁月纪，第八盏灯底下，一阵找不到稿纸的轻音。
+**Anchor sentence**: he had heard it once: in the Iron-Moon Age, beneath the Eighth Lamp, a soft resonance with no manuscript to be found.
+
+---
+
+## Four · Questions Have a Sound
+
+Only then did they understand: questions have a sound too — only no one had ever written it down.
+**锚句**：问句也有声音——只是一直没有人把它记下来。
+**Anchor sentence**: questions have a sound too — only no one had ever written it down.
+
+---
+
+## Five · Noting the Pitch
+
+They traced that sound beside the question — a line of marks with pitch but no words.
+**锚句**：他们照着那声音，在问句旁边画了一行只有高低、没有词的记号。
+**Anchor sentence**: they traced that sound beside the question — a line of marks with pitch but no words.
+
+---
+
+## Six · The Resonance at Night
+
+At night the line of marks sounded softly by itself — as if someone had read the question aloud, with no answer.
+**锚句**：夜里，那行记号自己轻声响起——像有人把问句念了一遍，没有回答。
+**Anchor sentence**: at night the line of marks sounded softly by itself — as if someone had read the question aloud, with no answer.
+
+---
+
+## Seven · Mapping (Echo No. 225 · world model)
+
+| Dimension | Value | Chapters |
+| --- | --- | --- |
+| lore | questions have a sound · the sound predates the ledger (Eighth Lamp) · pitch without words | 二、三、四、五 |
+| geography | the copy hall · the Eighth Lamp of the Iron-Moon Age | 一、三 |
+| characters | the copyist who heard · the old copyist who remembered | 一、三 |
+| story | after E224: the question-line and the score-line meet; the world gains a soundtrack | 全篇 |
+| items | the pen · the wordless pitch-marks · the manuscript-less resonance | 一、五、六 |
+| history | the 140th winter-tide year echoes the Iron-Moon Age (links E6) | 三、纪元 |
+
+> The world is not finished — questions make a sound, and the sound leads to the next question.
+> 世界没有写完——问句出声，而声音会引出下一个问句。
+`,
+  },
+  {
     order: 23,
     slug: 'echo-023-the-ship-that-appears-only-at-dusk',
     titleZh: '雾港里那艘只在黄昏出现的船',
