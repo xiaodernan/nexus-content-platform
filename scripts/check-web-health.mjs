@@ -45,8 +45,11 @@ async function main() {
   const env = { ...process.env };
   for (const k of ['HTTP_PROXY','HTTPS_PROXY','ALL_PROXY','http_proxy','https_proxy','all_proxy']) delete env[k];
   env.NO_PROXY = 'localhost,127.0.0.1,::1';
-  spawn(process.platform === 'win32' ? 'npm.cmd' : 'npm',
-    ['run', 'dev:web:clean'], { env, detached: true, stdio: 'ignore' }).unref();
+  const spawnOpts = { env, detached: true, stdio: 'ignore', shell: process.platform === 'win32' };
+  (process.platform === 'win32'
+    ? spawn('cmd.exe', ['/c', 'npm run dev:web:clean'], spawnOpts)
+    : spawn('npm', ['run', 'dev:web:clean'], spawnOpts)
+  ).unref();
   for (let i = 0; i < 30; i++) {
     await wait(2000);
     code = await probe();
