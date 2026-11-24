@@ -73,6 +73,14 @@ wkapi.pro 线退役；新线（用户提供）：key 经 `apps/ai-service/.env`�
 - `infra/dev-ai.sh` 现在也 source `.env` 里的 `HTTPS_PROXY`/`HTTP_PROXY`/`NO_PROXY`（不设端口号、不设死值）。
 - 连续三轮 `probe:cache` L1 冷→暖 PASS 稳定（4992 = 95%）；L2（服务内干跑）今天尚未拿到干净 PASS（瞬时故障偏多，如实记账，见 `docs/evidence/provider-aizzz-switch-2026-11-16.md`）。
 
+### 2026-11-24 解绑 Clash Verge（provider 已关闭）
+
+- 用户确认大模型 API 因成本/用量关闭，后续开发零 provider 调用；**不再需要任何出站代理**。
+- `apps/ai-service/.env`（gitignored）里 `HTTPS_PROXY` / `HTTP_PROXY=http://127.0.0.1:7897` 与 `NO_PROXY` 三行已删除，换成「需要代理时由启动环境临时给，不写进文件」的注释。`infra/dev-ai.sh` 仍 source 这些变量，但现在没有可 source 的值，进程不设代理即走系统/直连。
+- Windows 系统代理 `ProxyEnable=0`（本来就没绑）；清空进程代理后直连 `https://github.com/` 实测 200。上一节 2026-11-16 的「必须经 Clash」是当日 provider 实测记录，保留原文不改写，**当前已不成立**。
+- 本机 User/Machine 作用域都没有 `HTTP_PROXY/HTTPS_PROXY`；仍在进程里看到的是从启动 shell 继承来的，要彻底清掉需从干净 shell 重启对应进程，不是系统级绑定。
+- 本地访问报错与代理无关：`ECONNREFUSED` 是 web 进程没在跑；`500` 且 cause 为 `connect ECONNREFUSED 127.0.0.1:5433` 或 Postgres `57P03 the database system is starting up` 是 DB 容器停了/正在崩溃恢复。先看 `docker ps --filter name=nexus` 与对应 `docker logs`，不要去改代理。
+
 
 ## 已有容器（不属于本项目，禁止复用/删除）
 
