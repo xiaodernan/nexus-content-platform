@@ -107,6 +107,26 @@ describe('WorldPanel 四种填料按钮接线（web 侧限流期间的静态保�
       expect(panel, parser).toContain(parser);
     }
   });
+  it('工具栏分三组：新增 / 本地工具 / AI 写作，单组不超过 6 个控件（防挤成一堵按钮墙）', () => {
+    expect(panel).toContain('data-world-toolbar');
+    for (const [group, label] of [
+      ['data-world-tools-entry', 'data-world-tools-entry-label'],
+      ['data-world-tools-local', 'data-world-tools-local-label'],
+      ['data-world-tools-ai', 'data-world-tools-ai-label'],
+    ] as const) {
+      expect(panel, group).toContain(group);
+      expect(panel, label).toContain(label);
+      const start = panel.indexOf(`className="wd-aiRow" ${group}`);
+      expect(start, group).toBeGreaterThan(0);
+      const end = panel.indexOf('</div>', start);
+      const block = panel.slice(panel.indexOf('>', start) + 1, end);
+      const controls = block.match(/<button/g) ?? [];
+      expect(controls.length, `${group} 控件数 ${controls.length}`).toBeLessThanOrEqual(6);
+    }
+    // 本地工具与 AI 写作必须在文案上分开标注，用户才知道哪颗按钮会真的调用模型
+    expect(panel).toContain('groupLocal:');
+    expect(panel).toContain('groupAi:');
+  });
   it('三种写回都走 setLocal + commit，不绕过契约直写库', () => {
     expect(panel).toContain('worldStore.setLocal');
     expect(panel).toContain('worldStore.commit()');

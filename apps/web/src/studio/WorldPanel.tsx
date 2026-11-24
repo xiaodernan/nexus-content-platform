@@ -90,6 +90,9 @@ const COPY = {
     seedWorld: '播下世界种子',
     seedWorldTitle: '从当前世界名确定性地长出一个九类齐全的起始篇章：地名、势力、角色、生物、物品互相引用，读起来是一片连贯的土地。程序生成、只追加、不覆盖，不是作者写的史实；同一世界每次点会得到不同的种子。',
     seedWorldDone: (titles: string[]) => `已播下 ${titles.length} 条起始条目：${titles.join('、')}。程序生成、可随意改写。`,
+    groupEntry: '新增条目',
+    groupLocal: '本地工具 · 不调模型、不联网',
+    groupAi: 'AI 写作 · 会调用模型',
     fate: '掷命运骰',
     fateTitle: '不调模型、不写库：从这个世界已写的条目里抽两条，按确定性的句式重组成一张事件卡。同一个数字出现同一张卡，换一个数字就换一张——无穷来自你写下的细节组合，不是凭空编造。',
     fateEmpty: '至少要有两条写了正文的条目才能掷骰——先用填充或续写补一点内容。',
@@ -213,6 +216,9 @@ const COPY = {
     seedWorld: 'Sow a world seed',
     seedWorldTitle: 'Grow a coherent nine-section starting chapter from the current world name — geography, factions, characters, creatures and items all reference each other. Procedural, append-only, never author-written lore; each press on the same world yields a different seed.',
     seedWorldDone: (titles: string[]) => `Sowed ${titles.length} starting entries: ${titles.join(', ')}. Procedural — rewrite them freely.`,
+    groupEntry: 'Add an entry',
+    groupLocal: 'Local tools · no model call, no network',
+    groupAi: 'AI writing · calls a model',
     fate: 'Roll fate',
     fateTitle: 'No model call, no database write: pick two entries you already wrote and recombine them into an event card with a deterministic frame. Same number, same card; a different number gives another — the endlessness comes from your own details, not invented ones.',
     fateEmpty: 'Roll needs at least two entries with body text — fill or continue the chronicle first.',
@@ -1008,125 +1014,134 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
         <TerrainSection world={world} edit={edit} c={c} />
         <TideSection world={world} edit={edit} c={c} />
 
-        <div className="wd-aiRow" data-world-ai-row>
-          <select
-            value={newKind}
-            onChange={(e) => setNewKind(e.target.value as WorldKind)}
-            aria-label={c.newKindAria}
-            data-world-new-kind
-            className="wd-chipSelect"
-          >
-            {WORLD_KINDS.map((kind) => (
-              <option key={kind} value={kind}>
-                {kindLabel(kind, locale)}
-              </option>
-            ))}
-          </select>
-          <button
-            type="button"
-            onClick={() =>
-              edit(addWorldNode(world, { kind: newKind, title: c.newEntryLabel(kindLabel(newKind, locale)) }), true)
-            }
-            data-world-add={newKind}
-            className="wd-ghostBtn"
-          >
-            {c.addOne}
-          </button>
-          <button
-            type="button"
-            onClick={() => void fillSection()}
-            disabled={aiFillBusy}
-            title={c.aiFillTitle(kindLabel(newKind, locale))}
-            data-world-ai-fill={newKind}
-            className="wd-ghostBtn"
-          >
-            {aiFillBusy ? c.aiFillBusy : c.aiFill}
-          </button>
-          <button
-            type="button"
-            onClick={() => void writeChronicle()}
-            disabled={chronicleBusy}
-            title={c.aiChronicleTitle}
-            data-world-ai-chronicle
-            className="wd-ghostBtn"
-          >
-            {chronicleBusy ? c.aiChronicleBusy : c.aiChronicle}
-          </button>
-          <button
-            type="button"
-            onClick={() => void fillAllEmpty()}
-            disabled={bulkBusy || aiFillBusy}
-            title={c.aiFillAllTitle}
-            data-world-ai-fill-all
-            className="wd-ghostBtn"
-          >
-            {bulkBusy ? c.aiFillAllBusy : c.aiFillAll}
-          </button>
-          <button
-            type="button"
-            onClick={rollFateCard}
-            title={c.fateTitle}
-            data-world-fate
-            className="wd-ghostBtn"
-          >
-            {c.fate}
-          </button>
-          <button
-            type="button"
-            onClick={exportMarkdown}
-            title={c.exportMdTitle}
-            data-world-export-md
-            className="wd-ghostBtn"
-          >
-            {c.exportMd}
-          </button>
-          <input
-            ref={importFileRef}
-            type="file"
-            accept=".md,.markdown,text/markdown,text/plain"
-            data-world-import-file
-            style={{ display: 'none' }}
-            onChange={(e) => {
-              void importMarkdown(e.target.files?.[0]);
-              e.target.value = '';
-            }}
-          />
-          <button
-            type="button"
-            onClick={() => importFileRef.current?.click()}
-            title={c.importMdTitle}
-            data-world-import-md
-            className="wd-ghostBtn"
-          >
-            {c.importMd}
-          </button>
-          <button
-            type="button"
-            onClick={runAudit}
-            title={c.auditTitle}
-            data-world-audit
-            className="wd-ghostBtn"
-          >
-            {c.audit}
-          </button>
-          <button
-            type="button"
-            onClick={runLinkHints}
-            title={c.linkHintsTitle}
-            data-world-link-hints
-            className="wd-ghostBtn"
-          >
-            {c.linkHints}
-          </button>
-          <button
-            type="button"
-            onClick={sowSeed}
-            title={c.seedWorldTitle}
-            data-world-seed
-            className="wd-ghostBtn"
-          >
-            {c.seedWorld}
-          </button>
+        <div className="wd-rootCol" data-world-toolbar>
+          <p className="wd-faint11" data-world-tools-entry-label>{c.groupEntry}</p>
+          <div className="wd-aiRow" data-world-tools-entry>
+            <select
+              value={newKind}
+              onChange={(e) => setNewKind(e.target.value as WorldKind)}
+              aria-label={c.newKindAria}
+              data-world-new-kind
+              className="wd-chipSelect"
+            >
+              {WORLD_KINDS.map((kind) => (
+                <option key={kind} value={kind}>
+                  {kindLabel(kind, locale)}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={() =>
+                edit(addWorldNode(world, { kind: newKind, title: c.newEntryLabel(kindLabel(newKind, locale)) }), true)
+              }
+              data-world-add={newKind}
+              className="wd-ghostBtn"
+            >
+              {c.addOne}
+            </button>
+          </div>
+          <p className="wd-faint11" data-world-tools-local-label>{c.groupLocal}</p>
+          <div className="wd-aiRow" data-world-tools-local>
+            <button
+              type="button"
+              onClick={rollFateCard}
+              title={c.fateTitle}
+              data-world-fate
+              className="wd-ghostBtn"
+            >
+              {c.fate}
+            </button>
+            <button
+              type="button"
+              onClick={exportMarkdown}
+              title={c.exportMdTitle}
+              data-world-export-md
+              className="wd-ghostBtn"
+            >
+              {c.exportMd}
+            </button>
+            <input
+              ref={importFileRef}
+              type="file"
+              accept=".md,.markdown,text/markdown,text/plain"
+              data-world-import-file
+              style={{ display: 'none' }}
+              onChange={(e) => {
+                void importMarkdown(e.target.files?.[0]);
+                e.target.value = '';
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => importFileRef.current?.click()}
+              title={c.importMdTitle}
+              data-world-import-md
+              className="wd-ghostBtn"
+            >
+              {c.importMd}
+            </button>
+            <button
+              type="button"
+              onClick={runAudit}
+              title={c.auditTitle}
+              data-world-audit
+              className="wd-ghostBtn"
+            >
+              {c.audit}
+            </button>
+            <button
+              type="button"
+              onClick={runLinkHints}
+              title={c.linkHintsTitle}
+              data-world-link-hints
+              className="wd-ghostBtn"
+            >
+              {c.linkHints}
+            </button>
+            <button
+              type="button"
+              onClick={sowSeed}
+              title={c.seedWorldTitle}
+              data-world-seed
+              className="wd-ghostBtn"
+            >
+              {c.seedWorld}
+            </button>
+          </div>
+          <p className="wd-faint11" data-world-tools-ai-label>{c.groupAi}</p>
+          <div className="wd-aiRow" data-world-tools-ai>
+            <button
+              type="button"
+              onClick={() => void fillSection()}
+              disabled={aiFillBusy}
+              title={c.aiFillTitle(kindLabel(newKind, locale))}
+              data-world-ai-fill={newKind}
+              className="wd-ghostBtn"
+            >
+              {aiFillBusy ? c.aiFillBusy : c.aiFill}
+            </button>
+            <button
+              type="button"
+              onClick={() => void writeChronicle()}
+              disabled={chronicleBusy}
+              title={c.aiChronicleTitle}
+              data-world-ai-chronicle
+              className="wd-ghostBtn"
+            >
+              {chronicleBusy ? c.aiChronicleBusy : c.aiChronicle}
+            </button>
+            <button
+              type="button"
+              onClick={() => void fillAllEmpty()}
+              disabled={bulkBusy || aiFillBusy}
+              title={c.aiFillAllTitle}
+              data-world-ai-fill-all
+              className="wd-ghostBtn"
+            >
+              {bulkBusy ? c.aiFillAllBusy : c.aiFillAll}
+            </button>
+          </div>
         </div>
         {aiFillNote ? <p className="wd-body11Mt2" data-world-ai-fill-note>{aiFillNote}</p> : null}
         {chronicleNote ? <p className="wd-body11Mt2" data-world-ai-chronicle-note>{chronicleNote}</p> : null}
