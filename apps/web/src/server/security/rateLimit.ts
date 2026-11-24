@@ -60,6 +60,11 @@ export const IP_RATE_RULES = {
   'ai/explain': { limit: 10, windowMs: 3_600_000 },
   'follow': { limit: 60, windowMs: 3_600_000 },
   'auth/register': { limit: 10, windowMs: 3_600_000 },
+  // §STRESS-4 撞库防护：登录按 IP + 邮箱各 10 次 / 15 分钟（比注册的一小时窗更紧）。
+  // 它和 auth/register 一样直接读 `getRateLimiter().hit(...)`、不走 ipWriteGate，
+  // 所以规则表测试把这一族手工登记——否则代码里装了闸却没人写下来，
+  // `/api/admin/rate-limit` 端给管理员的就是半张图。
+  'auth/login': { limit: 10, windowMs: 900_000 },
 } as const;
 
 export type IpRateRoute = keyof typeof IP_RATE_RULES;

@@ -5,7 +5,7 @@ import { login, type AuthError } from '@/server/domain/auth';
 import { csrfOk } from '@/server/security/csrf';
 import { recordAudit } from '@/server/domain/audit';
 import { applySessionCookie } from '@/server/security/authCookies';
-import { getRateLimiter, rateKey, clientIp } from '@/server/security/rateLimit';
+import { getRateLimiter, rateKey, clientIp, IP_RATE_RULES } from '@/server/security/rateLimit';
 import { badRequest, jsonError, readJson, failure } from '@/server/http';
 
 const Schema = z.object({
@@ -28,7 +28,14 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   const ip = clientIp(req);
   // 登录按 IP + 邮箱限流：挡住对单个账号的口令爆破。
-  const rl = await getRateLimiter().hit(rateKey('auth/login', ip, parsed.data.email.toLowerCase()), 10, 15 * 60 * 1000);
+  // 限额与窗口从唯一真值表读（§STRESS-4），不再在调用点手写数字——
+  // 手写那版让 /api/admin/rate-limit 端不出这道闸，规则表的双向对账也看不见它。
+  const loginRule = IP_RATE_RULES['auth/login'];
+  const rl = await getRateLimiter().hit(
+    rateKey('auth/login', ip, parsed.data.email.toLowerCase()),
+    loginRule.limit,
+    loginRule.windowMs,
+  );
   if (!rl.allowed) {
     // §STRESS-4：撞库压测量到这道闸只回 HTTP `retry-after` 头，报文里没有 retryAfterMs。
     // 同仓其它限流点（角色对话 / AI 按钮 / 建项目）都在 body 里给这个数，界面据此说"还要等 N 分钟"；
