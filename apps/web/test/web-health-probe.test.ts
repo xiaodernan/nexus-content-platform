@@ -15,10 +15,16 @@ describe('check-web-health · 应用存活探针', () => {
     expect(src).toContain('process.exitCode = 1');
   });
 
-  it('--auto 模式用无代理启动脚本拉起并轮询到 200', () => {
-    expect(src).toContain("['run', 'dev:web:clean']");
+  it('--auto 模式无代理拉起 next dev 并轮询到 200', () => {
+    expect(src).toContain('next dev -p ${PORT}');
+    expect(src).toContain('start "" /b');
     expect(src).toContain('WEB_RECOVERED');
     expect(src).toContain('WEB_RECOVER_FAILED');
+  });
+
+  it('端口可用 WEB_PORT 指定（守护 3101 而非被并行线占用的 3100）', () => {
+    expect(src).toContain('process.env.WEB_PORT || 3100');
+    expect(readFileSync(join(process.cwd(), 'scripts/watchdog-start-dev.cmd'), 'utf8')).toContain('next dev -p 3101');
   });
 
   it('探针自身不带任何代理变量（避免把 localhost 又绑走）', () => {
