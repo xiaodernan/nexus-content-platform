@@ -3,10 +3,12 @@
  * 世界变大以后靠肉眼很难发现空条目、重名、断链——这里如实量出来，不伪造健康分。
  */
 import type { WorldDocument } from '@nexus/world-model';
+import { THIN_BODY_LIMIT } from './worldQuests';
 
 export type WorldAudit = {
   nodes: number;
   emptyBodies: number;      // 没有正文的条目数
+  thinBodies: number;       // 有正文但 <120 字的条目数（与 /integrity、tide 同口径）
   duplicateTitles: { title: string; count: number }[]; // 同名 ≥2 的题名
   orphans: number;          // 一条关系都没有的条目数（有链接时才统计）
   brokenLinks: number;      // 端点指向不存在条目的关系数
@@ -38,17 +40,27 @@ export function auditWorld(world: WorldDocument): WorldAudit {
     .map(([title, count]) => ({ title, count }))
     .sort((a, b) => b.count - a.count || a.title.localeCompare(b.title, 'zh-Hans-CN'));
   const emptyBodies = nodes.filter((n) => !(n.body || '').trim()).length;
+  const thinBodies = nodes.filter((n) => {
+    const len = (n.body || '').trim().length;
+    return len > 0 && len < THIN_BODY_LIMIT;
+  }).length;
   const orphans = links.length ? nodes.filter((n) => !connected.has(n.id)).length : 0;
   const healthy = emptyBodies === 0 && duplicateTitles.length === 0 && brokenLinks === 0 && orphans === 0;
-  return { nodes: nodes.length, emptyBodies, duplicateTitles, orphans, brokenLinks, linkCount: links.length, healthy };
+  return { nodes: nodes.length, emptyBodies, thinBodies, duplicateTitles, orphans, brokenLinks, linkCount: links.length, healthy };
 }
 
 /** 给一条可执行的建议；没有问题时明确说不用动，不凑话术。 */
 export function auditSuggestion(a: WorldAudit, locale: 'zh' | 'en'): string {
   if (a.healthy) {
-    return locale === 'zh'
-      ? '体检通过：没有空条目、重名、孤儿条目或断链。想继续变大，就用「AI 补全空节」或「掷命运骰」添细节。'
-      : 'Check passed: no empty bodies, duplicate titles, orphan nodes or broken links. To keep growing, fill empty sections or roll fate for details.';
+    const base = locale === 'zh'
+      ? '体检通过：没有空条目、重名、孤儿条目或断链。'
+      : 'Check passed: no empty bodies, duplicate titles, orphan nodes or broken links.';
+    const thin = a.thinBodies
+      ? (locale === 'zh'
+          ? `另有 ${a.thinBodies} 条正文不足 ${THIN_BODY_LIMIT} 字，想更饱满可以逐条补写。`
+          : `${a.thinBodies} bodies are under ${THIN_BODY_LIMIT} characters — worth expanding for detail.`)
+      : '';
+    return base + thin;
   }
   if (a.emptyBodies) {
     return locale === 'zh'
@@ -73,8 +85,8 @@ export function auditSuggestion(a: WorldAudit, locale: 'zh' | 'en'): string {
 
 export function formatWorldAudit(a: WorldAudit, locale: 'zh' | 'en'): string {
   const core = locale === 'zh'
-    ? `条目 ${a.nodes} · 空正文 ${a.emptyBodies} · 重名组 ${a.duplicateTitles.length} · 孤儿 ${a.orphans} · 断链 ${a.brokenLinks}/${a.linkCount}`
-    : `entries ${a.nodes} · empty bodies ${a.emptyBodies} · duplicate groups ${a.duplicateTitles.length} · orphans ${a.orphans} · broken links ${a.brokenLinks}/${a.linkCount}`;
+    ? `条目 ${a.nodes} · 空正文 ${a.emptyBodies} · 薄正文 ${a.thinBodies} · 重名组 ${a.duplicateTitles.length} · 孤儿 ${a.orphans} · 断链 ${a.brokenLinks}/${a.linkCount}`
+    : `entries ${a.nodes} · empty ${a.emptyBodies} · thin ${a.thinBodies} · duplicate groups ${a.duplicateTitles.length} · orphans ${a.orphans} · broken links ${a.brokenLinks}/${a.linkCount}`;
   const verdict = a.healthy
     ? (locale === 'zh' ? ' · 体检通过' : ' · check passed')
     : (locale === 'zh' ? ' · 有待处理' : ' · needs work');
