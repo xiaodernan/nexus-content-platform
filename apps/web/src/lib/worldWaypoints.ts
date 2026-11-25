@@ -61,19 +61,29 @@ export function buildWorldWaypoints(world: WorldDocument, perNode = 3): Waypoint
   if (!world || !world.nodes) return [];
   const usable = world.nodes.filter((n) => n.id && n.title.trim().length > 0);
   if (usable.length < 2) return [];
-  const next = rng(hashSeed(world.id));
+  // 热点纪律：全表只 shuffle 一次。早先"每节点 shuffle 全表"是 O(n²)，在 5 万节点上会卡死；
+  // 现在按每节点一个环形游标取目标，复杂度 O(n·perNode)，规模冲击下仍可完成。
+  waypointBuildStats.shuffles = 0;
+  const order = shuffle(usable, rng(hashSeed(world.id)));
+  waypointBuildStats.shuffles++;
   const result: Waypoint[] = [];
   for (const from of usable) {
-    const targets = shuffle(usable.filter((n) => n.id !== from.id), next).slice(0, perNode);
-    for (const to of targets) {
-      if (to.id === from.id) continue;
+    let cursor = hashSeed(from.id) % order.length;
+    for (let taken = 0; taken < perNode; taken++) {
+      let guard = 0;
+      while (order[cursor % order.length]!.id === from.id && guard++ < order.length) cursor++;
+      if (guard >= order.length) break; // 只有 1 个真节点时不应发生（前面已判 >= 2）
+      const to = order[cursor++ % order.length]!;
       const distance = distanceOf(world, from.id, to.id);
-      const risk = RISKS[(hashSeed(`${world.id}:${from.id}:${to.id}:r`) % RISKS.length)]!;
+      const risk = RISKS[hashSeed(`${world.id}:${from.id}:${to.id}:r`) % RISKS.length]!;
       result.push({ id: `${from.id}__${to.id}`, fromNodeId: from.id, toNodeId: to.id, distance, risk });
     }
   }
   return result;
 }
+
+/** 复杂度诊断：全表 shuffle 次数。重构前它随节点数线性增长（每节点 shuffle 全表 = O(n²)）。 */
+export const waypointBuildStats = { shuffles: 0 };
 
 /** 按 id 找路径（找不到返回 null，不猜测）。 */
 export function routeBetween(world: WorldDocument, fromNodeId: string, toNodeId: string): Waypoint | null {

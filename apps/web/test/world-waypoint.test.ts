@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { WorldDocument, WorldNode } from '@nexus/world-model';
-import { buildWorldWaypoints, routeBetween } from '@/lib/worldWaypoints';
+import { buildWorldWaypoints, routeBetween, waypointBuildStats } from '@/lib/worldWaypoints';
 
 function makeWorld(nodes: WorldNode[], id = 'world-waypoint-1'): WorldDocument {
   return { id, projectId: null, name: '测试世界', summary: 's', nodes, links: [], positions: {}, createdAt: '2026-11-25T00:00:00Z', updatedAt: '2026-11-25T00:00:00Z' };
@@ -30,6 +30,14 @@ describe('worldWaypoints（世界远行路径·确定性）', () => {
     const byFrom = new Map<string, number>();
     for (const r of routes) byFrom.set(r.fromNodeId, (byFrom.get(r.fromNodeId) ?? 0) + 1);
     for (const n of world.nodes) expect((byFrom.get(n.id) ?? 0)).toBeGreaterThanOrEqual(1);
+  });
+
+  it('复杂度门：全表 shuffle 恒 1 次，与节点数无关（挡住 O(n²) 回归）', () => {
+    buildWorldWaypoints(makeWorld([node('a', 'A'), node('b', 'B')]));
+    expect(waypointBuildStats.shuffles).toBe(1);
+    const big = makeWorld(Array.from({ length: 500 }, (_, i) => node(`n${i}`, `N${i}`)));
+    buildWorldWaypoints(big);
+    expect(waypointBuildStats.shuffles).toBe(1);
   });
 
   it('risk ∈ {low, normal, high}，distance 在 5–55 之间（真定义域）', () => {
