@@ -197,7 +197,42 @@ export function evaluateInsightRules(m: InsightMetrics): InsightAction[] {
     }
   }
 
-  // 9) 缓存命中率：调用方式若让前缀缓存反复失效，命中率会显著偏低
+  // 趋势口径统一：连续 14 天、斜率 < -0.05、R² ≥ 0.5 才算"连续下行"，与 signup-trend 同一把尺。
+  // dailyPublishes / dailyOpens 过去只收不用——这里把它们纳入趋势预测，策略才完整。
+  const declining = (series: number[]) => {
+    const fit = leastSquares(series);
+    return fit && series.length >= 14 && fit.slope < -0.05 && fit.r2 >= 0.5 ? fit : null;
+  };
+
+  // 9a) 发布趋势：创作者越来越少动笔
+  {
+    const fit = declining(m.dailyPublishes);
+    if (fit) {
+      out.push({
+        id: 'publish-trend',
+        severity: 'watch',
+        title: { zh: '发布曲线连续下行：创作者在停笔', en: 'Publish curve trending down: creators are stopping' },
+        evidence: { zh: `近 ${int(m.dailyPublishes.length)} 天斜率 ${fit.slope.toFixed(3)} 次/天，R² = ${fit.r2.toFixed(2)}`, en: `Slope over the last ${int(m.dailyPublishes.length)} days: ${fit.slope.toFixed(3)} publishes/day, R² = ${fit.r2.toFixed(2)}` },
+        action: { zh: '给"从空画布到第一次发布"加一条可走通的最短路径（模板一键起稿 → 真发布）；创作者停笔多是因为第一步太重，不是不想做。', en: 'Add a shortest path from blank canvas to first publish (template → real release). Creators stop because the first step is too heavy, not for lack of intent.' },
+      });
+    }
+  }
+
+  // 9b) 打开趋势：作品越来越少人看
+  {
+    const fit = declining(m.dailyOpens);
+    if (fit) {
+      out.push({
+        id: 'open-trend',
+        severity: 'watch',
+        title: { zh: '打开曲线连续下行：作品没人看了', en: 'Open curve trending down: fewer people are looking' },
+        evidence: { zh: `近 ${int(m.dailyOpens.length)} 天斜率 ${fit.slope.toFixed(3)} 次/天，R² = ${fit.r2.toFixed(2)}`, en: `Slope over the last ${int(m.dailyOpens.length)} days: ${fit.slope.toFixed(3)} opens/day, R² = ${fit.r2.toFixed(2)}` },
+        action: { zh: '检查已发布作品是否还有可进入的入口（个人主页作品卡 / 发现页排序 / 分享链接）；没有入口的好作品等于没发。', en: 'Check whether published works still have an entry point (homepage card / discover ranking / share link). A good work with no entry is as good as unpublished.' },
+      });
+    }
+  }
+
+  // 9c) 缓存命中率：调用方式若让前缀缓存反复失效，命中率会显著偏低
   {
     const total = m.tokensCached30d + m.tokensIn30d;
     if (total > 0) {

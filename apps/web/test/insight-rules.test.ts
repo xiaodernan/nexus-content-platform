@@ -77,6 +77,27 @@ describe('evaluateInsightRules 规则引擎（阈值即产品决策）', () => {
     expect(action?.severity).toBe('watch');
   });
 
+  it('发布曲线连续下行触发 publish-trend（dailyPublishes 不再是盲区）', () => {
+    const m = { ...base, dailyPublishes: [20, 18, 16, 14, 12, 10, 9, 8, 7, 6, 5, 4, 3, 2] };
+    const action = evaluateInsightRules(m).find((a) => a.id === 'publish-trend');
+    expect(action?.severity).toBe('watch');
+    expect(action?.evidence.zh).toContain('次/天');
+  });
+
+  it('打开曲线连续下行触发 open-trend（dailyOpens 不再是盲区）', () => {
+    const m = { ...base, dailyOpens: [200, 185, 170, 155, 140, 125, 110, 95, 80, 65, 50, 40, 30, 20] };
+    const action = evaluateInsightRules(m).find((a) => a.id === 'open-trend');
+    expect(action?.severity).toBe('watch');
+    expect(action?.evidence.zh).toContain('次/天');
+  });
+
+  it('三者横盘时 publish/open/signup 趋势都不误报', () => {
+    const actions = evaluateInsightRules(base);
+    for (const id of ['publish-trend', 'open-trend', 'signup-trend']) {
+      expect(actions.find((a) => a.id === id)).toBeUndefined();
+    }
+  });
+
   it('注册曲线横盘（斜率≈0）不触发 signup-trend', () => {
     expect(evaluateInsightRules(base).find((a) => a.id === 'signup-trend')).toBeUndefined();
   });
