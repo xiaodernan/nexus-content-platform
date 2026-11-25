@@ -36,6 +36,7 @@ import { rollFate, type FateCard } from '@/lib/worldFate';
 import { mergeImportedWorld, parseWorldMarkdown, worldFileName, worldToMarkdown } from '@/lib/worldExport';
 import { formatWorldStats, worldStats } from '@/lib/worldStats';
 import { formatWorldCohesion, worldCohesion } from '@/lib/worldCohesion';
+import { buildEchoWalk, formatEchoStep } from '@/lib/worldEchoWalk';
 import { filterWorldNodes } from '@/lib/worldFilter';
 import { sortWorldNodes, type WorldSortMode } from '@/lib/worldSort';
 import { auditSuggestion, auditWorld, formatWorldAudit } from '@/lib/worldAudit';
@@ -816,6 +817,23 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
         </div>
         <p className="wd-body11Mt2" data-world-stats>{formatWorldStats(worldStats(world), locale)}</p>
         <p className="wd-body11Mt2" data-world-cohesion>{formatWorldCohesion(worldCohesion(world), locale)}</p>
+        {(() => {
+          const walk = buildEchoWalk(world);
+          return walk.total ? (
+            <ul className="wd-col2" data-world-echo-walk>
+              {walk.steps.map((s) => (
+                <li key={s.sourceId} className="wd-faint11" data-world-echo-step>
+                  {formatEchoStep(s, locale)}
+                </li>
+              ))}
+              {walk.hasMore ? (
+                <li className="wd-faint11" data-world-echo-more>
+                  {locale === 'zh' ? `…另有 ${walk.total - walk.steps.length} 枚回声（来自你写下的记忆字段）` : `…${walk.total - walk.steps.length} more echoes (from the memory fields you wrote)`}
+                </li>
+              ) : null}
+            </ul>
+          ) : null;
+        })()}
         <input
           type="search"
           value={nodeFilter}
