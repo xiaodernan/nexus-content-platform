@@ -58,14 +58,36 @@ const API_DB_URL = process.env.NEXUS_API_DB_URL ?? 'jdbc:postgresql://127.0.0.1:
 const DB_USERNAME = process.env.DB_USERNAME ?? 'nexus_app';
 const DB_PASSWORD = process.env.DB_PASSWORD ?? 'nexus_dev_app_only';
 
+/** 从 JDBC URL 解析 host/port/database：维护连接必须指向 API 库所在的同一台服务器，
+ *  不能硬编码 5433——hosted CI 的库在 55433，硬编码会在服务启动前就 ECONNREFUSED。 */
+export function apiDatabaseTarget(jdbcUrl: string): { host: string; port: number; database: string; quotedDatabase: string } {
+  const target = new URL(jdbcUrl.replace(/^jdbc:postgresql:/i, 'postgresql:'));
+  const database = decodeURIComponent(target.pathname.replace(/^\/+/, ''));
+  if (target.protocol !== 'postgresql:' || !target.hostname || !database) {
+    throw new Error('NEXUS_API_DB_URL must name a PostgreSQL host and database');
+  }
+  return {
+    host: target.hostname.replace(/^\[|\]$/g, ''),
+    port: Number(target.port || 5432),
+    database,
+    quotedDatabase: `"${database.replace(/"/g, '""')}"`,
+  };
+}
+
 /** nexus-api 的 throwaway 库必须真的存在（幂等；建不了照实报错）。与 verify-topology 同一段理由。 */
 async function ensureApiDatabase(): Promise<void> {
+  const target = apiDatabaseTarget(API_DB_URL);
   const postgres = (await import('postgres')).default;
-  const sql = postgres(`postgres://${DB_USERNAME}:${encodeURIComponent(DB_PASSWORD)}@127.0.0.1:5433/postgres`, {
+  const sql = postgres({
+    host: target.host,
+    port: target.port,
+    username: DB_USERNAME,
+    password: DB_PASSWORD,
+    database: 'postgres',
     max: 1,
   });
   try {
-    await sql.unsafe('CREATE DATABASE nexus_api_smoke').catch((error: { code?: string }) => {
+    await sql.unsafe(`CREATE DATABASE ${target.quotedDatabase}`).catch((error: { code?: string }) => {
       if (error.code !== '42P04') throw error; // duplicate_database
     });
   } finally {
