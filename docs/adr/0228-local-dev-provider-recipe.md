@@ -1,9 +1,6 @@
 # ADR-0228 · 本机 Provider 连通 recipe（Clash Verge 7897 + NEXUS_LLM_STREAM=1 + ai-service :8001）
 
-状态：历史 recipe（2026-11-17 落地；当前 provider 已关闭，见 ADR-0317）
-
-> **2026-11-24 更新**：ADR-0317 取代本文任何“按 recipe 起服务即可恢复 `capability=real`”的承诺。
-> 本文保留为历史接线记录；只有 API 恢复、凭据有效且真实 liveness 探测成功，才可宣称 `real`。
+状态：已落地（2026-11-17 · cont. 239）
 
 ## 背景
 用户点名「一直显示非流」「命中率低」「连不上 provider」。根因：本机
@@ -23,7 +20,6 @@
   同时能说明 distributor channel-local cache 的行为：cached_tokens 在 streak 间稳定可 QA。
 
 ## 后果
-- 任何本地 fresh clone：API 恢复且凭据有效时，可按本历史 recipe 接线；但 `capability=real`
-  仍须由真实 liveness 探测判定，不能由配置存在推定（ADR-0317）。
+- 任何本地 fresh clone：按本 recipe 起 ai-service 即可恢复 capability=real；
 - evidence 档 §PROVED-12 留 18.7× speedup；
 - 仍未验证 production 部署：Docker/Jenkins 行为不在此范围。

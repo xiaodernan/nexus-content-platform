@@ -1,8 +1,7 @@
 import { createHash } from 'node:crypto';
-
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { readStable } from './helpers/stable-text';
 
 /**
  * §FE-25 `/preview/[projectId]` 只读模型投影（§124 / ADR-0063）——**静态那一寸**。
@@ -29,9 +28,9 @@ const MAIN = join(ROOT, 'apps/web/src/app/preview/[projectId]/page.tsx');
 const GLOBALS = join(ROOT, 'apps/web/src/app/globals.css');
 const TOKENS = join(ROOT, 'apps/web/src/styles/tokens.css');
 
-const src = readStable(MAIN);
-const globals = readStable(GLOBALS);
-const tokens = readStable(TOKENS);
+const src = readFileSync(MAIN, 'utf8');
+const globals = readFileSync(GLOBALS, 'utf8');
+const tokens = readFileSync(TOKENS, 'utf8');
 
 const cssNoComments = (css: string): string => css.replace(/\/\*[\s\S]*?\*\//g, '');
 const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');

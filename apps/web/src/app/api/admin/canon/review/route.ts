@@ -2,7 +2,6 @@ import { z } from 'zod';
 import { NextResponse } from 'next/server';
 import { currentUserOrNull } from '@/server/domain/session';
 import { jsonError, readJson, badRequest } from '@/server/http';
-import { csrfOk } from '@/server/security/csrf';
 import { getRateLimiter, rateKey, clientIp } from '@/server/security/rateLimit';
 import { chatWithCharacter } from '@/server/ai/client';
 import {
@@ -32,7 +31,6 @@ export async function POST(req: Request): Promise<Response> {
   if (user.role !== 'admin') {
     return await jsonError(403, 'forbidden', { message: '正典评审只对审核员（role=admin）开放' });
   }
-  if (!(await csrfOk(req))) return await jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
 
   const rl = await getRateLimiter().hit(rateKey('canon-review', clientIp(req), user.id), 10, 10 * 60 * 1000);
   if (!rl.allowed) {

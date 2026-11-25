@@ -105,11 +105,6 @@ describe('设计 token 引用（§12）', () => {
     for (const file of [...tsxFiles(SRC), ...styleFiles(SRC)]) {
       const lines = readFileSync(file, 'utf8').split('\n');
       lines.forEach((line, i) => {
-        // 未定义的名字一律红，**带 fallback 也红**：`var(--nexus-color-line, color-mix(...))`
-        // 看着"有兜底所以不会坏"，其实兜底的是「这个名字从来不在设计模型里」这件事——
-        // 页面照样渲染，漂移就永远没人看见。上一版把逗号那一支放过，正是靠这个形状把
-        // 8 处不存在的 token 读成了"故意降级"；改回只查裸形之前先想清楚：
-        // 真要用兜底，兜的底必须也是一个已定义的 token，那这个名字本身就该先定义出来。
         for (const m of line.matchAll(/var\((--nexus-[a-z0-9-]+)[),]/g)) {
           if (!defined.has(m[1]!)) unknown.push(`${relative(process.cwd(), file)}:${i + 1} ${m[1]}`);
         }
@@ -239,10 +234,7 @@ describe('强调面上的文字（§90 无障碍 · 同串底色+文字 ≥4.5�
     );
     if (!bgMatch) continue;
     const bg = `bg-${bgMatch[1]!}`;
-    // `(?<![-\w])` matters: without it `border-color: var(...)` also matches, and a decorative
-    // dot whose BORDER is success-green gets reported as success-green TEXT on success-green
-    // background (contrast 1.00) — a false positive that would push someone to "fix" a dot.
-    for (const cm of body.matchAll(/(?<![-\w])color:\s*var\(--nexus-color-([a-z0-9-]+)\)/g)) {
+    for (const cm of body.matchAll(/color:\s*var\(--nexus-color-([a-z0-9-]+)\)/g)) {
       pairs.push({ file: 'app/globals.css', line: lineNo(globalsCss, m.index ?? 0), bg, fg: `text-${cm[1]!}` });
     }
   }

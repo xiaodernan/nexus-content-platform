@@ -12,4 +12,4 @@
 | pageerror | 0 |
 
 注意：按钮是**开关**（toggle）而非一次性标记，重复点同一个会取消；脚本按索引逐一点七个不同按钮。
-回归脚本：`scratch/onboarding-e2e2.mjs`。
+回归脚本：`.scratch/onboarding-e2e2.mjs`。

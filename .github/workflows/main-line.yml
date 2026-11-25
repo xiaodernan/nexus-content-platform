@@ -146,17 +146,6 @@ jobs:
     # red, the failure is real signal — the same class of failure this job exists to surface.
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    env:
-      # CI's Postgres service is published on 55433 with database `nexus`, user `nexus`.
-      # The Java services' packaged defaults target the authoring box's 5433/nexus_dev,
-      # so every proof in this job must name CI's OWN database explicitly (the migrate
-      # step above already does). Without this, domain-service cannot connect and
-      # Hibernate answers "Unable to determine Dialect without JDBC metadata" instead
-      # of /actuator/health. Step-level env still overrides these for port-only proofs.
-      NEXUS_DOMAIN_DB_URL: jdbc:postgresql://127.0.0.1:55433/nexus
-      NEXUS_DOMAIN_PG_PORT: 55433
-      DB_USERNAME: nexus
-      DB_PASSWORD: nexus_dev_only
     services:
       postgres:
         image: pgvector/pgvector:pg16

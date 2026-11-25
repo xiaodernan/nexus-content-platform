@@ -1,8 +1,7 @@
 import { createHash } from 'node:crypto';
-
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { readStable } from './helpers/stable-text';
 
 /**
  * §FE-PR `/admin/pricing` AI 成本 —— **§COST-1 的账本读侧**。
@@ -27,9 +26,9 @@ const MAIN = join(ROOT, 'apps/web/src/app/admin/pricing/page.tsx');
 const GLOBALS = join(ROOT, 'apps/web/src/app/globals.css');
 const TOKENS = join(ROOT, 'apps/web/src/styles/tokens.css');
 
-const main = readStable(MAIN);
-const globals = readStable(GLOBALS);
-const tokens = readStable(TOKENS);
+const main = readFileSync(MAIN, 'utf8');
+const globals = readFileSync(GLOBALS, 'utf8');
+const tokens = readFileSync(TOKENS, 'utf8');
 
 const cssNoComments = (css: string): string => css.replace(/\/\*[\s\S]*?\*\//g, '');
 const code = main.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');

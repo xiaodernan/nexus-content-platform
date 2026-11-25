@@ -4,34 +4,7 @@ import { getLocale, type Locale } from '@/lib/i18n';
 import { BibleSearch } from '@/components/BibleSearch';
 import { BIBLE_CHAPTERS, BIBLE_ECHOES } from '@/world-bible/generated';
 import { extractAnchors } from '@/components/BibleMarkdown';
-const CN_DIGITS = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
-function _cnTwoDigit(n: number): string {
-  if (n < 10) return CN_DIGITS[n]!;
-  const tens = Math.floor(n / 10);
-  const ones = n % 10;
-  const tensChar = tens === 1 ? '十' : `${CN_DIGITS[tens]}十`;
-  return ones === 0 ? tensChar : `${tensChar}${CN_DIGITS[ones]}`;
-}
-function _cn(n: number): string {
-  if (n < 100) return _cnTwoDigit(n);
-  const rest = n - 100;
-  return rest === 0 ? '一百' : `一百${rest < 10 ? '零' : ''}${_cnTwoDigit(rest)}`;
-}
-
-const ROMAN_PAIRS: ReadonlyArray<[number, string]> = [
-  [100, 'C'], [90, 'XC'], [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I'],
-];
-function _roman(n: number): string {
-  let out = '';
-  let remaining = n;
-  for (const [value, symbol] of ROMAN_PAIRS) {
-    while (remaining >= value) {
-      out += symbol;
-      remaining -= value;
-    }
-  }
-  return out;
-}
+import { cnNumber, romanNumber } from '@/lib/cnNumeral';
 
 export const dynamic = 'force-dynamic';
 
@@ -91,7 +64,7 @@ const COPY: Record<Locale, {
     anchorsLink: '锚句回放',
     dotRoadLink: '点路 · 照着点走一遍',
     chapterLabel: (order) => `第${['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二', '十三', '十四'][order - 1] ?? order}章`,
-    echoLabel: (order) => `回响 · 其${_cn(order)}`,
+    echoLabel: (order) => `回响 · 其${cnNumber(order)}`,
     echoTitle: '回响',
     echoLede: '正典之外的侧写——不是续篇，不是错的，只是同一块盐加了另一层纹理。',
     anchorsLine: (count) => `${count} 句锚 · 中英字字对齐`,
@@ -114,7 +87,7 @@ const COPY: Record<Locale, {
     anchorsLink: 'Anchor Echo',
     dotRoadLink: 'The Dot Road',
     chapterLabel: (order) => `Chapter ${['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV'][order - 1] ?? order}`,
-    echoLabel: (order) => `Echo ${_roman(order)}`,
+    echoLabel: (order) => `Echo ${romanNumber(order)}`,
     echoTitle: 'Echoes',
     echoLede: 'Side-lights beyond the canon — not a sequel, not an error, just another layer of grain on the same salt.',
     anchorsLine: (count) => `${count} anchor sentences · verbatim in both languages`,
@@ -188,7 +161,7 @@ export default async function BiblePage() {
               const anchors = extractAnchors(echo.markdownZh, echo.markdownEn).length;
               return (
                 <li key={echo.slug} className="bb-card" data-bible-echo={echo.slug}>
-                  <span className="bb-cardNum" aria-hidden="true">{locale === 'en' ? _roman(echo.order) : _cn(echo.order)}</span>
+                  <span className="bb-cardNum" aria-hidden="true">{locale === 'en' ? romanNumber(echo.order) : cnNumber(echo.order)}</span>
                   <div className="bb-cardBody">
                     <p className="bb-cardChapter">{c.echoLabel(echo.order)}</p>
                     <h2 className="bb-cardTitle">{title}</h2>

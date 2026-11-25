@@ -1,8 +1,7 @@
 import { createHash } from 'node:crypto';
-
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { readStable } from './helpers/stable-text';
 
 /**
  * §FE-TD「世界潮汐」（`/world/<project>/tide`）—— v710 §B 引擎片的门面判据。
@@ -22,10 +21,10 @@ const GLOBALS = join(ROOT, 'apps/web/src/app/globals.css');
 const TOKENS = join(ROOT, 'apps/web/src/styles/tokens.css');
 const LIB = join(ROOT, 'apps/web/src/lib/tide.ts');
 
-const page = readStable(PAGE);
-const globals = readStable(GLOBALS);
-const tokens = readStable(TOKENS);
-const lib = readStable(LIB);
+const page = readFileSync(PAGE, 'utf8');
+const globals = readFileSync(GLOBALS, 'utf8');
+const tokens = readFileSync(TOKENS, 'utf8');
+const lib = readFileSync(LIB, 'utf8');
 const cssNoComments = (css: string): string => css.replace(/\/\*[\s\S]*?\*\//g, '');
 const code = page.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 

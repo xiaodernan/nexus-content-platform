@@ -36,30 +36,25 @@
 > **Playwright 约束**：本机网络无法下载 Playwright 自带的 Chromium/headless-shell（`npx playwright install` 失败）。
 > 截图与 e2e 一律用系统 Chrome：`chromium.launch({ channel: 'chrome' })`。已实测可渲染并截图成功。
 
-> **当前状态（2026-11-24）**：外部大模型 API 已按用户要求关闭，离线 DEMO 是当前正常路径。
-> provider 抽象与配置保留，但 `capability=real` 只表示最近一次真实 liveness 探测成功；
-> `unknown` / `failed` / 未配置一律不可用，web 必须显示 DEMO MODE。下面 2026-11-12 至
-> 2026-11-22 的接通、模型与缓存读数都是**历史快照**，不代表今天可用。详见 ADR-0317。
+### 2026-11-12 真实 LLM provider 接入（§AILIVE-1）
 
-### 历史快照：2026-11-12 真实 LLM provider 接入（§AILIVE-1）
-
-当日本机开发接入真实 LLM provider（wkapi.pro 的 `gpt-6-sol`）：`apps/ai-service/.env`
+本机开发从此日期起默认接入真实 LLM provider（wkapi.pro 的 `gpt-6-sol`）：`apps/ai-service/.env`
 含 key（gitignored，详见 `apps/ai-service/.env.example`），`NEXUS_OPENAI_BASE_URL`、`NEXUS_MODEL_*`、`NEXUS_LLM_JSON_MODE` 亦同。
-当时核心 AI 依赖不再是纯 mock（§160 §AGENTS）；
+因此核心 AI 依赖不再是纯 mock（§160 §AGENTS）；
 
-- 当日 `/healthz` capability 为 `real`（providers: `llm`/`embedding` openai-compatible REAL；
+- `/healthz` capability 现为 `real`（providers: `llm`/`embedding` openai-compatible REAL；
   `image`/`video`/`speech` 仍如实 `unavailable`）。
-- 当日 web 的 Provider 就绪页盖 `在线 · real` 布尔真，不再是 `未配置`。
+- web 的 Provider 就绪页盖 `在线 · real` 布尔真，不再是 `未配置`。
 - `scripts/probe-provider.py` 一次请求验证 endpoint（无需手动导环境变量，读 apps/ai-service/.env）。
-- 真实调用产生真实费用：每个真实 generation 请求都向 endpoint 计费；当日 `demoMode=false`。
-  开发时不想产生费用就别触开发 AI 路径（或删 .env 里的 key）；今天 API 已关闭，
-  探测失败时 healthz 报 `unavailable`、web 显示 `DEMO MODE`，§AGENTS 纪律仍有效。
+- 真实调用产生真实费用：每个真实 generation 请求都向 endpoint 计费；`demoMode=false`。
+  开发时不想产生费用就别触开发 AI 路径（或删 .env 里的 key）；healthz 会退回 mock，
+  `DEMO MODE` 标志真显示，§AGENTS 纪律仍有效。
 
 ### 2026-11-13 LLM 通路接入 prompt caching（§AILIVE-4）
 
 `wkapi.pro`（OpenAI 兼容网关）的 `usage` 对象默认**不带 prompt caching 字段**（只给 `prompt_tokens/completion_tokens/total_tokens`）；stream SSE 结尾直接 `[DONE]`、没有 usage 帧——stream 不是"坏"，充其量是"报不了数"。
 
-2026-11-13 修：OpenAICompatibleProvider 发 `prompt_cache_key`（缺省 `nexus-studio`，env `NEXUS_OPENAI_PROMPT_CACHE_KEY`，显式空串关闭）；`usage` 新增 `cachedTokens`（default 0），契约三件套同步。实测：同 payload 第二次起 `cached_tokens=6272/6449（97.2%）`；经 `POST /v1/ai/run` 完整 HTTP 路径 cold 0 → warm 6272（**97.8%**）。`/healthz` 当日依旧 `real`（历史快照）；成本仍只看网关的 truth（`costUsd=0`，不编）。**2026-11-18 更新（ADR-0284）**：缺省翻转为 sticky per-lane（`nexus-<sha256(system)>`）——这台网关上常量 lane 12 发交替 6 次 502，sticky per-lane 12/12 200 且 cached≈100%（`docs/evidence/cache-key-ab-2026-11-18.md`）。
+2026-11-13 修：OpenAICompatibleProvider 发 `prompt_cache_key`（缺省 `nexus-studio`，env `NEXUS_OPENAI_PROMPT_CACHE_KEY`，显式空串关闭）；`usage` 新增 `cachedTokens`（default 0），契约三件套同步。实测：同 payload 第二次起 `cached_tokens=6272/6449（97.2%）`；经 `POST /v1/ai/run` 完整 HTTP 路径 cold 0 → warm 6272（**97.8%**）。`/healthz` 依旧 `real`；成本仍只看网关的 truth（`costUsd=0`，不编）。**2026-11-18 更新（ADR-0284）**：缺省翻转为 sticky per-lane（`nexus-<sha256(system)>`）——这台网关上常量 lane 12 发交替 6 次 502，sticky per-lane 12/12 200 且 cached≈100%（`docs/evidence/cache-key-ab-2026-11-18.md`）。
 
 进程归属与停机纪律见 `docs/environment/port-3200-ai-service-owner.md`（3200 现由本仓 patched 实例持有）。
 
@@ -67,7 +62,7 @@
 
 wkapi.pro 线退役；新线（用户提供）：key 经 `apps/ai-service/.env`（gitignored）、`https://api.aizzz.xyz/v1`、模型 `gpt-6.1-terra`。**本机必须经 Clash Verge（`127.0.0.1:7897`）出网**，直连 aizzz.xyz 会被该服务拦（实测 HTTP 403，经代理 HTTP 200，`GET /v1/models` 列出 `gpt-6.1-terra`）。
 
-> **2026-11-21 模型更正（用户点名，历史快照）**：模型已从 `gpt-6.1-terra` 换成 **`gpt-6.2-sol`**。当日 `apps/ai-service/.env` 四档 `NEXUS_MODEL_FAST/BALANCED/REASONING/VISION` 全是 `gpt-6.2-sol`，`NEXUS_MODEL_EMBEDDING=none`（网关没有 embedding 模型）；上文与下面 ADR/evidence 里的 `gpt-6.1-terra` 是当日当时的实测记录，保留原文不改写。该 API 现已关闭，这些配置不再代表当前可用状态。
+> **2026-11-21 模型更正（用户点名）**：模型已从 `gpt-6.1-terra` 换成 **`gpt-6.2-sol`**。当前 `apps/ai-service/.env` 四档 `NEXUS_MODEL_FAST/BALANCED/REASONING/VISION` 全是 `gpt-6.2-sol`，`NEXUS_MODEL_EMBEDDING=none`（网关没有 embedding 模型）；上文与下面 ADR/evidence 里的 `gpt-6.1-terra` 是当日当时的实测记录，保留原文不改写，但不代表当前配置。
 
 机器级决定（详见 `docs/adr/0269-provider-aizzz-switch-machine-decisions.md`）：
 
@@ -77,6 +72,15 @@ wkapi.pro 线退役；新线（用户提供）：key 经 `apps/ai-service/.env`�
 - `NEXUS_LLM_MAX_ATTEMPTS=3`（瞬时 ConnectError/429/5xx 有界重试）；确定性 4xx 仍不重试。
 - `infra/dev-ai.sh` 现在也 source `.env` 里的 `HTTPS_PROXY`/`HTTP_PROXY`/`NO_PROXY`（不设端口号、不设死值）。
 - 连续三轮 `probe:cache` L1 冷→暖 PASS 稳定（4992 = 95%）；L2（服务内干跑）今天尚未拿到干净 PASS（瞬时故障偏多，如实记账，见 `docs/evidence/provider-aizzz-switch-2026-11-16.md`）。
+
+### 2026-11-24 解绑 Clash Verge（provider 已关闭）
+
+- 用户确认大模型 API 因成本/用量关闭，后续开发零 provider 调用；**不再需要任何出站代理**。
+- `apps/ai-service/.env`（gitignored）里 `HTTPS_PROXY` / `HTTP_PROXY=http://127.0.0.1:7897` 与 `NO_PROXY` 三行已删除，换成「需要代理时由启动环境临时给，不写进文件」的注释。`infra/dev-ai.sh` 仍 source 这些变量，但现在没有可 source 的值，进程不设代理即走系统/直连。
+- Windows 系统代理曾再次被 Clash Verge（`verge-mihomo.exe`，监听 `127.0.0.1:7897`）写成 `ProxyEnable=1 / ProxyServer=127.0.0.1:7897`，把浏览器也绑了上去。已手动置 `ProxyEnable=0` 且清空 `ProxyServer`；清空进程代理后直连 `https://github.com/` 实测 200，`http://127.0.0.1:3100/` 实测 200。**Clash 进程仍在跑，下次启动它可能再次打开系统代理；不再需要就从托盘退出。** 上一节 2026-11-16 的「必须经 Clash」是当日 provider 实测记录，保留原文不改写，**当前已不成立**。
+- 本机 User/Machine 作用域都没有 `HTTP_PROXY/HTTPS_PROXY`；仍在进程里看到的是从启动 shell 继承来的，要彻底清掉需从干净 shell 重启对应进程，不是系统级绑定。
+- 本地访问报错与代理无关：`ECONNREFUSED` 是 web 进程没在跑；`500` 且 cause 为 `connect ECONNREFUSED 127.0.0.1:5433` 或 Postgres `57P03 the database system is starting up` 是 DB 容器停了/正在崩溃恢复。先看 `docker ps --filter name=nexus` 与对应 `docker logs`，不要去改代理。
+- **根治 ECONNREFUSED（2026-11-25）**：环境/会话重启会杀掉 dev server，是反复报 ECONNREFUSED 的真因。已装用户级计划任务 `nexus-web-watchdog`（每 5 分钟跑 `scripts/web-watchdog.cmd` → `check-web-health.mjs --auto`，只在服务挂时用无代理方式拉起）。真机验证：杀掉 3100 监听进程后，下一个 tick 自动恢复 200，全程无 Clash、无手动干预。安装脚本 `scripts/install-web-watchdog.ps1`（需 UTF-8 BOM，否则 PS5.1 把中文路径按 GBK 解码）；卸载 `schtasks /Delete /TN nexus-web-watchdog /F`。手动一键恢复用 `npm run web:heal`。
 
 
 ## 已有容器（不属于本项目，禁止复用/删除）

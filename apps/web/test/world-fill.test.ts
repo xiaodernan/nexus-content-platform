@@ -101,11 +101,44 @@ describe('WorldPanel 四种填料按钮接线（web 侧限流期间的静态保�
       ['data-world-audit', 'runAudit', 'formatWorldAudit(a'],
       ['data-world-link-hints', 'runLinkHints', 'suggestWorldLinks(doc'],
       ['data-world-seed', 'sowSeed', 'generateSeedChapter'],
+      ['data-world-weave', 'weaveAll', 'weaveSuggestedLinks'],
+      ['data-world-cohesion', 'formatWorldCohesion(worldCohesion(world)', 'worldCohesion(world)'],
     ] as const) {
       expect(panel, hook).toContain(hook);
       expect(panel, flag).toContain(flag);
       expect(panel, parser).toContain(parser);
     }
+  });
+  it('工具栏分三组：新增 / 本地工具 / AI 写作，单组不超过 6 个控件（防挤成一堵按钮墙）', () => {
+    expect(panel).toContain('data-world-toolbar');
+    for (const [group, label] of [
+      ['data-world-tools-entry', 'data-world-tools-entry-label'],
+      ['data-world-tools-local', 'data-world-tools-local-label'],
+      ['data-world-tools-ai', 'data-world-tools-ai-label'],
+    ] as const) {
+      expect(panel, group).toContain(group);
+      expect(panel, label).toContain(label);
+      const start = panel.indexOf(`className="wd-aiRow" ${group}`);
+      expect(start, group).toBeGreaterThan(0);
+      const end = panel.indexOf('</div>', start);
+      const block = panel.slice(panel.indexOf('>', start) + 1, end);
+      const controls = block.match(/<button/g) ?? [];
+      expect(controls.length, `${group} 控件数 ${controls.length}`).toBeLessThanOrEqual(6);
+    }
+    // 本地工具与 AI 写作必须在文案上分开标注，用户才知道哪颗按钮会真的调用模型
+    expect(panel).toContain('groupLocal:');
+    expect(panel).toContain('groupAi:');
+  });
+  it('所有 hooks 都在 `if (!world)` 早退之前（真浏览器抓到过跨条件返回的渲染崩溃）', () => {
+    const panelStart = panel.indexOf('export function WorldPanel(');
+    const panelEnd = panel.indexOf('function TerrainSection(');
+    expect(panelStart).toBeGreaterThan(0);
+    expect(panelEnd).toBeGreaterThan(panelStart);
+    const early = panel.indexOf('if (!world) {', panelStart);
+    expect(early).toBeGreaterThan(panelStart);
+    const after = panel.slice(early, panelEnd); // 只看 WorldPanel 自己的函数体
+    const hooks = after.match(/\b(useState|useRef|useEffect|useMemo)\s*[<(]/g) ?? [];
+    expect(hooks, `早退之后还有 hooks：${hooks.join(', ')}`).toEqual([]);
   });
   it('三种写回都走 setLocal + commit，不绕过契约直写库', () => {
     expect(panel).toContain('worldStore.setLocal');

@@ -55,17 +55,8 @@ public class PatchService {
     /** The width of the author column. */
     public static final int MAX_ACTOR = 120;
 
-    /** The status this slice writes when a proposal is filed. The chain's third word moves it. */
+    /** The only status this slice writes. The later words of the chain move it; this one does not. */
     public static final String PROPOSED = "proposed";
-
-    /** The status a patch carries while a review request is open — written by {@link #submit}. */
-    public static final String SUBMITTED = "submitted";
-
-    /** The status a patch carries after its review request was approved — written by {@link #approve}. */
-    public static final String APPROVED = "approved";
-
-    /** The chain's last word: a deployment of this patch succeeded, written by {@link #deploy}. */
-    public static final String DEPLOYED = "deployed";
 
     private final PatchRepository repository;
     private final IncidentService incidents;
@@ -126,59 +117,6 @@ public class PatchService {
     /** One patch by id, bytes included. An id that names nothing is {@link NoSuchPatch}. */
     @Transactional(readOnly = true)
     public IncidentPatch read(String patchId) {
-        return load(patchId);
-    }
-
-    /**
-     * The chain's third word, from this table's side: a review request is about to open for this patch, so
-     * the patch's own status moves {@code proposed → submitted} in the SAME transaction that writes the
-     * request. Idempotent: a patch already submitted stays submitted, so a second request after a future
-     * close does not need a different door.
-     *
-     * @return the row, so the caller can answer with the status it moved to
-     */
-    @Transactional
-    public IncidentPatch submit(String patchId) {
-        IncidentPatch row = load(patchId);
-        row.submit();
-        return row;
-    }
-
-    /**
-     * The chain's fourth word, from this table's side: the review request was approved. The patch's own
-     * status moves to {@code approved} in the same transaction that records the verdict.
-     */
-    @Transactional
-    public IncidentPatch approve(String patchId) {
-        IncidentPatch row = load(patchId);
-        row.approve();
-        return row;
-    }
-
-    /**
-     * The other verdict: the review said no, so the patch goes BACK to {@code proposed} and may be revised
-     * and resubmitted. Leaving it {@code submitted} would describe a review that is no longer happening.
-     */
-    @Transactional
-    public IncidentPatch revise(String patchId) {
-        IncidentPatch row = load(patchId);
-        row.revise();
-        return row;
-    }
-
-    /**
-     * The chain's last word, from this table's side: a deployment of this patch was REPORTED successful.
-     * Only a success moves the cursor — a failed deployment leaves the patch approved, because the approval
-     * is still true and the retry is a new deployment record.
-     */
-    @Transactional
-    public IncidentPatch deploy(String patchId) {
-        IncidentPatch row = load(patchId);
-        row.deploy();
-        return row;
-    }
-
-    private IncidentPatch load(String patchId) {
         String id = requireId(patchId);
         return repository.findById(id)
                 .orElseThrow(() -> new NoSuchPatch("patch \"" + id + "\" does not exist"));

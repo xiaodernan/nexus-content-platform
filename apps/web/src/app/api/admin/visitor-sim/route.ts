@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { currentUserOrNull } from '@/server/domain/session';
 import { runVisitorSimulation } from '@/server/domain/visitorSimRunner';
 import { jsonError, readJson } from '@/server/http';
-import { csrfOk } from '@/server/security/csrf';
 import { z } from 'zod';
 
 export const dynamic = 'force-dynamic';
@@ -24,7 +23,6 @@ export async function POST(req: Request): Promise<NextResponse> {
   if (user.role !== 'admin') {
     return await jsonError(403, 'forbidden', { message: '行为演练只对审核员（role=admin）开放' });
   }
-  if (!(await csrfOk(req))) return await jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
   const raw = await readJson(req);
   const parsed = Body.safeParse(raw ?? {});
   if (!parsed.success) {

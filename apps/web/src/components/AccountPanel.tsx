@@ -147,7 +147,7 @@ export function AccountPanel({ user, locale = 'zh' }: { user: Identity; locale?:
       <div className="ac-between" data-auth-identity={user.guest ? 'guest' : 'member'}>
         <span className="ac-ident">
           {user.guest ? (
-            <>{c.guestNow} <b className="ac-strong">{c.guestVisitor}</b>（{user.displayName}）。{c.registerHint}</>
+            <>{c.guestNow} <b className="ac-strong">{c.guestVisitor}</b>{locale === 'en' ? ` (${user.displayName})` : ''}。{c.registerHint}</>
           ) : (
             <>{c.signedIn} <b className="ac-strong">{user.email}</b></>
           )}

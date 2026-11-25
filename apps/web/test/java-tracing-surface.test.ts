@@ -36,11 +36,7 @@ import { describe, expect, it } from 'vitest';
 /** The repository root: up from this file, never `process.cwd()` — tests run from more than one directory. */
 const REPO_ROOT = fileURLToPath(new URL('../../../', import.meta.url));
 const SERVICES_DIR = join(REPO_ROOT, 'services');
-// ADR-0237 deleted `infra/config/` with the java-* family; nexus-config serves the shared default
-// from its own classpath (`native` profile) — same document role, different place.
-const SHARED_DOOR = join(
-  REPO_ROOT, 'services', 'nexus-config', 'src', 'main', 'resources', 'nexus-config', 'application.yml',
-);
+const SHARED_DOOR = join(REPO_ROOT, 'infra', 'config', 'application.yml');
 
 /**
  * The hops a request actually crosses, in order. NAMED, and the count is asserted.
@@ -52,7 +48,7 @@ const SHARED_DOOR = join(
  * A new service that starts serving traffic has to be added to this list — the friction is the
  * feature (the same rule v658's door file follows).
  */
-const TRAFFIC_HOPS = ['nexus-gateway', 'nexus-api', 'java-domain-service'] as const;
+const TRAFFIC_HOPS = ['java-gateway', 'nexus-api', 'java-domain-service'] as const;
 
 /**
  * Every deployable must print the correlation segment, whether or not it is a hop.
@@ -63,7 +59,10 @@ const TRAFFIC_HOPS = ['nexus-gateway', 'nexus-api', 'java-domain-service'] as co
  * grep. They carry the same local `logging.pattern.correlation` as the central document does.
  */
 const DEPLOYABLES = [
+  'java-config-server',
   'java-domain-service',
+  'java-gateway',
+  'java-registry',
   'nexus-api',
   'nexus-config',
   'nexus-gateway',
@@ -89,7 +88,7 @@ function propagationType(file: string): string | null {
   return null;
 }
 
-/** The five deployables on disk — required to be exactly the named five, as in the door file. */
+/** The eight deployables on disk — required to be exactly the named eight, as in the door file. */
 function deployablesOnDisk(): string[] {
   return readdirSync(SERVICES_DIR, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
@@ -99,7 +98,7 @@ function deployablesOnDisk(): string[] {
 }
 
 describe('one trace id crosses every hop (v656)', () => {
-  it('finds exactly the five deployables it is about — a sixth would have to be written down', () => {
+  it('finds exactly the eight deployables it is about — a ninth would have to be written down', () => {
     expect(deployablesOnDisk()).toEqual([...DEPLOYABLES].sort());
   });
 
@@ -140,13 +139,10 @@ describe('one trace id crosses every hop (v656)', () => {
     expect(text, `${service}: the pattern must read %X{spanId}`).toContain('%X{spanId');
   });
 
-  it('the shared default does NOT re-declare the log pattern — each service owns its own line', () => {
-    // ADR-0237 removed infra/config; the document nexus-config serves carries no logging.pattern
-    // at all. That split is the point: if the shared file ALSO printed a correlation segment, a
-    // service's own pattern and the shared one could disagree and nobody would know which won.
+  it('the shared config door prints the same segment as the services it feeds', () => {
     const text = readFileSync(SHARED_DOOR, 'utf8');
-    expect(text).not.toMatch(/^\s*logging:/m);
-    expect(text).not.toContain('%X{traceId');
+    expect(text).toContain('%X{traceId');
+    expect(text).toContain('%X{spanId');
   });
 
   it.each([...TRAFFIC_HOPS])('%s propagates W3C traceparent, not a header this repo invented', (service) => {
@@ -156,11 +152,8 @@ describe('one trace id crosses every hop (v656)', () => {
     ).toBe('W3C');
   });
 
-  it('the shared default does NOT re-declare propagation — one source for the wire contract', () => {
-    // Same reasoning as the log pattern: propagation type is declared by each service. A second
-    // declaration in the shared default is exactly how a consumer ends up learning a different
-    // header than the producer sent.
-    expect(propagationType(SHARED_DOOR)).toBeNull();
+  it('the shared document propagates W3C too — a consumer must not learn a different header', () => {
+    expect(propagationType(SHARED_DOOR)).toBe('W3C');
   });
 
   it.each([...TRAFFIC_HOPS])('%s samples through a knob, not a constant', (service) => {
@@ -183,7 +176,7 @@ describe('one trace id crosses every hop (v656)', () => {
   });
 
   it('the edge reads its ids from the observation, because WebFlux has no thread-scoped span', () => {
-    const source = join(SERVICES_DIR, 'nexus-gateway', 'src', 'main', 'java');
+    const source = join(SERVICES_DIR, 'java-gateway', 'src', 'main', 'java');
     const file = readdirSync(source, { recursive: true, encoding: 'utf8' })
       .filter((entry) => entry.endsWith('HopLogFilter.java'))
       .map((entry) => join(source, entry))[0];

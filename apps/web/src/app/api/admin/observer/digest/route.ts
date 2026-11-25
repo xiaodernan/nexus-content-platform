@@ -2,7 +2,6 @@ import crypto from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { readJson, jsonError } from '@/server/http';
-import { csrfOk } from '@/server/security/csrf';
 import { getRateLimiter, rateKey, clientIp } from '@/server/security/rateLimit';
 import { getAiCapabilities } from '@/lib/env';
 import { chatWithCharacter } from '@/server/ai/client';
@@ -90,7 +89,6 @@ export async function POST(req: Request): Promise<Response> {
   if (!(await observerAllowed())) {
     return await jsonError(401, 'not_authenticated', { message: '先带口令 123（或以 admin 身份）进只读观察站。' });
   }
-  if (!(await csrfOk(req))) return await jsonError(403, 'csrf_failed', { message: 'CSRF 校验未通过' });
 
   const caps = await getAiCapabilities();
   if (caps.text !== 'real') {

@@ -1,16 +1,15 @@
 import { createHash } from 'node:crypto';
-
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { readStable } from './helpers/stable-text';
 
 /**
  * §FE-26 `/admin` 入口总览 + `AdminNav` 磨砂胶囊导航——**静态那一寸**（零浏览器、零真库、零时钟）。
  *
- * 三份文件平移：
- *  - `app/admin/page.tsx`：denied×2（anonymous/not-admin）+ 十四卡矩阵（`data-admin-home-card` 全集 14 个，
+ * 两份文件平移：
+ *  - `app/admin/page.tsx`：denied×2（anonymous/not-admin）+ 十卡矩阵（`data-admin-home-card` 全集 10 个，
  *    一卡一句「这一格是干嘛的」，**不读库、不发请求、不填占位百分比**）；
- *  - `components/AdminNav.tsx`：管理台导航名单一份（**19 入口**）+ WCAG 2.5.8 的 28px 下限一处。
+ *  - `components/AdminNav.tsx`：管理台导航名单一份（**17 入口**）+ WCAG 2.5.8 的 28px 下限一处。
  * 本片只换皮（arbitrary atom → `.adm-*`）；文案、AREAS 常量、LINKS、aria-current、
  * data 钩子、鉴权对照（`user.role !== 'admin'`）一字不改。
  *
@@ -30,7 +29,7 @@ import { readStable } from './helpers/stable-text';
  *
  * 判据不变式（13 门）：
  *  1. denied×2 分支 + `role !== 'admin'` 闸门 + 未登录 `currentUserOrNull` 判据；
- *  2. AdminNav：`LINKS` 19 入口 + `aria-current="page"` + `data-admin-link` 全集恒等于 LINKS 键集；
+ *  2. AdminNav：`LINKS` 15 入口 + `aria-current="page"` + `data-admin-link` 全集恒等于 LINKS 键集；
  *  3. 字面 className 全 `.adm-*`；4. 零裸 Tailwind 原子类；
  *  5. .adm-* 每个都在 globals.css 有基础定义；6. `.adm-` 段 ≥ 18 条视觉类；
  *  7. 零写死 hex；8. 视觉段 var(--nexus-*) 全在 tokens.css 声明；9. 零新增颜色 token；
@@ -38,20 +37,18 @@ import { readStable } from './helpers/stable-text';
  *     两条 @media（40rem/64rem）逐字平移；backdrop-filter blur(12px) 守恒；
  * 11. focus-visible 覆盖 card/navItem；`.adm-navItemActive` 有渐变实底 + accent-fg 墨字；
  * 12. 双文件 SHA256 双门（含 ITEM 常量精确雕刻断言）；
- * 13. 数据钩子守恒（page：denied×2/home-root/kicker；cards：home-cards/home-card×14；nav：nav/link×19/dot×19/current）。
+ * 13. 数据钩子守恒（page：denied×2/home-root/kicker/cards/home-card×11；nav：nav/link×12/dot×12/current）。
  */
 const ROOT = process.cwd();
 const PAGE = join(ROOT, 'apps/web/src/app/admin/page.tsx');
-const CARDS = join(ROOT, 'apps/web/src/app/admin/AdminHomeCards.tsx');
 const NAV = join(ROOT, 'apps/web/src/components/AdminNav.tsx');
 const GLOBALS = join(ROOT, 'apps/web/src/app/globals.css');
 const TOKENS = join(ROOT, 'apps/web/src/styles/tokens.css');
 
-const page = readStable(PAGE);
-const cards = readStable(CARDS);
-const nav = readStable(NAV);
-const globals = readStable(GLOBALS);
-const tokens = readStable(TOKENS);
+const page = readFileSync(PAGE, 'utf8');
+const nav = readFileSync(NAV, 'utf8');
+const globals = readFileSync(GLOBALS, 'utf8');
+const tokens = readFileSync(TOKENS, 'utf8');
 
 const cssNoComments = (css: string): string => css.replace(/\/\*[\s\S]*?\*\//g, '');
 const pageCode = page.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
@@ -118,20 +115,20 @@ describe('§FE-26 /admin 入口总览 + AdminNav', () => {
     expect(navCode).toContain('data-admin-dot={link.key}');
   });
 
-  it('门页 data 钩子守恒：home-root/kicker + 十四张 home-card', () => {
-    for (const hook of ['data-admin-home-root', 'data-admin-home-kicker']) {
+  it('门页 data 钩子守恒：home-root/kicker/cards + 十张 home-card', () => {
+    for (const hook of ['data-admin-home-root', 'data-admin-home-kicker', 'data-admin-home-cards']) {
       expect(pageCode, `page 丢了钩子 ${hook}`).toContain(hook);
     }
-    expect(pageCode).toContain('<AdminHomeCards locale={locale} />');
-    expect(cards).toContain('data-admin-home-cards');
-    const slugs = [...cards.matchAll(/slug: '([a-z-]+)'/g)].map((match) => match[1]);
-    expect(slugs).toEqual(['observe', 'users', 'moderation', 'marketplace', 'audit', 'realtime', 'rate-limit', 'access', 'observability', 'gateway', 'discover-cache', 'behavior-sim', 'health', 'canon-review']);
-    expect(cards).toContain('data-admin-home-card={area.slug}');
+    // 十个 slug 一一对齐：每个 slug 都必须能对上 AREAS 常量里的一项
+    for (const _slug of ['users', 'moderation', 'marketplace', 'audit', 'realtime', 'rate-limit', 'access', 'observability', 'gateway', 'discover-cache']) {
+      expect(pageCode).toContain(`slug: '${_slug}'`);
+    }
+    expect(pageCode).toContain('data-admin-home-card={area.slug}');
   });
 
-  it('门页、卡片与导航的字面 className 只认 .adm-*', () => {
+  it('两个文件字面 className 只认 .adm-*', () => {
     let total = 0;
-    for (const src of [pageCode, cards, navCode]) {
+    for (const src of [pageCode, navCode]) {
       const literals = [...src.matchAll(/className="([^"]*)"/g)].map((m) => m[1]!);
       total += literals.length;
       for (const cls of literals) {
@@ -155,7 +152,7 @@ describe('§FE-26 /admin 入口总览 + AdminNav', () => {
   });
 
   it('className 用到的每个 adm-* 都在 globals.css 里有 .adm- 基础定义', () => {
-    const used = new Set([...(pageCode + '\n' + cards + '\n' + navCode).matchAll(/\badm-[A-Za-z0-9][A-Za-z0-9-]*/g)].map((m) => m[0]));
+    const used = new Set([...(pageCode + '\n' + navCode).matchAll(/\badm-[A-Za-z0-9][A-Za-z0-9-]*/g)].map((m) => m[0]));
     expect(used.size).toBeGreaterThanOrEqual(18);
     const defined = admClassesDefined(globals);
     for (const cls of used) {
@@ -210,11 +207,9 @@ describe('§FE-26 /admin 入口总览 + AdminNav', () => {
     );
   });
 
-  it('page.tsx redact 与有意录在目录册里的常量一致（§ADMIN-13 观察站卡 + denied 链 + 十四处口径重钉）', () => {
-    // 2026-11-24 并轨保留中文 kicker，避免中文界面夹英文；十四卡只声称常用入口，不夸大覆盖范围。
-    // 两侧 pin 均为合并前字节；自动合并产生第三版，按合并后的实际字节重钉。
+  it('page.tsx redact 与有意录在目录册里的常量一致（§ADMIN-13 观察站卡 + denied 链 + 十三处口径重钉）', () => {
     expect(createHash('sha256').update(redactClasses(page)).digest('hex')).toBe(
-      '3717f2ce7e3af262b68c5a5acfbc890041b67f705ed3a1ada2523684f399ba22',
+      '829750cfbb0b531759ff426227e7210cc0119b556fd96a0753d61987a1e82898',
     );
   });
 

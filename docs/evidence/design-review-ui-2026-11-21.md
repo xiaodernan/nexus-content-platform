@@ -12,4 +12,4 @@
 配套证据：`design-review-live-2026-11-21.md`（同一开关在 ai-service HTTP 层的 1→2 调用与累计计量）、
 `tests/test_design_review_graph.py`（23/23 行为臂）。
 
-探针脚本：`scratch/review-ui-e2e.mjs`。
+探针脚本：`.scratch/review-ui-e2e.mjs`。

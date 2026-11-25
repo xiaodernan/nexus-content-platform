@@ -47,27 +47,17 @@ export const IP_RATE_RULES = {
   'account/avatar': { limit: 60, windowMs: 3_600_000 },
   'account/api-tokens': { limit: 10, windowMs: 3_600_000 },
   'blocks': { limit: 60, windowMs: 3_600_000 },
-  // 读典一问一问的是 provider 调用，与 ai/run 同档
-  'bible/q': { limit: 60, windowMs: 3_600_000 },
-  // §WS-1 潮候步进：一步 = 两次真 provider 调用（读局 + 潮回），10/h 足够玩得久、挡得住滥打
-  'ai/world-step': { limit: 10, windowMs: 3_600_000 },
-  // §TIDE-DIARY 潮候手记 · 从 Tidewatch 的内存写两句话（仅在 /insight 解锁后可见）
-  'ai/tide-diary': { limit: 10, windowMs: 3_600_000 },
-  // 以下四条都是「一次点下去打一发真模型」的观察/解说类面板，同按 10/h 起
-  'insight/analyze': { limit: 10, windowMs: 3_600_000 },
-  'insight/chat': { limit: 10, windowMs: 3_600_000 },
-  'analytics/agent-narrate': { limit: 10, windowMs: 3_600_000 },
-  'ai/explain': { limit: 10, windowMs: 3_600_000 },
+'bible/q': { limit: 60, windowMs: 3_600_000 },
+// §WS-1 潮候步进：一步 = 两次真 provider 调用（读局 + 潮回），10/h 足够玩得久、挡得住滥打
+'ai/world-step': { limit: 10, windowMs: 3_600_000 },
+// §TIDE-DIARY 潮候手记 · 从 Tidewatch 的内存写两句话（仅在 /insight 解锁后可见）
+'ai/tide-diary': { limit: 10, windowMs: 3_600_000 },
+'insight/analyze': { limit: 10, windowMs: 3_600_000 },
+'insight/chat': { limit: 10, windowMs: 3_600_000 },
+'analytics/agent-narrate': { limit: 10, windowMs: 3_600_000 },
+'ai/explain': { limit: 10, windowMs: 3_600_000 },
   'follow': { limit: 60, windowMs: 3_600_000 },
   'auth/register': { limit: 10, windowMs: 3_600_000 },
-  // §STRESS-4 撞库防护：登录按 IP + 邮箱各 10 次 / 15 分钟（比注册的一小时窗更紧）。
-  // 它和 auth/register 一样直接读 `getRateLimiter().hit(...)`、不走 ipWriteGate，
-  // 所以规则表测试把这一族手工登记——否则代码里装了闸却没人写下来，
-  // `/api/admin/rate-limit` 端给管理员的就是半张图。
-  'auth/login': { limit: 10, windowMs: 900_000 },
-  // 洞察台（密码 123）的 IP 总闸：30 次 / 5 分钟。这是撞库的主防面——
-  // auth/login 按 (IP, 邮箱) 分桶只挡单账号爆破，换邮箱可绕；这一道不按邮箱分桶。
-  'insight/login': { limit: 30, windowMs: 300_000 },
 } as const;
 
 export type IpRateRoute = keyof typeof IP_RATE_RULES;

@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { getAiCapabilities } from '@/lib/env';
 import { aiServiceUrl, fetchAiServiceHealth } from '@/server/ai/client';
 import { requireUser } from '@/server/domain/session';
@@ -17,6 +18,13 @@ import { getLocale, type Locale } from '@/lib/i18n';
 
 export const dynamic = 'force-dynamic';
 
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  return locale === 'zh'
+    ? { title: '创作工作台 — NEXUS', description: '说出来，设计它，生成它，搭起来，走进去。从一句话想法到可发布的产品。' }
+    : { title: 'AI Universe Studio — NEXUS', description: 'Describe it. Design it. Generate it. Build it. Enter it. From one sentence to a publishable product.' };
+}
+
 const MODALITIES = [{ key: 'text' }, { key: 'image' }, { key: 'video' }] as const;
 
 /** 双语：主页（登录后首页）的每行文案按 cookie locale 选一份——中文模式全中文，英文模式全英文 */
@@ -34,8 +42,8 @@ const HOME_TXT = {
     navNote: '公开在跑的作品与全平台的内容搜索；数据与通知只对登录后的你自己可见',
     helpKicker: '第一次来？',
     helpText:
-      '先走一遍 7 步上手漫游，再打开随手可用的简明说明书；Ctrl+K（Mac 用 ⌘K）随时调出命令面板，前往已经登记的页面。',
-    helpOnboarding: '上手漫游 · 7 步',
+      '先花两分钟走一遍 6 步上手漫游，再打开随手可用的简明说明书；Ctrl+K（Mac 用 ⌘K）随时调出命令面板，直奔任何页面。',
+    helpOnboarding: '上手漫游 · 6 步',
     helpGuide: '简明说明书',
     hintSearch: '全站作品、作者与内容关键词',
     hintDiscover: '公开跑着的作品 · 按热度/最新',
@@ -78,6 +86,7 @@ const HOME_TXT = {
     serviceOnline: (cap: string) => `在线 · ${cap}`,
     serviceUnreachable: '不可达',
     serviceMissingUrl: '未配置 NEXUS_AI_SERVICE_URL',
+    heroSub: '说出来，设计它，生成它，搭起来，走进去。',
   },
   en: {
     modalityText: 'Text / design generation',
@@ -92,8 +101,8 @@ const HOME_TXT = {
     navNote: 'Works publicly on the platform and platform-wide search; your data and notifications are visible only to you, signed in.',
     helpKicker: 'First time here?',
     helpText:
-      'Take the seven-step onboarding first, then keep the in-app guide handy; press Ctrl+K (⌘K on Mac) to open the command palette for registered pages.',
-    helpOnboarding: 'Onboarding — 7 steps',
+      'Take the 6-step onboarding first, then keep the in-app guide handy; press Ctrl+K (⌘K on Mac) to pull up the command palette anywhere.',
+    helpOnboarding: 'Onboarding — 6 steps',
     helpGuide: 'In-app guide',
     hintSearch: 'Works, authors, keywords across the platform',
     hintDiscover: 'Public works in motion — trending or fresh',
@@ -136,6 +145,7 @@ const HOME_TXT = {
     serviceOnline: (cap: string) => `Online · ${cap}`,
     serviceUnreachable: 'Unreachable',
     serviceMissingUrl: 'NEXUS_AI_SERVICE_URL not configured',
+    heroSub: 'Describe it. Design it. Generate it. Build it. Enter it.',
   },
 } as const;
 const modalityLabel = (T: (typeof HOME_TXT)[Locale], key: (typeof MODALITIES)[number]['key']) =>
@@ -167,7 +177,7 @@ export default async function HomePage() {
       <header className="hp-hero">
         <div>
           <h1 className="hp-heroTitle" data-nexus-wordmark>NEXUS</h1>
-          <p className="hp-heroSub">Describe it. Design it. Generate it. Build it. Enter it.</p>
+          <p className="hp-heroSub">{T.heroSub}</p>
         </div>
         <span
           className={`hp-demoChip ${caps.live ? 'hp-demoChipLive' : 'hp-demoChipDemo'}`}

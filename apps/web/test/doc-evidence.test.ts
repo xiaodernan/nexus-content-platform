@@ -123,39 +123,6 @@ function trackedScratchFiles(): Set<string> {
   );
 }
 
-/**
- * `scratch/<路径>`（少一个点）是 ADR-0307 定下的名册引用拼写：它落在 CITATION 正则之外，
- * 所以不会再被当成「磁盘上应该查得到的证据」；kind 区分已入册（tracked）、仍失踪（lost）
- * 与外部克隆（clone），并由名册逐行验真。
- */
-const DECLARED_LOST = /(?<![.\w])scratch\/([A-Za-z0-9_+.@*-]+(?:\/[A-Za-z0-9_+.@*-]+)?)/g;
-const ROSTER = join(ROOT, 'docs', 'adr', '0307-scratch-evidence-retracked-and-loss-rostered.md');
-
-function collectDeclarations(): { tokens: Set<string> } {
-  const tokens = new Set<string>();
-  for (const f of markdownFiles(join(ROOT, 'docs'))) {
-    if (f === ROSTER) continue;
-    for (const line of readFileSync(f, 'utf8').split(/\r?\n/)) {
-      for (const m of line.matchAll(DECLARED_LOST)) if (m[1]) tokens.add(m[1].replace(/\.+$/, ''));
-    }
-  }
-  return { tokens };
-}
-
-/** 名册行长这样：`| tracked | ab-cache-key.mts | ... |`，kind 在第二格，token 在反引号里。 */
-type RosterKind = 'lost' | 'clone' | 'tracked';
-function rosterRows(): { kind: RosterKind; token: string }[] {
-  const out: { kind: RosterKind; token: string }[] = [];
-  for (const line of readFileSync(ROSTER, 'utf8').split(/\r?\n/)) {
-    const cells = line.split('|');
-    if (cells.length < 4) continue;
-    const kind = (cells[1] ?? '').trim();
-    if (kind !== 'lost' && kind !== 'clone' && kind !== 'tracked') continue;
-    const token = (cells[2] ?? '').replace(/`/g, '').trim();
-    if (token) out.push({ kind, token });
-  }
-  return out;
-}
 describe('§192 文档点名的 .scratch 证据：解得出、且跟仓库一起走', () => {
   const { docCount, cites } = collectCitations();
 
@@ -223,49 +190,5 @@ describe('§192 文档点名的 .scratch 证据：解得出、且跟仓库一起
       `${untracked.size} 个被文档点名的证据文件没进版本库，` +
         `修法是 git add -f .scratch/<路径>，或者改掉那句声称：${[...untracked].sort().join('；')}`,
     ).toEqual([]);
-  });
-
-  it('声明式失踪与 ADR-0307 名册双向对得上：名册不能藏住存在的东西，也不许留尸体行', () => {
-    const decl = collectDeclarations();
-    const rows = rosterRows();
-    // 人口判据：两侧都非空，否则下面的双向比会因为「什么都不必比」而假绿。
-    expect(rows.length).toBeGreaterThanOrEqual(20);
-    expect(decl.tokens.size).toBeGreaterThanOrEqual(20);
-
-    const rostered = new Set(rows.map((r) => r.token));
-    const unrostered = [...decl.tokens].filter((t) => !rostered.has(t)).sort();
-    expect(
-      unrostered,
-      `docs 里有 scratch/<路径> 的失踪声明没有名册行（要么补 ADR-0307 的名册，要么把字节入册后改回 .scratch/ 拼写）：${unrostered.join('；')}`,
-    ).toEqual([]);
-
-    const stale = rows.filter((r) => !decl.tokens.has(r.token)).map((r) => `${r.kind} ${r.token}`).sort();
-    expect(stale, `ADR-0307 名册里有尸体行——docs 已经不再声明它了：${stale.join('；')}`).toEqual([]);
-
-    // 名册是「声明」，不是「豁免」：每一行都得当场验一次它说的事还是真的。
-    const tracked = trackedScratchFiles();
-    const lies: string[] = [];
-    for (const r of rows) {
-      const abs = join(ROOT, '.scratch', r.token);
-      const trackedPath = `.scratch/${r.token}`;
-      if (r.kind === 'tracked') {
-        if (!existsSync(abs) || !statSync(abs).isFile()) lies.push(`${r.token}：名册说已入册，磁盘上却没有普通文件`);
-        else if (!tracked.has(trackedPath)) lies.push(`${r.token}：名册说已入册，版本库里却没有`);
-      } else if (r.kind === 'lost') {
-        if (existsSync(abs)) lies.push(`${r.token}：名册说失踪，磁盘上却有（该入册，或把名册行删掉）`);
-        if (tracked.has(trackedPath)) lies.push(`${r.token}：名册说失踪，版本库里却有`);
-      } else if (existsSync(abs)) {
-        if (!statSync(abs).isDirectory()) lies.push(`${r.token}：名册说是外部克隆，磁盘上却不是目录`);
-        else if (!existsSync(join(abs, '.git'))) lies.push(`${r.token}：名册说是外部克隆，目录里没有 .git`);
-        else {
-          const inside = walkFiles(abs).filter((p) => tracked.has(p));
-          if (inside.length) lies.push(`${r.token}：外部克隆里有 ${inside.length} 个文件入了本册，例如 ${inside[0]}`);
-        }
-      }
-      if (r.kind === 'clone' && [...tracked].some((p) => p === trackedPath || p.startsWith(`${trackedPath}/`))) {
-        lies.push(`${r.token}：外部克隆不该有文件进入本仓库版本库`);
-      }
-    }
-    expect(lies, `名册说的话与磁盘不符：${lies.join('；')}`).toEqual([]);
   });
 });

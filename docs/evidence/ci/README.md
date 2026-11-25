@@ -541,8 +541,8 @@ people.
 
 Deriving the population has a limit listing does not have to admit: a module under `docs/evidence` that was
 never turned into a `verify:*` script stays invisible to the build. Amendments 516–519 closed that half:
-the census below gives every one of the **140** tracked modules a disposition, and the derived population is
-**124 running rows + 0 excluded by name** at this ref (the v645 exclusion is retired — the spring-cloud
+the census below gives every one of the **136** tracked modules a disposition, and the derived population is
+**120 running rows + 0 excluded by name** at this ref (the v645 exclusion is retired — the spring-cloud
 proof establishes its own scratch pgvector source container on the hosted plane — and the residue this
 sentence once carried is now zero). v532 triaged the
 swept population and wired sixteen
@@ -565,7 +565,7 @@ Every tracked module under `docs/evidence` now has a disposition, and the build 
 
 | class | count at this ref | how it is decided |
 | --- | --- | --- |
-| ROW | **124** (124 run + 0 excluded) | a `verify:*` script whose whole command is one `node` call into `docs/evidence` — proof-set's own `PROOF_COMMAND`, imported, never retyped |
+| ROW | **120** (120 run + 0 excluded) | a `verify:*` script whose whole command is one `node` call into `docs/evidence` — proof-set's own `PROOF_COMMAND`, imported, never retyped |
 | HELPER | **5** | import closure from every `verify:*` node target and every declared tool, through `sweep.relativeSpecs` (code position only): `agents/sweep.mjs`, `lib/syncproc.mjs`, `m9/wire-fields.mjs`, `ci/arms-receipt.mjs`, `m9/plane-bound-claims.mjs` (added 2026-11-10 — the import closure of the two repaired m9 proofs; committed in 9ab2371) |
 | SWEPT | **3** | the agents sweep's own population, read by CALLING `sweep.trackedProofs('HEAD')` — at this ref `cwd-axis` and `tree-axis`, the tree-motion witnesses, which stay there by measurement (their verdict is about whether the walked tree moved during the run), plus `agents/record-repair-proof.mjs`, which the sweep runs and no `verify:*` script claims |
 | TOOL | **8** | declared in the proof's `ROSTER` with a reason and a command a reader can re-run (two mutation probes, one plane-arms script, the isolated-build arms, the SVG generator, plus the three DS arms: `complexity-arms.mjs`, `single-map-ab.mjs` and `single-bucket-ab.mjs`) |
@@ -712,7 +712,7 @@ per row, because one headline dated a table whose files had each moved on their 
 | row | proof | measured on the authoring box |
 | --- | --- | --- |
 | `verify:audit-contract` | `docs/evidence/m9/audit-contract-proof.mjs` | 63.8 s on 2026-11-14 — exits 0 against the amendment-567 bytes for the first time on this box: the proof's temp box could not resolve the workspace's `@nexus/*` namespace (its copied modules spell `@nexus/economy/community` and `@nexus/economy/pageShell`) and died in module resolution before grading anything; the box now holds a junction to the root's own namespace (the same one npm uses), so the copy grades the shipped bytes — re-run and re-dated to today after that fix, the row had not been green under these bytes before it |
-| `verify:record-encoding` | `docs/evidence/agents/record-encoding-proof.mjs` | 10.2 s on 2026-11-24 — **exits 0** on HEAD `cb5407c5` with the working-tree v1098 and §HEAD-1 staged bytes: 4315 names / 42 binary / 4273 graded, 0 chargeable lines, 7928 flank-rejected look-alikes; pinned ref `420f910` and the 116/116 ledger remain green. |
+| `verify:record-encoding` | `docs/evidence/agents/record-encoding-proof.mjs` | re-measured on 2026-11-25 at the merged tree (0 chargeable; orphan/island roster restored after the parallel-line merge reintroduced the pre-fix bytes); originally 26 s on 2026-11-20 (re-run on the db9f0528 bytes; HEAD eae6d2bd graded against pinned ref 420f910, which carry the cont. 120 pin amendment) — **exits 0**: both charged sites in `docs/evidence/spring-cloud-audit/checklist.txt` (bytes `E2 80 3F`), previously refused by the repair tool, were restored to the file's own em-dash convention (`U+2014`) — the rendering is unambiguous (every other pass-line in that file uses U+2014 with single spaces; both damaged pairs sit exactly where it belongs, verified against the byte dump: `actuator` `` ` `` `FFFD?5/5 services` → `— 5/5 services`, and `pass FFFD?static audit` → `pass — static audit`); additionally `docs/CURRENT-STATE.md` carried one more charged `U+6402`→`§` damaged site (line 72), repaired by the sanctioned tool's UNIQUE channel (1/1). 23 merge-surfaced look-alike ISLAND LINES (all carry the legitimate road character U+8DEF inside real Chinese words 生效路由、线路、链路、路径 — witness floor deliberately not met on those near-all-English lines) were registered in the roster `LOOKALIKE` after eyeball review (amendment recorded there; pin swap `bc1021a799146cbf` → `4132c3cde3062a06` because the merge's reformat rewrote that exact line). |
 | `verify:pipeline` | `docs/evidence/studio/pipeline-proof.mjs` | 0.3 s on 2026-11-06 — prompt, design-model ops, layout, undo/redo, AI diff |
 | `verify:table-recount` | `docs/evidence/agents/table-recount-proof.mjs` | 95.1 s on 2026-11-06 — boots vitest and reconciles this directory's README table (300 000 ms own budget) |
 
@@ -1037,11 +1037,3 @@ can only run what the commit owns.
   failed: FATAL:  the database system is starting up` (container still starting when the proof probed);
   the same ref @main is green. That is a hosted-runner service-ordering flake, not a byte problem, and it
   is recorded as such here rather than papered over.
-
-### v1098 — merge-seam follow-up: configured database addressing and fail-closed i18n auditing (ADR 0016 amendment 584)
-
-- `verify:actuator` now derives the throwaway database's host, port and name from `NEXUS_API_DB_URL`, connects to that same server's `postgres` maintenance database, quotes the database identifier, and falls back to `NEXUS_DOMAIN_PG_PORT` only when no API URL is supplied. The previous hard-coded `127.0.0.1:5433` ignored the hosted job's `localhost:55433` configuration and failed before any JVM started.
-- `i18n:audit` is now an offline structural gate by default: population, non-empty headings/bodies, duplicate headings, ordinal pairing and CJK residue in English are checked without a provider. `i18n:audit:model` is a separate explicit door; it requires a raw `NEXUS_AI_SERVICE_URL`, accepts only `capability=real`, validates the model's issue contract, and reports provider/output failures as audit-infrastructure unavailability with exit 2 rather than translation differences.
-- Regression coverage is 9/9 across `scripts/verify-actuator.test.ts` and `scripts/i18n-audit.test.ts`; `tsconfig.tools.json` typecheck exits 0. The offline audit exits 0 with 14 bilingual pairs and zero structural differences. Explicit model mode with the service variable absent exits 2 before calling a provider.
-- `verify:record-encoding` was re-measured on 2026-11-24 at 10.2 s against the final staged bytes: 4315 names / 42 binary / 4273 graded, zero chargeable lines, 7928 flank-rejected look-alikes, and the 116/116 ledger green. The authoring duration row above was re-dated to that run instead of retaining the stale 2026-11-20 bytes.
-- The local five-JVM actuator run is NOT claimed green. Docker's Linux engine was restored during this session and the project-owned `nexus-postgres` is healthy with a real query answered on 55433, but the five JVMs have not been started here; hosted CI's configured PostgreSQL remains the complete verification plane for this repair.

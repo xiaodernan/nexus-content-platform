@@ -9,8 +9,7 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ['127.0.0.1', 'localhost', '192.168.1.5'],
   // §69 Code Index 用真实 TypeScript AST。打进 server bundle 会触发动态 require 警告，
   // 而且编译器有几百个内部模块——让 Node 自己在运行时从 node_modules 加载它。
-  // ioredis 的 ScanStream 依赖 Node 内置 stream，不能打进 instrumentation 的 server bundle。
-  serverExternalPackages: ['typescript', 'ioredis'],
+  serverExternalPackages: ['typescript'],
   // §147 的诊断分段（studio/store.ts 的 __studioPerf）默认只在开发模式打。
   // 设了 NEXUS_PERF_SEGMENTS=1 的生产构建也打——构建期内联成常量，
   // 探针脚本（perf-browser.mts 的 phases 一格）才读得到生产构建的分段。

@@ -12,10 +12,10 @@ bash infra/dev-ai.sh          # http://127.0.0.1:3200  (AI_SERVICE_PORT 可覆�
 
 | 变量 | 默认值 | 说明 |
 |---|---|---|
-| `NEXUS_OPENAI_API_KEY` | 无 | 要真 provider 才填；未配置或真实 liveness 探测未成功则 `capability=unavailable`，**诚实，不冒充** |
-| `NEXUS_OPENAI_BASE_URL` | `https://api.openai.com/v1` | 历史本机配置曾指向 `https://wkapi.pro/v1`；当前 API 已关闭，不预设可用端点 |
+| `NEXUS_OPENAI_API_KEY` | 无 | 要真 provider 才填；没填则 `capability=unavailable`，**诚实，不冒充** |
+| `NEXUS_OPENAI_BASE_URL` | `https://api.openai.com/v1` | 本机开发目前指向 `https://wkapi.pro/v1` |
 | `NEXUS_OPENAI_PROMPT_CACHE_KEY` | sticky per-lane | **prompt caching lane**（ADR-0284）：unset/空串→sticky per-lane（`nexus-<sha256(system)>`，同前缀同片）；`nexus-studio`→常量 lane（v865 旧缺省） |
-| `NEXUS_MODEL_{FAST,BALANCED,REASONING,VISION,EMBEDDING}` | 见 `config.py:DEFAULT_MODELS` | 历史 wkapi.pro 仅暴露 chat models；当前外部 API 关闭 |
+| `NEXUS_MODEL_{FAST,BALANCED,REASONING,VISION,EMBEDDING}` | 见 `config.py:DEFAULT_MODELS` | 本机实测 ws unavailable（wkapi.pro 仅 exposed chat models） |
 | `NEXUS_LLM_JSON_MODE` | `1` | response_format json_object |
 | `NEXUS_REDIS_URL` | 无 | 配置则启用 Redis 队列（`nexus:ai:*` + TTL）；连不上**启动失败**（不静默降级） |
 | `AI_SERVICE_PORT` | `3200` | uvicorn 监听端口 |
@@ -30,24 +30,15 @@ bash infra/dev-ai.sh          # http://127.0.0.1:3200  (AI_SERVICE_PORT 可覆�
 - `POST /v1/ai/jobs/{id}/cancel` — 取消
 - `GET /v1/ai/jobs/{id}` — 查状态
 
-## 真实 provider：历史接线与当前关闭状态
+## 真实 provider（2026-11-12 起）
 
-**当前状态（ADR-0317）**：外部大模型 API 已按用户要求关闭。适配器、配置与缓存代码保留，
-但 `capability=real` 只在真实 liveness 探测成功后成立；`unknown` / `failed` / 未配置均不可用。
-Key **仅活在 ai-service 进程**（`__repr__` 脱敏，永不入日志）；web 进程不持 key。
+本机开发默认接 wkapi.pro 的 `gpt-6-sol`（`/healthz` 报 `capability=real`，model 真能用、`provider/prompt_cache_lane` 都能看见）。Key **仅活在 ai-service 进程**（`__repr__` 脱敏，永不入日志）；web 进程不持 key。
 
-**失败路径**：ai-service 返回 `503 provider-unavailable` 与真实原因；web 的能力门在调用前
-按 `getAiCapabilities().live` 拦截，显示 DEMO MODE，并可能返回 `409 demo_mode`。没有
-“看起来配了却静默跑 DEMO”的中间态，也没有假生成。
+**连接失败怎么办**：healthz 退回 `unavailable` + 真实原因；所有 AI 端点返回 `503 provider-unavailable` 且 `demoMode=false` 或 `mock`（UI 依据 `getAiCapabilities()` 挂"未配置/DEMO"徽标，§160）。没有"看起来配了却静默跑 DEMO"的中间态。
 
-### 历史快照：2026-11-12 起的真实接通
+## Prompt caching（§AILIVE-4 · 2026-11-13）
 
-当日本机开发接入 wkapi.pro 的 `gpt-6-sol`，`/healthz` 曾报 `capability=real`，model 与
-`provider/prompt_cache_lane` 都能看见。这是当日快照，不是今天的可用性承诺。
-
-## Prompt caching（§AILIVE-4 · 历史实测快照）
-
-OpenAI 兼容网关若命中 128-token 块前缀，自动缓存（prefix-identical）；本服务按 OpenAI 官方参数 `prompt_cache_key` 发 lane，把同一 workload 的补丁推到同一分片，命中后网关在 `usage.prompt_tokens_details.cached_tokens` 报数。当日实测：同 payload 第二次 `cached_tokens=6272/6413（97.8%）`；`stream_options include_usage` 的结尾帧被网关砍掉——非 stream 接口拿不到不能读数。API 关闭后不自动重跑这些探针。
+OpenAI 兼容网关若命中 128-token 块前缀，自动缓存（prefix-identical）；本服务按 OpenAI 官方参数 `prompt_cache_key` 发 lane，把同一 workload 的补丁推到同一分片，命中后网关在 `usage.prompt_tokens_details.cached_tokens` 报数。实测：同 payload 第二次 `cached_tokens=6272/6413（97.8%）`；`stream_options include_usage` 的结尾帧被网关砍掉——非 stream 接口拿不到不能读数。
 
 - 缺省 lane = sticky per-lane（`nexus-<sha256(system)>`）；`NEXUS_OPENAI_PROMPT_CACHE_KEY=nexus-studio`→旧常量 lane；2026-11-18 A/B：常量 lane 6/11 次 502；sticky per-lane 12/12 200 · cached≈100%（`docs/evidence/cache-key-ab-2026-11-18.md` · ADR-0284）
 - usage 契约新增 `cachedTokens`（default 0），加法兼容，没字段的 provider 一律记 0

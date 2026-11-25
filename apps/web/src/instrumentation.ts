@@ -12,15 +12,14 @@ import { TRACE_HEADER, increment, sanitizeTraceId } from './server/observability
  * 只想用 Redis 做 realtime 扇出的部署不会意外多出一个消费者。
  */
 export async function register(): Promise<void> {
-  if (process.env.NEXT_RUNTIME === 'nodejs') {
-    try {
-      const { startJobWorker, jobQueueEnabled } = await import('./server/queue/worker');
-      if (!jobQueueEnabled()) return;
-      void startJobWorker().catch((err) => console.error('[job-queue] 装配失败，作业将不被消费：', err));
-    } catch (err) {
-      // 动态 import 失败（比如构建期剪枝）不该拖垮服务器；作业 lane 只是没被装上。
-      console.error('[job-queue] 无法加载 worker 模块：', err);
-    }
+  if (process.env.NEXT_RUNTIME !== 'nodejs') return;
+  try {
+    const { startJobWorker, jobQueueEnabled } = await import('./server/queue/worker');
+    if (!jobQueueEnabled()) return;
+    void startJobWorker().catch((err) => console.error('[job-queue] 装配失败，作业将不被消费：', err));
+  } catch (err) {
+    // 动态 import 失败（比如构建期剪枝）不该拖垮服务器；作业 lane 只是没被装上。
+    console.error('[job-queue] 无法加载 worker 模块：', err);
   }
 }
 

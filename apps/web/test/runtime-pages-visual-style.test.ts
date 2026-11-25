@@ -1,8 +1,7 @@
 import { createHash } from 'node:crypto';
-
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { readStable } from './helpers/stable-text';
 
 /**
  * §FE-24 `/game/[projectId]` 与 `/world/[projectId]` ——**静态那一寸**（零浏览器、零真库、零时钟）。
@@ -31,10 +30,10 @@ const WORLD = join(ROOT, 'apps/web/src/app/world/[projectId]/page.tsx');
 const GLOBALS = join(ROOT, 'apps/web/src/app/globals.css');
 const TOKENS = join(ROOT, 'apps/web/src/styles/tokens.css');
 
-const game = readStable(GAME);
-const world = readStable(WORLD);
-const globals = readStable(GLOBALS);
-const tokens = readStable(TOKENS);
+const game = readFileSync(GAME, 'utf8');
+const world = readFileSync(WORLD, 'utf8');
+const globals = readFileSync(GLOBALS, 'utf8');
+const tokens = readFileSync(TOKENS, 'utf8');
 
 const cssNoComments = (css: string): string => css.replace(/\/\*[\s\S]*?\*\//g, '');
 const gameCode = game.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');

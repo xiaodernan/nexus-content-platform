@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   addWorldNode, createWorld, linkWorldNodes, updateWorldNode,
 } from '@nexus/world-model';
-import { formatSuggestion, suggestWorldLinks } from '../src/lib/worldLinks';
+import { formatSuggestion, suggestWorldLinks, weaveSuggestedLinks } from '../src/lib/worldLinks';
 
 function world() {
   let w = createWorld('串联测试', 'p1');
@@ -52,5 +52,41 @@ describe('worldLinks · 串联建议纯函数', () => {
     expect(formatSuggestion(s, 'zh')).toContain('都写到');
     expect(formatSuggestion(s, 'en')).toContain('both mention');
     expect(formatSuggestion(s, 'en')).not.toContain('都写到');
+  });
+});
+
+describe('weaveSuggestedLinks · 一键织网', () => {
+  it('批量写成真实关系，label 就是判定依据（纪元/共同词），不编语义', () => {
+    const w = world();
+    const r = weaveSuggestedLinks(w);
+    expect(r.added).toBe(1);
+    expect(r.skipped).toBe(0);
+    expect(r.document.links).toHaveLength(1);
+    // label 必然是 suggestWorldLinks 给出的 evidence，不是自由编造的话术
+    expect(r.document.links![0]!.label).toBe(suggestWorldLinks(w)[0]!.evidence);
+    expect(r.labels).toEqual(['盐道 ↔ 潮候院']);
+  });
+
+  it('织完后再织一次不会重复加边（全部跳过，确定性）', () => {
+    const first = weaveSuggestedLinks(world());
+    const second = weaveSuggestedLinks(first.document);
+    expect(second.added).toBe(0);
+    expect(second.document.links).toHaveLength(first.document.links!.length);
+  });
+
+  it('limit 生效：0 条时不写任何边', () => {
+    const r = weaveSuggestedLinks(world(), 0);
+    expect(r.added).toBe(0);
+    expect(r.document.links ?? []).toHaveLength(0);
+  });
+
+  it('同输入两次：关系数与 label 相同（id/时间戳由 linkWorldNodes 生成，不逐字比）', () => {
+    const a = weaveSuggestedLinks(world());
+    const b = weaveSuggestedLinks(world());
+    expect(a.added).toBe(b.added);
+    expect(a.labels).toEqual(b.labels);
+    // from/to 是 createWorld 给节点生成的随机 id，两次 world() 本就不同；比可读的 label 与条数
+    expect(a.document.links!.length).toBe(b.document.links!.length);
+    expect(a.document.links!.map((l) => l.label)).toEqual(b.document.links!.map((l) => l.label));
   });
 });

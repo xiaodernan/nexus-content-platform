@@ -1,6 +1,5 @@
 'use client';
 
-import { csrfHeaders } from '@/lib/csrf';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import type { Locale } from '@/lib/i18n';
@@ -96,7 +95,7 @@ export function ForYouStrip({ locale }: { locale: Locale }) {
     try {
       const response = await fetch('/api/discover/interest', {
         method: 'POST',
-        headers: { 'content-type': 'application/json', ...csrfHeaders() },
+        headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ locale }),
         cache: 'no-store',
       });

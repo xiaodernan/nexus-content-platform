@@ -159,11 +159,11 @@ describe('EN twin (2026-11-15 双语 wave)：同一历史三档，英文字节�
   });
 
   it('miss 与 zh `缓存未命中` 一一对应', () => {
-    expect(cacheText({ tokensIn: 5000, cachedTokens: 0, cacheReported: true }, 'en')).toBe('cache miss');
+    expect(cacheText({ tokensIn: 5000, cachedTokens: 0, cacheReported: true }, 'en')).toBe('no cache hit');
   });
 
   it('hit 带相同分母口径', () => {
-    expect(cacheText({ tokensIn: 7410, cachedTokens: 7168, cacheReported: true }, 'en')).toBe('cache hit 7168 · 97%');
+    expect(cacheText({ tokensIn: 7410, cachedTokens: 7168, cacheReported: true }, 'en')).toBe('cache hit 7168·97%');
     expect(cacheText({ tokensIn: 0, cachedTokens: 700, cacheReported: true }, 'en')).toBe('cache hit 700');
   });
 

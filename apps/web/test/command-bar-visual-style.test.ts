@@ -34,13 +34,6 @@ import { describe, expect, it } from 'vitest';
   * **2026-11-21 视觉修复**：`2d5c08ad…` → `92aa97f3…`。占位符原本 46 字，在 270px 的
   * 输入框里折成三行、被 34px 行高裁掉半行，截图看着像文字重叠。可见占位缩到一行，
   * 完整教学移到 `title`（悬停仍读得到），不是删掉说明。
- *
- * **2026-11-23 §HINT-1 再换一次**：`92aa97f3…` → `de8280dd…`。这一片给命令栏里
- * 十四个一个都没有说明的控件补上教学说明（执行 / 三档模型 / 范例 / 执行计划 /
- * 让模型读一遍 / 批准 / 放弃 / 取消 / 撤销 / 异步 / 自查 / 点名 / 两枚读数徽章），
- * 并且把原先散在本文件 COPY 里的五句教学说明搬进唯一真值 `@/lib/hintCopy`。
- * 悬停能看到「按下去会发生什么」**就是**行为——所以这条「纯视觉零行为」的承诺
- * 在这一片被有意打破；来由记在这里，而不是只把断言里的哈希换掉。
  */
 const ROOT = process.cwd();
 const MAIN = join(ROOT, 'apps/web/src/studio/CommandBar.tsx');
@@ -172,9 +165,9 @@ describe('§FE-61 /studio CommandBar AI 命令栏', () => {
     }
   });
 
-  it('剥 className/cn 后全文 SHA256 守恒（2026-11-23 §HINT-1 教学说明重钉：df3e44b57022015331cde8182e6effb91eb0e52b305297efce7bfc91e6adb528）', () => {
+  it('剥 className/cn 后全文 SHA256 守恒（2026-11-20 §GRAPH-3 自查开关重钉：2d5c08ad69bcdc2c39060a60a42c302448f40536af3bca6ede5c8bc9404821c4）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      'df3e44b57022015331cde8182e6effb91eb0e52b305297efce7bfc91e6adb528', // §HINT-1：十四个控件第一次带上教学说明，五句旧文案搬进唯一真值 @/lib/hintCopy（ActivityFeed 因此多收一个 locale）
+      '92aa97f3185613e237526630e4c374d8a9ec9316474ed15d243e15f382ed41dd', // §GRAPH-3：新增 reviewMode 状态、双语文案、data-ai-review 开关、body.review
     );
   });
 

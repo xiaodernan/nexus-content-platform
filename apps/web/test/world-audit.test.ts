@@ -11,6 +11,29 @@ function base() {
   return w;
 }
 
+describe('worldAudit · 薄正文维度（与 /integrity、tide 同口径 120 字）', () => {
+  it('正文非空但不足 120 字算薄，满 120 字不算', () => {
+    let w = createWorld('薄正文', 'p1');
+    w = { ...w, nodes: w.nodes.slice(0, 2) };
+    w = updateWorldNode(w, w.nodes[0]!.id, { body: '短' });
+    w = updateWorldNode(w, w.nodes[1]!.id, { body: '长'.repeat(120) });
+    const a = auditWorld(w);
+    expect(a.thinBodies).toBe(1);
+    expect(a.emptyBodies).toBe(0);
+  });
+
+  it('薄正文不改变 healthy，但健康读数里会提示可补充', () => {
+    let w = createWorld('薄但健康', 'p1');
+    w = { ...w, nodes: w.nodes.slice(0, 1) };
+    w = updateWorldNode(w, w.nodes[0]!.id, { body: '短' });
+    const a = auditWorld(w);
+    expect(a.healthy).toBe(true);
+    const zh = auditSuggestion(a, 'zh');
+    expect(zh).toContain('不足');
+    expect(formatWorldAudit(a, 'zh')).toContain('薄正文');
+  });
+});
+
 describe('worldAudit · 世界体检纯函数', () => {
   it('健康世界：无空正文/重名/孤儿/断链', () => {
     let w = base();

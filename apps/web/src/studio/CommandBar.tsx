@@ -9,16 +9,15 @@ import { csrfHeaders } from '@/lib/csrf';
 import type { Locale } from '@/lib/i18n';
 import { REALTIME_TEXT, REALTIME_TEXT_EN, useRealtime } from '@/lib/useRealtime';
 import { cacheState, cacheText } from '@/lib/usage-cache-text';
-import { hint, type HintId } from '@/lib/hintCopy';
 import { isEditableTarget } from '@/lib/keyboard';
 import { studio, toModelPatches, useStudioReady } from './store';
 
 /** §7 底部 AI 命令栏：输入 → Agent Plan → 执行 → Activity → 一次事务落地 → AI Diff → 可整体撤销 */
 
-const MODES: { id: ModelClass; label: string; hint: HintId }[] = [
-  { id: 'fast', label: 'Fast', hint: 'studio.command.mode.fast' },
-  { id: 'balanced', label: 'Balanced', hint: 'studio.command.mode.balanced' },
-  { id: 'reasoning', label: 'Reasoning', hint: 'studio.command.mode.reasoning' },
+const MODES: { id: ModelClass; label: string }[] = [
+  { id: 'fast', label: 'Fast' },
+  { id: 'balanced', label: 'Balanced' },
+  { id: 'reasoning', label: 'Reasoning' },
 ];
 
 const COPY = {
@@ -81,6 +80,8 @@ const COPY = {
     agentLineNamed: (name: string) => `这一轮交给 ${name}`,
     agentLineNone: '这一轮没有人被点名',
     completed: '已完成',
+    cacheBadgeTitle: '命中的是输入 token（前缀缓存）。缓存那一段仍然计费，只是打折。',
+    laneBadgeTitle: '这一趟真走的编排车道：stategraph = LangGraph 状态图（七节点）；lane-a = 顺序执行。由服务端响应头判定，客户端不猜。',
     opsLine: (n: number) => `${n} 个 op · Ctrl+Z 可整体撤销本次事务`,
     undoButton: 'Ctrl+Z 可整体撤销本次事务',
     realtimePrefix: '实时通道：',
@@ -92,7 +93,10 @@ const COPY = {
     executing: '执行中…',
     submit: '执行',
     asyncModeLabel: '异步作业',
+    asyncModeTitle: '交给 AI Service 的队列执行：不挂住这次请求，状态与结果靠回来问',
     reviewLabel: '让 AI 自查一遍',
+    reviewTitle: '多花 1–3 次调用：审稿 Agent 会核对每一项诉求有没有真的落到补丁里，漏了就自动重做一次。耗时与 token 都会变多。',
+    assignTitle: '名册来自库里的 agents 表（§112）。没点名就按这次请求的意图走',
     deliveryFailed: '提交没有拿到作业号，因此没东西可以问',
     undoStored: '已批准并交回的 AI 结果',
     executionPlan: '执行计划',
@@ -157,6 +161,8 @@ const COPY = {
     agentLineNamed: (name: string) => `This run goes to ${name}`,
     agentLineNone: 'No one is named this run',
     completed: 'Done',
+    cacheBadgeTitle: 'Hits mean input tokens (prefix cache). The cached segment is still billed, only at a discount.',
+    laneBadgeTitle: 'The orchestration lane this run actually took: stategraph = LangGraph state graph (seven nodes); lane-a = sequential run. Decided by the server response header — never guessed client-side.',
     opsLine: (n: number) => `${n} ops · Ctrl+Z undoes the whole transaction`,
     undoButton: 'Ctrl+Z undoes the whole transaction',
     realtimePrefix: 'Realtime: ',
@@ -168,7 +174,10 @@ const COPY = {
     executing: 'Running…',
     submit: 'Run',
     asyncModeLabel: 'Async job',
+    asyncModeTitle: 'Run it through the AI Service queue: no blocking request; status and result are polled for',
     reviewLabel: 'Double-check with AI',
+    reviewTitle: 'Costs 1–3 extra calls: a reviewer checks that every request actually landed in the patch, and makes the editor redo it if something was missed. Slower and uses more tokens.',
+    assignTitle: 'The roster comes from the agents table in the library (§112). Unnamed runs follow the request’s intent',
     deliveryFailed: 'The submit came back without a job id; there is nothing to poll',
     undoStored: 'An approved and returned AI result',
     executionPlan: 'Executing plan',
@@ -610,7 +619,6 @@ export function CommandBar({ locale = 'zh' }: { locale?: Locale }) {
           type="button"
           onClick={() => void cancelAsync()}
           disabled={cancelBusy}
-          title={hint('studio.command.cancel', locale)}
           data-async-cancel
           className="cb-infoChip"
         >
@@ -645,7 +653,6 @@ export function CommandBar({ locale = 'zh' }: { locale?: Locale }) {
             className="cb-underLink"
             onClick={() => void askExplain()}
             disabled={approvalExplainBusy}
-            title={hint('studio.command.explain', locale)}
             data-approval-explain
           >
             {approvalExplainBusy ? c.explainBusy : c.explainAsk}
@@ -669,7 +676,6 @@ export function CommandBar({ locale = 'zh' }: { locale?: Locale }) {
               type="button"
               disabled={approvalBusy}
               onClick={() => void decide('approve')}
-              title={hint('studio.command.approve', locale)}
               data-approval-approve
               className="cb-warnChip"
             >
@@ -679,7 +685,6 @@ export function CommandBar({ locale = 'zh' }: { locale?: Locale }) {
               type="button"
               disabled={approvalBusy}
               onClick={() => void decide('reject')}
-              title={hint('studio.command.reject', locale)}
               data-approval-reject
               className="cb-underLink"
             >
@@ -718,7 +723,7 @@ export function CommandBar({ locale = 'zh' }: { locale?: Locale }) {
         </p>
       ) : null}
       {result?.plans?.length || result?.activities?.length ? (
-        <ActivityFeed plan={result.plans[0]} activities={result.activities} c={c} locale={locale} />
+        <ActivityFeed plan={result.plans[0]} activities={result.activities} c={c} />
       ) : null}
       {error ? (
         <p className="cb-dangerMb1" data-ai-error>
@@ -740,24 +745,19 @@ export function CommandBar({ locale = 'zh' }: { locale?: Locale }) {
           <span
             className="cb-cacheBadge"
             data-ai-cache={cacheState(result.usage)}
-            title={hint('studio.cache.badge', locale)}
+            title={c.cacheBadgeTitle}
           >
             {cacheText(result.usage)}
           </span>
           {runLane ? (
-            <span className="cb-laneChip" data-ai-lane={runLane} title={hint('studio.lane.badge', locale)}>
+            <span className="cb-laneChip" data-ai-lane={runLane} title={c.laneBadgeTitle}>
               {runLane === 'stategraph' ? 'STATEGRAPH' : 'LANE-A'}
             </span>
           ) : null}
           {result.patches?.length ? (
             <span className="ap-faint">
               {`${result.patches.reduce((sum, p) => sum + p.ops.length, 0)} ops · `}
-              <button
-                type="button"
-                className="cb-under"
-                title={hint('studio.command.undo', locale)}
-                onClick={() => studio.undo()}
-              >
+              <button type="button" className="cb-under" onClick={() => studio.undo()}>
                 {c.undoButton}
               </button>
             </span>
@@ -775,7 +775,6 @@ export function CommandBar({ locale = 'zh' }: { locale?: Locale }) {
               key={m.id}
               type="button"
               onClick={() => setMode(m.id)}
-              title={hint(m.hint, locale)}
               data-model-class={m.id}
               className={cn('cb-segPill', mode === m.id ? 'cb-segOn' : 'cb-segIdle')}
             >
@@ -785,7 +784,7 @@ export function CommandBar({ locale = 'zh' }: { locale?: Locale }) {
         </div>
         {/* §112：提名这一轮交给谁。也可以直接在提示词里写 @design / @qa——两处都写时以名册里那一位为准，
             而"名册里有没有"由服务端判，不由这里列了什么判 */}
-        <label className="cb-sendBar" title={hint('studio.command.assign', locale)}>
+        <label className="cb-sendBar" title={c.assignTitle}>
           {c.assignTo}
           <select
             value={agentKey}
@@ -823,14 +822,13 @@ export function CommandBar({ locale = 'zh' }: { locale?: Locale }) {
           type="button"
           disabled={busy || !prompt.trim()}
           onClick={() => void submit()}
-          title={hint('studio.command.run', locale)}
           className="cb-primary"
           data-ai-submit
         >
           {busy ? c.executing : c.submit}
         </button>
         {/* 勾上它只是换"谁在等"：等同步返回，还是交给队列然后一次一次问。拦不拦高危动作由服务端那道门说（§74） */}
-        <label className="cb-sendBar" title={hint('studio.command.async', locale)}>
+        <label className="cb-sendBar" title={c.asyncModeTitle}>
           <input
             type="checkbox"
             checked={asyncMode}
@@ -842,7 +840,7 @@ export function CommandBar({ locale = 'zh' }: { locale?: Locale }) {
         </label>
         {/* §GRAPH-3：与异步开关并排，但管的是完全不同的东西——异步换"谁在等"，
             自查换"花多少 token 换一道保险"。文案在 title 里说清代价，不藏在文档里 */}
-        <label className="cb-sendBar" title={hint('studio.command.review', locale)}>
+        <label className="cb-sendBar" title={c.reviewTitle}>
           <input
             type="checkbox"
             checked={reviewMode}
@@ -859,7 +857,6 @@ export function CommandBar({ locale = 'zh' }: { locale?: Locale }) {
             key={example}
             type="button"
             onClick={() => setPrompt(example)}
-            title={hint('studio.command.examples', locale)}
             className="cb-suggestionChip"
           >
             {example}
@@ -870,17 +867,12 @@ export function CommandBar({ locale = 'zh' }: { locale?: Locale }) {
   );
 }
 
-function ActivityFeed({ plan, activities, c, locale }: { plan?: AgentPlan; activities: AgentActivity[]; c: CommandCopy; locale: Locale }) {
+function ActivityFeed({ plan, activities, c }: { plan?: AgentPlan; activities: AgentActivity[]; c: CommandCopy }) {
   const [open, setOpen] = useState(true);
   if (!plan && !activities?.length) return null;
   return (
     <div className="cb-intentBox">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        title={hint('studio.command.plan', locale)}
-        className="cb-rowFull"
-      >
+      <button type="button" onClick={() => setOpen((v) => !v)} className="cb-rowFull">
         <span className="ap-mono11faint">{open ? '▾' : '▸'}</span>
         <span className="cb-trunc">{plan?.goal ?? c.executionPlan}</span>
         {plan?.tasks?.length ? <span className="ap-faint">{c.taskCount(plan.tasks.length)}</span> : null}

@@ -79,8 +79,8 @@ export const EXEMPT_AREAS = [
     dir: '.scratch',
     reason:
       'proof artifacts and whole-copy test files, not product source: the root ESLint config names ' +
-      '.scratch/** in ignores, so a child linting this area exits 2 with \'all files matching the glob are ' +
-      'ignored\' (measured: crash, 0 files graded). These files stay tracked as evidence, but no lint ' +
+      '.scratch/** in ignores, so a child linting this area exits 2 with "all files matching the glob are ' +
+      'ignored" (measured: crash, 0 files graded). These files stay tracked as evidence, but no lint ' +
       'verdict exists for them and none is claimed here.',
   },
 ];

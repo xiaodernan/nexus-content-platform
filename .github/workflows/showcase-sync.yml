@@ -38,7 +38,7 @@ jobs:
 
       - name: Regenerate docs/showcase/latest.json
         env:
-          NEXUS_FACT_REF: main   # 两条主线已收敛；事实包只从唯一 main 生成
+          NEXUS_FACT_REF: master   # `main` is an unrelated, stale content line — never publish it as latest
         run: npx tsx scripts/gen-latest.mts
 
       # 2026-11-22: this step used to COMMIT the pack back into this repo. That is a
@@ -67,6 +67,4 @@ jobs:
           git config user.email "pages-sync-bot@users.noreply.github.com"
           git add assets/nexus-content/latest.json
           git commit -m "sync(nexus-content): refresh the showcase fact pack from nexus-content-platform (weekly)"
-          # 个人主页仓库的默认分支是 master（不是 main）。显式推到克隆出来的当前分支，
-          # 避免远端默认分支配置变化时推错地方——文件必须在 GitHub Pages 用的那个分支上。
-          git push origin HEAD:master
+          git push

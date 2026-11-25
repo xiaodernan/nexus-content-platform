@@ -19,10 +19,10 @@ import java.time.Instant;
  * silently edits the thing it records is worse than one that refuses it. A diff that is only whitespace is
  * refused: zero bytes propose nothing.
  *
- * <p>{@code status} starts at {@code proposed}. The third word of the chain moves it to {@code submitted}
- * when a review request opens ({@link PatchService#submit}); the approval and deployment words will move it
- * further. There is no state machine here, and the service does not require the incident to still be open:
- * the fix for what happened can arrive after the record was closed.
+ * <p>{@code status} is {@code proposed} and this slice writes no other value. The later words (a PR, an
+ * approval, a deployment) will move it; until they exist, a reader can still see that nothing has happened
+ * to this proposal yet. There is no state machine here, and the service does not require the incident to
+ * still be open: the fix for what happened can arrive after the record was closed.
  */
 @Entity
 @Table(name = "incident_patch")
@@ -53,7 +53,7 @@ public class IncidentPatch {
     @Column(name = "author", length = 120)
     private String author;
 
-    /** {@code proposed} until a review request opens; the later words of the chain will move it further. */
+    /** {@code proposed}; the later words of the chain will move this, and this slice moves nothing. */
     @Column(name = "status", nullable = false, length = 20)
     private String status;
 
@@ -114,29 +114,5 @@ public class IncidentPatch {
 
     public Instant getCreatedAt() {
         return createdAt;
-    }
-
-    /**
-     * The chain's third word: this patch now has an open review request. Called by
-     * {@link PatchService#submit} inside the transaction that writes the request, so a request can never
-     * exist against a patch still marked proposed, and a patch is never marked submitted without one.
-     */
-    void submit() {
-        this.status = PatchService.SUBMITTED;
-    }
-
-    /** The review said yes: the patch is approved, and only a deployment word may move it further. */
-    void approve() {
-        this.status = PatchService.APPROVED;
-    }
-
-    /** The review said no: back to proposed, so the author may revise and resubmit. */
-    void revise() {
-        this.status = PatchService.PROPOSED;
-    }
-
-    /** The chain's last word: a deployment of this patch was reported successful. */
-    void deploy() {
-        this.status = PatchService.DEPLOYED;
     }
 }

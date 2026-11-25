@@ -31839,6 +31839,156 @@ The Fog Harbor keepers met again the next day — nothing was decided, because t
 `,
   },
   {
+    order: 230,
+    slug: 'echo-230-footsteps-at-the-far-end-of-the-blank',
+    titleZh: '空白那一头的脚步',
+    titleEn: 'Footsteps at the Far End of the Blank',
+    eraLineZh: '纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E229）。',
+    eraLineEn: 'Era: the Institute — after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E229).',
+    markdownZh: `
+> 回响不替正典续写——它只是页边另一层长出来的盐。
+> 写在 E220 之后：线已经铺在地上、也已经被走过一遍。这一篇写的是第一个越过空白的人，回头时看见了什么。
+> 纪律同前：锚句逐字；不新增正典专名，只在既有的灰棚与抄本院里添细节。
+
+> 纪元：潮候院 · 第四十四次大会之后 · 冬潮月第一百四十年（同 E206–E229）。
+
+---
+
+## 一 · 越过
+
+第一个越过空白的人没有跨，是把脚落在空白里才走的。灰棚的盐面在他鞋底轻轻响了一声，像翻过一页。
+**锚句**：第一个越过空白的人把脚落在空白里才走。
+**Anchor sentence**: the first to cross the blank set a foot into the blank before walking on.
+
+---
+
+## 二 · 回头
+
+走到那边之后他回头，看见来路变得很细。粉笔线被来来回回的脚步磨成一线灰，七页点缩成一小串白。
+**锚句**：走到那边之后他回头，看见来路变得很细。
+**Anchor sentence**: once he was across he looked back and saw the way he had come grown thin.
+
+---
+
+## 三 · 另一盏灯
+
+空白的这一头原来也有一盏灯，灯芯是旧的，却还亮着。抄本师那盏留在这一边，这一盏一直在那边等着。
+**锚句**：空白的这一头原来也有一盏灯，灯芯是旧的，却还亮着。
+**Anchor sentence**: at that end of the blank there was another lamp, its wick old but still lit.
+
+---
+
+## 四 · 两盏之间
+
+两盏灯之间隔着一段没有人走过的空。他把手里那盏举高，才发现对面的光不是反光，是另一只手刚点的。
+**锚句**：他把手里那盏举高，才发现对面的光不是反光。
+**Anchor sentence**: he raised the lamp in his hand and saw the light opposite was no reflection.
+
+---
+
+## 五 · 记一笔
+
+他回身在空白边上记了一笔：不是写名字，是画了一道短横——表示这里有人走过，路是通的。
+**锚句**：他回身在空白边上记了一笔，画了一道表示这里走得通的短横。
+**Anchor sentence**: he turned back and set one mark by the blank — a short stroke meaning the way was passable.
+
+---
+
+## 六 · 路的两头
+
+后来的人从两头各走一半，在中间碰头。他们没说什么，只把两盏灯挪到一处，让这段空也有了两头。
+**锚句**：后来的人从两头各走一半，在中间碰头。
+**Anchor sentence**: those who came later walked half from each end and met in the middle.
+
+---
+
+## 七 · Mapping（Echo No. 230 · world model）
+
+| 维度 | 值 | 对应章节 |
+| --- | --- | --- |
+| lore | the blank is a crossing, not an absence · a way has two ends once both are lit | 一、三、六 |
+| geography | the Institute's copy hall · the salt floor of the grey shed · the two ends of the blank | 一、三、六 |
+| characters | the first crosser · the copyist who kept his lamp · the later walkers from both ends | 一、四、六 |
+| story | after E229: the line is crossed, the return is seen, the blank gains two ends | 全篇 |
+| items | the lamp carried · the old lamp already lit · the short stroke in the salt | 三、四、五 |
+| history | the 140th year after the 44th Convocation (continues E206–E229) | 纪元 |
+
+> 空白不是少了一页——是还没人从两头把它走成一段路。
+> The blank is not a missing page — it is a stretch no one has yet walked from both ends into a road.
+`,
+    markdownEn: `
+> An echo is a side-grain outside the canon — not a sequel, another layer the salt grew on the same stone.
+> Written after E229: the line was laid on the floor and walked once. This echo is about the first person to cross the blank, and what he saw when he looked back.
+> Same discipline: anchors verbatim; no new canon proper nouns, only detail within the established grey shed and copy hall.
+
+> Era: the Institute — after the 44th Convocation; the 140th year of the winter-tide month (as in E206–E229).
+
+---
+
+## One · Crossing
+
+The first to cross the blank did not leap — he set a foot into the blank before walking on, and the salt of the grey shed gave a soft sound under his sole, like turning a page.
+**锚句**：第一个越过空白的人把脚落在空白里才走。
+**Anchor sentence**: the first to cross the blank set a foot into the blank before walking on.
+
+---
+
+## Two · Looking back
+
+Once he was across he looked back and saw the way he had come grown thin — the chalk line worn to a thread of grey by the going and returning, the seven pages of dots shrunk to a short string of white.
+**锚句**：走到那边之后他回头，看见来路变得很细。
+**Anchor sentence**: once he was across he looked back and saw the way he had come grown thin.
+
+---
+
+## Three · The other lamp
+
+At that end of the blank there was another lamp, its wick old but still lit — the copyist's lamp stayed on this side, this one had been waiting all along on the far side.
+**锚句**：空白的这一头原来也有一盏灯，灯芯是旧的，却还亮着。
+**Anchor sentence**: at that end of the blank there was another lamp, its wick old but still lit.
+
+---
+
+## Four · Between two lamps
+
+Between the two lamps lay a stretch no one had walked. He raised the lamp in his hand and saw the light opposite was no reflection — it was another hand, just now, lighting its own.
+**锚句**：他把手里那盏举高，才发现对面的光不是反光。
+**Anchor sentence**: he raised the lamp in his hand and saw the light opposite was no reflection.
+
+---
+
+## Five · One mark
+
+He turned back and set one mark by the edge of the blank — not a name, but a short stroke in the salt meaning someone had passed and the way was open.
+**锚句**：他回身在空白边上记了一笔，画了一道表示这里走得通的短横。
+**Anchor sentence**: he turned back and set one mark by the blank — a short stroke meaning the way was passable.
+
+---
+
+## Six · Two ends
+
+Those who came later walked half from each end and met in the middle. They said nothing — only moved the two lamps together, so the empty stretch had two ends at last.
+**锚句**：后来的人从两头各走一半，在中间碰头。
+**Anchor sentence**: those who came later walked half from each end and met in the middle.
+
+---
+
+## Seven · Mapping (Echo No. 230 · world model)
+
+| Dimension | Value | Chapters |
+| --- | --- | --- |
+| lore | the blank is a crossing, not an absence · a way has two ends once both are lit | 1, 3, 6 |
+| geography | the Institute's copy hall · the salt floor of the grey shed · the two ends of the blank | 1, 3, 6 |
+| characters | the first crosser · the copyist who kept his lamp · the later walkers from both ends | 1, 4, 6 |
+| story | after E229: the line is crossed, the return is seen, the blank gains two ends | all |
+| items | the lamp carried · the old lamp already lit · the short stroke in the salt | 3, 4, 5 |
+| history | the 140th year after the 44th Convocation (continues E206–E229) | era |
+
+> The blank is not a missing page — it is a stretch no one has yet walked from both ends into a road.
+> 空白不是少了一页——是还没人从两头把它走成一段路。
+`,
+  },
+  {
     order: 24,
     slug: 'echo-024-the-salt-that-never-dissolved',
     titleZh: '里巷子石槽里那粒没化的盐',

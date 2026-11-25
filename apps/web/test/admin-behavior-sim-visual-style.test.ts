@@ -89,7 +89,7 @@ describe('§SIM-1 /admin/behavior-sim 行为演练', () => {
       '7fc95eee28da4a3057475612cedffcae85473f1dbe5ea418152545211ad00856',
     );
     expect(createHash('sha256').update(redactClasses(panel)).digest('hex')).toBe(
-      '31ab76119df2cd43808a3259a8cc09155bed83fa3da8084a52adc0c3c7afe27c',
+      '352eade51320763c7c2a718b68a98702a6afb137647e9e752eee248c8d78feed',
     );
   });
 });

@@ -1,7 +1,5 @@
-import crypto from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { CSRF_COOKIE } from '@/server/security/cookieNames';
 
 export const dynamic = 'force-dynamic';
 
@@ -64,15 +62,6 @@ export async function POST(request: Request) {
   const store = await cookies();
   store.set(OBSERVER_COOKIE, OBSERVER_COOKIE_VALUE, {
     httpOnly: true,
-    sameSite: 'lax',
-    path: '/',
-    maxAge: 60 * 60 * 24 * 30,
-  });
-  // The observer's write-shaped POSTs (AI deep-read) now require the double-submit CSRF token.
-  // A passcode visitor has no session, so the login itself must mint one — otherwise the door
-  // would open and every action behind it would answer 403. Not httpOnly: the page reads it.
-  store.set(CSRF_COOKIE, crypto.randomBytes(16).toString('hex'), {
-    httpOnly: false,
     sameSite: 'lax',
     path: '/',
     maxAge: 60 * 60 * 24 * 30,

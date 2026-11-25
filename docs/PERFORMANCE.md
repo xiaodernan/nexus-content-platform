@@ -1932,7 +1932,7 @@ RAW 数据：`docs/evidence/load-web-ssr-2026-11-17.{md,json}`。首发 run 的"
 **事故**：Docker Desktop 于本次会话中途第 3 次崩溃（docker.sock/npipe 拒绝连接），Postgres 55433/Redis 56379 随即不可用；`GET /`/`/api/notifications` 全部 ECONNREFUSED→500——全栈压测（A 读 / D 注册写库 / E 重复注册）**在此窗口无法运行，未伪造任何容量数字**。
 Docker Desktop 已由 agent 人工拉起（本轮恢复，server 29.9.3，nexus-postgres / nexus-redis 恢复 healthy），但 RAM 随即触底（0.46 GB），全量压测仍需安静窗口（≥3 GB free RAM）。
 
-**本轮真实测得**（`next dev` 路径；同批同环境；工具 `scratch/stress-batteria.mjs` + `scratch/stress-ip-window.mjs`）：
+**本轮真实测得**（`next dev` 路径；同批同环境；工具 `.scratch/stress-batteria.mjs` + `.scratch/stress-ip-window.mjs`）：
 
 | 场景 | 并发 | 请求 | 结果 | p50 | p95 |
 |---|---|---|---|---|---|
@@ -1946,7 +1946,7 @@ Docker Desktop 已由 agent 人工拉起（本轮恢复，server 29.9.3，nexus-
 3. 限流429 流：`statuses:{"401":30,"429":6}` ——首 30 次 401 后严格翻 429，与 IP_RATE_RULES 的 `insight/login:{cap:30, windowMs:300000}` 对账一致。
 4. 全栈部分：待安静窗口（Docker 稳定 + ≥3 GB free RAM）重跑 A/D/E 三档（含恢复宿主后的 500 攻击面记录）。
 
-**文件**：`scratch/stress-batteria.mjs`（无新增依赖）· `scratch/stress-ip-window.mjs`（限流精确命中探针）。
+**文件**：`.scratch/stress-batteria.mjs`（无新增依赖）· `.scratch/stress-ip-window.mjs`（限流精确命中探针）。
 **下一步**：Docker 稳定后（或 RAM ≥3 GB 的窗口）复现全量 batteria；把压测结论扩到 `/api/analytics/track` 等写库路由。
 
 

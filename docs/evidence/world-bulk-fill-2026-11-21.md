@@ -14,6 +14,6 @@ E2E 过程与第三个真 bug：第一次批量撞到 `/api/ai/world-fill` 的 1
 窗口恢复后重跑，回执"已补 3/9"，但 API 实读只有 1 条 body——`fillSection` 闭包持有
 点击那一刻的旧 `world`，三次写入互相覆盖。改为每次从 `worldStore.getSnapshot().world`
 取最新文档后再跑：节点 9→12，正文非空的条目 3 条，分属 lore/history/geography，
-零 pageerror。脚本 `scratch/bulk-e2e.mjs`。
+零 pageerror。脚本 `.scratch/bulk-e2e.mjs`。
 
 验证：world-fill + WorldPanel 门 27/27；`apps/web` tsc exit 0；record-encoding 全绿。

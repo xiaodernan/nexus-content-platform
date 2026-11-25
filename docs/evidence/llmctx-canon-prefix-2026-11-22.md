@@ -64,7 +64,7 @@ canon/4: 7.1s tokensIn=172815 cached=153654 (88.9%) reported=True canonChars=266
 - 网关 KV 的 TTL 与淘汰不可观测，只能从 `cachedTokens` 反推。
 ## 端到端真机读数（浏览器 → web → ai-service → provider，2026-11-22）
 
-真注册账号、真建项目、真建角色、真从 Studio 面板发一句话（脚本 `scratch/e2e-chat3.mjs`）：
+真注册账号、真建项目、真建角色、真从 Studio 面板发一句话（脚本 `.scratch/e2e-chat3.mjs`）：
 
 ```
 CANON LINE: 本句带着整部世界大典（266,660 字符）一起发给模型

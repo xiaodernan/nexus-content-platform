@@ -1,8 +1,7 @@
 import { createHash } from 'node:crypto';
-
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { readStable } from './helpers/stable-text';
 
 /**
  * §FE-I18N — 中文 ↔ English 切换打通门。
@@ -15,10 +14,10 @@ import { readStable } from './helpers/stable-text';
  *  5. 缺一个算一个，不省不漏不伪造。
  */
 const ROOT = process.cwd();
-const LAYOUT = readStable(join(ROOT, 'apps/web/src/app/layout.tsx'));
-const API_ROUTE = readStable(join(ROOT, 'apps/web/src/app/api/locale/route.ts'));
-const LIB = readStable(join(ROOT, 'apps/web/src/lib/i18n.ts'));
-const TOGGLE = readStable(join(ROOT, 'apps/web/src/components/LocaleToggle.tsx'));
+const LAYOUT = readFileSync(join(ROOT, 'apps/web/src/app/layout.tsx'), 'utf8');
+const API_ROUTE = readFileSync(join(ROOT, 'apps/web/src/app/api/locale/route.ts'), 'utf8');
+const LIB = readFileSync(join(ROOT, 'apps/web/src/lib/i18n.ts'), 'utf8');
+const TOGGLE = readFileSync(join(ROOT, 'apps/web/src/components/LocaleToggle.tsx'), 'utf8');
 
 describe('§FE-I18N 中英切换基础设施', () => {
   it('RootLayout：async + getLocale + <html lang> + LocaleToggle 挂载', () => {

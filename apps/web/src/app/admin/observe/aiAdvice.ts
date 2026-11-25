@@ -23,7 +23,7 @@ export type ObserverMetricsInput = ObserverMetrics;
 // ── 从实库聚合数据出带数字的数据，喂给真模型。服务器按 locale 产出，模型语言跟随。
 export function observerMetricsBrief(m: ObserverMetricsInput, locale: Locale): string {
   const q = (a: string[]) => a.join(' / ') || '——';
-  return locale === 'zh' ? `你是只读观察站（Observer）分析师。以下是本实例数据库在本次请求时读到的实测聚合：
+  return locale === 'zh' ? `你是只读观察站（Observer）分析师。以下是本实例数据库的最新实测聚合（2026-11-20 采样）：
 - 注册用户（非游客）：${m.usersTotal}，游客：${m.usersGuests}，7 天新注册：${m.usersNew7d}，30 天新注册：${m.usersNew30d}
 - 作品/发布：总发布 ${m.publishesTotal}，公开已过审 ${m.publishesPublicApproved}，总浏览 ${m.viewsTotal}，点赞 ${m.likesTotal}，评论 ${m.commentsTotal}，收藏 ${m.savesTotal}，关注 ${m.followsTotal}
 - 有效打开（近 7 天）：${m.opens7d}，近 30 天：${m.opens30d}；近 7 天可见平均分钟数：${Math.round(m.visibleMs7d / 60000)}；完成度（30 天均值）：${m.completionPctAvg30d === null ? '没有数据' : m.completionPctAvg30d.toFixed(1) + '%'}
@@ -31,7 +31,7 @@ export function observerMetricsBrief(m: ObserverMetricsInput, locale: Locale): s
 - 套餐分布：${q(m.plans.map((p) => `${p.plan}=${p.count}`))}
 - 疑似机器人打开（近 7 天）：${m.suspectedBots7d}
 - 最热作品：${m.topWorks.slice(0, 3).map((w) => `${w.name}(views=${w.views},likes=${w.likes})`).join('，') || '——'}
-- 近 7 天实际观测 ${m.observedDays7d}/${m.daily.length} 天；每日有效打开：${m.daily.map((d) => `${d.day.slice(5)}=${d.opens ?? '未观测'}`).join('，') || '——'}
+- 近 7 天每日有效打开：${m.daily.map((d) => `${d.day.slice(5)}=${d.opens}`).join('，') || '——'}
 
 请根据这些实测数字，给出 3–5 条「深度优化建议」，每条有优先级（HIGH/MEDIUM/LOW）、触发依据（含具体数字）、预计影响（含数字）、下一步动作（含具体建议）。数字必须来自上述聚合值，不得编造；没有数据支撑的点请直接说「数据不足」，不要给假的建议。输出为合法 JSON 数组，形状为 [{priority, basis, impact, action}]，不要夹杂 markdown。` : `You are the Read-only Observer analyst. Here are the latest aggregated metrics from this instance's database:
 - Users: ${m.usersTotal} (non-guest), guests: ${m.usersGuests}, new in 7d: ${m.usersNew7d}, new in 30d: ${m.usersNew30d}
@@ -41,7 +41,7 @@ export function observerMetricsBrief(m: ObserverMetricsInput, locale: Locale): s
 - Plan distribution: ${q(m.plans.map((p) => `${p.plan}=${p.count}`))}
 - Suspected bots (7d): ${m.suspectedBots7d}
 - Hottest works: ${m.topWorks.slice(0, 3).map((w) => `${w.name}(views=${w.views},likes=${w.likes})`).join(', ') || '——'}
-- Actually observed ${m.observedDays7d}/${m.daily.length} days in the last 7d; daily effective opens: ${m.daily.map((d) => `${d.day.slice(5)}=${d.opens ?? 'not observed'}`).join(', ') || '——'}
+- Daily effective opens: ${m.daily.map((d) => `${d.day.slice(5)}=${d.opens}`).join(', ') || '——'}
 
 From these measured numbers, give 3–5 deep optimization suggestions; each with priority (HIGH/MEDIUM/LOW), trigger basis (with concrete numbers), predicted impact (with numbers), and next step (concrete). Numbers must come from the aggregates above — never invent; for points without data say "data insufficient", not a made-up suggestion. Output a legal JSON array of [{priority, basis, impact, action}] without markdown.`;
 }

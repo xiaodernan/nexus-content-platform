@@ -5,6 +5,7 @@ import {
   ZOOM_STEPS,
   liveBreakpoints,
   breakpointFromParam,
+  fitZoom,
   keepViewerParams,
   viewerHref,
   zoomFromParam,
@@ -119,6 +120,29 @@ describe('viewerHref', () => {
       '/preview/p1?viewport=tablet&state=loading',
     );
     expect(viewerHref('/n/a/b', {}, { zoom: undefined })).toBe('/n/a/b');
+  });
+});
+
+describe('fitZoom · 适应窗口', () => {
+  it('视口比设计宽时不缩（1），比设计窄时取界面真有的档', () => {
+    expect(fitZoom(1440, 1920)).toBe(1);
+    expect(fitZoom(1440, 1440)).toBe(1);
+    // 390/1440 ≈ 0.27，取 >= 0.27 的最小档 0.5——界面上确实有 0.5× 那颗按钮
+    expect(fitZoom(1440, 390)).toBe(0.5);
+  });
+
+  it('落点必在 ZOOM_STEPS 内，且不超过 1（放大交给浏览器双指）', () => {
+    for (const vw of [320, 390, 768, 1024, 1280, 1440]) {
+      const z = fitZoom(1440, vw);
+      expect(ZOOM_STEPS).toContain(z);
+      expect(z).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it('坏输入回 1，不画 NaN，也不让 0 除出无穷', () => {
+    expect(fitZoom(0, 390)).toBe(1);
+    expect(fitZoom(1440, 0)).toBe(1);
+    expect(fitZoom(NaN, 390)).toBe(1);
   });
 });
 

@@ -126,6 +126,23 @@ export function viewerHref(
   return qs ? `${base}?${qs}` : base;
 }
 
+/**
+ * 「适应窗口」：把设计宽度缩到给定视口宽度内，取最接近的既有缩放档。
+ * 只算视图参数，不改模型/发布快照（§16）。两个约束都写在这里：
+ * - 不超过 1（ZOOM_MAX）：只在"缩"这一边做事，放大交给浏览器自己的双指；
+ * - 只从 ZOOM_STEPS 里取："适应"落到的档位必须是界面上真有一颗按钮的那档，
+ *   不能悄悄写出一个界面上不存在的 zoom（否则分享出去的链接无人能复现）。
+ */
+export function fitZoom(designWidth: number, viewportWidth: number): number {
+  if (!Number.isFinite(designWidth) || designWidth <= 0) return 1;
+  if (!Number.isFinite(viewportWidth) || viewportWidth <= 0) return 1;
+  if (viewportWidth >= designWidth) return 1;
+  const raw = viewportWidth / designWidth;
+  // 取 >= raw 的最小档（宁可留一点横向平移，也不要因为缩得太小而看不清字）。
+  // ZOOM_STEPS 是降序 [1, .75, .5, .25]，故先升序再找第一个合格档。
+  return [...ZOOM_STEPS].reverse().find((step) => step >= raw) ?? ZOOM_MIN;
+}
+
 /** 服务端把当前查看器状态交给客户端组件时用的形状：翻页时要原样带走的除 page 之外的参数 */
 export function keepViewerParams(current: ViewerQuery): Record<string, string> {
   const keep: Record<string, string> = {};

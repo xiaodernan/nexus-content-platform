@@ -13,4 +13,4 @@
 | 落库前后节点数 | 11 → 11（零写入） |
 | pageerror | 0 |
 
-脚本：`scratch/fate-e2e.mjs`。纯函数门 4 条（同 seed 可复现 / 换 seed 有变化且只引用已有 id / 跳过空壳 / 细节非空）。
+脚本：`.scratch/fate-e2e.mjs`。纯函数门 4 条（同 seed 可复现 / 换 seed 有变化且只引用已有 id / 跳过空壳 / 细节非空）。

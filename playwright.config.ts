@@ -1,7 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 
 const WEB_URL = process.env.NEXUS_WEB_URL ?? 'http://localhost:3100';
-const WEB_HEALTH_URL = process.env.NEXUS_WEB_HEALTH_URL ?? WEB_URL;
 
 export default defineConfig({
   testDir: './e2e',
@@ -34,7 +33,7 @@ export default defineConfig({
   projects: [{ name: 'chrome', use: { ...devices['Desktop Chrome'], channel: 'chrome' } }],
   webServer: {
     command: 'npm run dev -w @nexus/web',
-    url: WEB_HEALTH_URL,
+    url: WEB_URL,
     reuseExistingServer: true,
     timeout: 180_000,
   },

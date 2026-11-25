@@ -192,7 +192,7 @@ export function StudioShell({
       ) : null}
       {ready ? (
         <Profiler id="workspace" onRender={recordWorkspaceRender}>
-          <StudioWorkspace projectId={projectId} zoom={zoom} demoMode={demoMode} credits={credits} locale={locale} />
+          <StudioWorkspace zoom={zoom} demoMode={demoMode} credits={credits} locale={locale} />
         </Profiler>
       ) : (
         <p className="se-status" data-studio-status>
@@ -204,7 +204,7 @@ export function StudioShell({
 }
 
 /** 只在 load 完成后挂载：子组件因此可以假定 document / page / layout 存在 */
-function StudioWorkspace({ projectId, zoom, demoMode, credits = null, locale = 'zh' }: { projectId: string; zoom: number; demoMode: boolean; credits?: { ai: number; grant: number; plan: string } | null; locale?: Locale }) {
+function StudioWorkspace({ zoom, demoMode, credits = null, locale = 'zh' }: { zoom: number; demoMode: boolean; credits?: { ai: number; grant: number; plan: string } | null; locale?: Locale }) {
   const c = shellCopy(locale);
   const [tab, setTab] = useState<PanelTab>('layers');
   const [view, setView] = useState<WorkspaceView>('canvas');
@@ -230,7 +230,7 @@ function StudioWorkspace({ projectId, zoom, demoMode, credits = null, locale = '
     <>
       <Profiler id="topbar" onRender={recordRender('topbar')}>
         <TopBar onOpenRail={() => setRailOpen((v) => !v)} credits={credits} locale={locale} onOpenHelp={() => setHelpOpen((v) => !v)} />
-        <InAppGuide open={helpOpen} locale={locale} onClose={() => setHelpOpen(false)} projectId={projectId} />
+        <InAppGuide open={helpOpen} locale={locale} onClose={() => setHelpOpen(false)} />
       </Profiler>
       <div className="se-frame">
         <nav className="se-rail">

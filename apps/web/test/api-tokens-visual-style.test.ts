@@ -1,8 +1,7 @@
 import { createHash } from 'node:crypto';
-
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { readStable } from './helpers/stable-text';
 
 /**
  * §FE-20 `/api-tokens` 公开 API 凭据页——**静态那一寸**（零浏览器、零真库、零时钟）。
@@ -39,10 +38,10 @@ const PANEL = join(ROOT, 'apps/web/src/components/ApiTokensPanel.tsx');
 const GLOBALS = join(ROOT, 'apps/web/src/app/globals.css');
 const TOKENS = join(ROOT, 'apps/web/src/styles/tokens.css');
 
-const page = readStable(PAGE);
-const panel = readStable(PANEL);
-const globals = readStable(GLOBALS);
-const tokens = readStable(TOKENS);
+const page = readFileSync(PAGE, 'utf8');
+const panel = readFileSync(PANEL, 'utf8');
+const globals = readFileSync(GLOBALS, 'utf8');
+const tokens = readFileSync(TOKENS, 'utf8');
 
 /** 去注释后的真代码——所有语义门锚它。 */
 const cssNoComments = (css: string): string => css.replace(/\/\*[\s\S]*?\*\//g, '');

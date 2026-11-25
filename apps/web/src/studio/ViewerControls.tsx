@@ -1,5 +1,6 @@
 import type { BreakpointName, Page as DesignPage } from '@nexus/creative-model';
 import type { Locale } from '@/lib/i18n';
+import { FitWindowLink } from '@/components/FitWindowLink';
 import { liveBreakpoints, viewerHref, ZOOM_STEPS, viewportOptions, type ViewerQuery } from './viewer-params';
 
 interface Props {
@@ -106,6 +107,13 @@ export function ViewerControls({
             {step === 1 ? c.resetZoom : `${step}×`}
           </a>
         ))}
+        <FitWindowLink
+          base={base}
+          query={query}
+          designWidth={page.width}
+          currentZoom={zoom}
+          locale={locale}
+        />
       </span>
       {(() => {
         // 空按钮不摆：那一档重解出来与"按设计尺寸"逐字节相同（依据是 layout.test.ts 里那条同解见证）。

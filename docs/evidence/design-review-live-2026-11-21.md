@@ -15,4 +15,4 @@
 - **model 名是用户指定的当前值**：两轮都 `gpt-6.2-sol`，capability=real，demoMode=false。
 - `dryRun:true` 只压补丁落库，不影响审稿链是否执行；审稿修订环的 4 臂行为另由 `tests/test_design_review_graph.py`（23/23）覆盖。
 
-复现脚本：`scratch/review-e2e.mjs`。已消费的真 provider token 如实计入两轮 usage。
+复现脚本：`.scratch/review-e2e.mjs`。已消费的真 provider token 如实计入两轮 usage。

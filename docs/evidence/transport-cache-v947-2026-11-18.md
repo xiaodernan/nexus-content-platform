@@ -5,7 +5,7 @@
 这一路径是全部 Studio AI 调用最终落点（`/api/ai/run` → 体检 → ai-service → sticky transport → provider）。本次验证的是它自己的 `StickyPromptCacheTransport` 注入 `prompt_cache_key` 后，**真实模型**对同一字节前缀的第二次命中，以及**问句改变**后的复用边界。
 
 **system**：`SYSTEM_PROMPT`（`apps/web/src/lib/bibleAsk.ts`，54,233 字符 ≈ 37,830 tokens；含 5 章正典全文 + 82 篇回响锚句 + 4 附录），`modelClass=balanced`。
-**probe 脚本**：`scratch/proof-transport-cache.mts`
+**probe 脚本**：`.scratch/proof-transport-cache.mts`
 
 ## 实打实录（2026-11-18 本机）
 

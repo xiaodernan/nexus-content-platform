@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import type { AiAdviceItem } from './aiAdvice';
-import { csrfHeaders } from '@/lib/csrf';
 import type { Locale } from '@/lib/i18n';
 
 const COPY = {
@@ -50,7 +49,7 @@ export function ObserverAiAdvice({ locale }: { locale: Locale }) {
       // 服务端调用必须留在服务端：这里只发 locale，指标由 route 现算。
       const res = await fetch('/api/admin/observer/advice', {
         method: 'POST',
-        headers: { 'content-type': 'application/json', ...csrfHeaders() },
+        headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ locale }),
       });
       const body = (await res.json().catch(() => null)) as { items?: AiAdviceItem[]; model?: string; message?: string } | null;

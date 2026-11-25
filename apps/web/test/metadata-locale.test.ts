@@ -8,12 +8,14 @@ import { describe, expect, it } from 'vitest';
 
 const ROOT = process.cwd();
 const PAGES = [
+  '/',
   'about-nexus',
   'bible/whisper',
   'ship',
   'pulse',
   'insight',
   'preview',
+  'onboarding',
   'world/[projectId]/tide',
   'world/[projectId]/quests',
   'world/[projectId]/digest',
