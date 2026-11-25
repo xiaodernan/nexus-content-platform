@@ -1,0 +1,31 @@
+{
+  "at": "2026-11-25T04:57:47.916Z",
+  "host": "win32/x64",
+  "node": "v24.15.0",
+  "nodes": 50000,
+  "modules": {
+    "worldInquiries": {
+      "ms": 382.19,
+      "result": 8
+    },
+    "worldWaypoints": {
+      "ms": 649.24,
+      "result": 150000
+    },
+    "worldSeasons": {
+      "ms": 0.42,
+      "result": 4
+    },
+    "worldTraditions": {
+      "ms": 7.8,
+      "result": 6
+    },
+    "worldPrep": {
+      "ms": 5.95,
+      "result": 5
+    }
+  },
+  "peakRssMiB": 184.1,
+  "heapMiB": 70.5,
+  "verdict": "PASS — no throw / no NaN / all modules produced results"
+}
