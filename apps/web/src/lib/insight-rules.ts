@@ -47,6 +47,9 @@ export const RULE_THRESHOLDS = {
   botOpenShare: { watchAbove: 0.1 },
   creditBurn: { watchAbove: 0.85 },
   demoHeavyShare: { watchAbove: 0.9 },
+  // 缓存命中率：cached / (cached + 未命中输入)。低于 watch 值得盯，低于 act 该动手。
+  // 注意：API 已关闭期间无新调用，分母为 0 时不给建议（不画 0%、不编结论）。
+  cacheHit: { watchBelow: 0.5, actBelow: 0.2 },
 } as const;
 
 const pct = (v: number): string => `${(v * 100).toFixed(1)}%`;
@@ -191,6 +194,24 @@ export function evaluateInsightRules(m: InsightMetrics): InsightAction[] {
         evidence: { zh: `近 ${int(m.dailySignups.length)} 天斜率 ${fit.slope.toFixed(3)} 用户/天，R² = ${fit.r2.toFixed(2)}`, en: `Slope over the last ${int(m.dailySignups.length)} days: ${fit.slope.toFixed(3)} users/day, R² = ${fit.r2.toFixed(2)}` },
         action: { zh: '回看注册后第一次失败的地方（认证/邮箱/没立刻看到价值的空编辑器）；把「第一次成功生成」做成注册后的第一屏目标，而不是让空画布占据它。', en: 'Audit where post-signup dies (auth / email / empty canvas); make “first successful generation” the post-signup milestone instead of a blank editor.' },
       });
+    }
+  }
+
+  // 9) 缓存命中率：调用方式若让前缀缓存反复失效，命中率会显著偏低
+  {
+    const total = m.tokensCached30d + m.tokensIn30d;
+    if (total > 0) {
+      const hitRate = m.tokensCached30d / total;
+      const t = RULE_THRESHOLDS.cacheHit;
+      if (hitRate < t.actBelow || hitRate < t.watchBelow) {
+        out.push({
+          id: 'cache-hit',
+          severity: hitRate < t.actBelow ? 'act' : 'watch',
+          title: { zh: '缓存命中率偏低：每次都在重新付前缀的钱', en: 'Cache hit rate is low: the same prefix is paid for again and again' },
+          evidence: { zh: `30 天命中 ${int(m.tokensCached30d)} / 总输入 ${int(total)} = ${pct(hitRate)}（未命中 ${int(m.tokensIn30d)}）`, en: `30-day cached ${int(m.tokensCached30d)} / total input ${int(total)} = ${pct(hitRate)} (uncached ${int(m.tokensIn30d)})` },
+          action: { zh: '检查调用方式是否每次重排 system 前缀、或并行会话各带各的历史导致前缀漂移；把稳定前缀放最前、按会话复用同一条缓存键。', en: 'Check whether the system prefix is reworded per request or parallel sessions drift their prefixes; pin a stable prefix first and reuse one cache key per session.' },
+        });
+      }
     }
   }
 

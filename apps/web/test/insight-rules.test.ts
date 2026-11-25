@@ -14,8 +14,8 @@ const base: InsightMetrics = {
   creditConsumed30d: 1500,
   realCalls30d: 180,
   demoCalls30d: 20,
-  tokensIn30d: 900_000,
-  tokensCached30d: 720_000,
+  tokensIn30d: 100_000,
+  tokensCached30d: 1_600_000, // 94% 命中，健康
   dailySignups: [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
   dailyPublishes: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
   dailyOpens: [30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30],
@@ -79,6 +79,25 @@ describe('evaluateInsightRules 规则引擎（阈值即产品决策）', () => {
 
   it('注册曲线横盘（斜率≈0）不触发 signup-trend', () => {
     expect(evaluateInsightRules(base).find((a) => a.id === 'signup-trend')).toBeUndefined();
+  });
+
+  it('缓存命中率低于 20% 触发 act：证据带命中/总数/未命中', () => {
+    const m = { ...base, tokensCached30d: 100_000, tokensIn30d: 900_000 }; // 10%
+    const action = evaluateInsightRules(m).find((a) => a.id === 'cache-hit');
+    expect(action?.severity).toBe('act');
+    expect(action?.evidence.zh).toContain('100000');
+    expect(action?.evidence.zh).toContain('900000');
+    expect(action?.action.zh).toContain('前缀');
+  });
+
+  it('命中率 20%–50% 之间只触发 watch，不误报 act', () => {
+    const m = { ...base, tokensCached30d: 400_000, tokensIn30d: 600_000 }; // 40%
+    expect(evaluateInsightRules(m).find((a) => a.id === 'cache-hit')?.severity).toBe('watch');
+  });
+
+  it('无调用（分母 0）时不给缓存建议——不画 0%、不编结论', () => {
+    const m = { ...base, tokensCached30d: 0, tokensIn30d: 0 };
+    expect(evaluateInsightRules(m).find((a) => a.id === 'cache-hit')).toBeUndefined();
   });
 
   it('每条建议都有 zh/en 两份文案和 evidence 里的数字', () => {
