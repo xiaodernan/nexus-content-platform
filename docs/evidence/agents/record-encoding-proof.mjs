@@ -598,6 +598,7 @@ const LOOKALIKE = [{"f":"docs/decisions/0016-agent-runtime-hermetic-demo-loop.md
    {"f":"docs/evidence/echo-210-live-2026-11-22.md","d":"fee609a12aa1eca3","i":[36335],"w":"REJECTED flanks cjk|edge"},
    {"f":"docs/evidence/simulated-user-behavior-2026-11-21.md","d":"2be507c03c414e06","i":[36335],"w":"REJECTED flanks cjk|cjk"},
    {"f":"apps/web/test/proxy-free-start.test.ts","d":"622ebccc141f2fb7","i":[38706],"w":"REJECTED flanks cjk|alpha"},
+   {"f":"docs/evidence/stress-gentle-dev-lowmem-2026-11-25.md","d":"92692ce829252e90","i":[36335],"w":"REJECTED flanks punct|cjk"},
 
 ];
 const laKey = (e) => `${e.f}\u0000${e.d}`;
