@@ -230,7 +230,8 @@
     "gen:showcase": "tsx scripts/gen-showcase-snapshot.mts",
     "gen:latest": "tsx scripts/gen-latest.mts",
     "sync:showcase": "tsx scripts/sync-showcase.mts",
-    "i18n:audit": "tsx --tsconfig apps/web/tsconfig.json scripts/i18n-audit.mts"
+    "i18n:audit": "tsx --tsconfig apps/web/tsconfig.json scripts/i18n-audit.mts",
+    "verify:merge-guard": "node docs/evidence/ci/merge-guard.mjs"
   },
   "devDependencies": {
     "turbo": "^2.3.3",
