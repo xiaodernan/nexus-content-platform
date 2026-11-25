@@ -410,6 +410,12 @@ const RUN_HEAD_RE = /^(?:node|tsx) +(?:--[A-Za-z0-9-]+(?:(?:=| +)[^\s]+)? +)*(\S
  */
 export const ROSTER = [
   {
+    file: 'docs/evidence/ci/merge-guard.mjs',
+    class: 'tool',
+    run: 'node docs/evidence/ci/merge-guard.mjs',
+    why: 'a sub-second READ-ONLY local guard: after a merge it checks five CI-critical configs (topology DB env, actuator DB parsing, .scratch exemption, root script registration, login-gate rules) that parallel-line merge-bases kept reverting; it never edits the tree and is not a build verdict — a person runs it before push, so it is a tool, never a proof row',
+  },
+  {
     file: 'docs/evidence/agents/isolated-arms.mjs',
     class: 'tool',
     run: 'node docs/evidence/agents/isolated-arms.mjs',

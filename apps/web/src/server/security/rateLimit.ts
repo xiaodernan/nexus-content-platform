@@ -58,6 +58,13 @@ export const IP_RATE_RULES = {
 'ai/explain': { limit: 10, windowMs: 3_600_000 },
   'follow': { limit: 60, windowMs: 3_600_000 },
   'auth/register': { limit: 10, windowMs: 3_600_000 },
+  // §STRESS-4 撞库防护：登录按 IP + 邮箱各 10 次 / 15 分钟（比注册的一小时窗更紧）。
+  // 它和 auth/register 一样直接读 `getRateLimiter().hit(...)`、不走 ipWriteGate，
+  // 所以规则表测试把这一族手工登记——否则代码里装了闸却没人写下来，管理员面板端不出这道闸。
+  'auth/login': { limit: 10, windowMs: 900_000 },
+  // 洞察台（密码 123）的 IP 总闸：30 次 / 5 分钟。这是撞库的主防面——
+  // auth/login 按 (IP, 邮箱) 分桶只挡单账号爆破，换邮箱可绕；这一道不按邮箱分桶。
+  'insight/login': { limit: 30, windowMs: 300_000 },
 } as const;
 
 export type IpRateRoute = keyof typeof IP_RATE_RULES;

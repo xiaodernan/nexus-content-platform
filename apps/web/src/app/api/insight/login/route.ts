@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { gateIp, getRateLimiter, rateKey } from '@/server/security/rateLimit';
+import { gateIp, getRateLimiter, rateKey, IP_RATE_RULES } from '@/server/security/rateLimit';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,7 +21,8 @@ export const INSIGHT_COOKIE = 'nexus-insight';
 export async function POST(request: Request) {
   const ip = gateIp(request);
   if (ip) {
-    const rl = await getRateLimiter().hit(rateKey('insight/login', ip), 30, 300_000);
+    const rule = IP_RATE_RULES['insight/login'];
+    const rl = await getRateLimiter().hit(rateKey('insight/login', ip), rule.limit, rule.windowMs);
     if (!rl.allowed) {
       return NextResponse.json({ ok: false, error: 'rate-limited', retryAfterMs: rl.retryAfterMs }, { status: 429 });
     }

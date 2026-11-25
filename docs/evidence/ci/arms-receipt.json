@@ -1,7 +1,7 @@
 {
   "tool": "docs/evidence/ci/ci-wiring-arms.mjs",
   "scope": "full",
-  "ranAt": "2026-11-21T05:14:19.771Z",
+  "ranAt": "2026-11-25T02:59:03.103Z",
   "arms": 64,
   "matched": 64,
   "armNames": [
@@ -72,7 +72,7 @@
   ],
   "subjects": {
     "workflow": "00ca8a201bd9dfb7eeff29d5bbcfca7f66c7d3990a4d27d5ba57f40922577fac",
-    "mainline": "6ddb12bbf143e99131467fa0d0fe50f59ef7738584aaf58fa9525b5f3f180724",
+    "mainline": "185e2fb3d093fb55d5a570b249f5adf078cc5606147d8f3d2c641c6b6ae31170",
     "gate": "9120223bfe06379f2d48c9a1e8b2c2471086a19f35c05a1b3c2b9513bda81706",
     "arms": "2a96b56f7ebe00687cbb13c9f4357255ec8f4d2e79d249a9d5987af9d24f10ec",
     "runner": "f07ce3b290949c6886cb974e5d910fa4c776bf2892259926b34b35c473c0f718",

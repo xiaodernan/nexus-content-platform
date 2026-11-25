@@ -7,21 +7,9 @@ import { IP_RATE_RULES } from '../src/server/security/rateLimit';
  * 改了就必须一起改文档与这几格，不能让数字悄悄挪。
  */
 describe('IP_RATE_RULES（IP 窗口闸唯一真值）', () => {
-  it('恰好这 11 条——其余闸要进来得显式补，不能靠"忘加"免检', () => {
+  it('恰好这 20 条——其余闸要进来得显式补，不能靠"忘加"免检', () => {
     expect(Object.keys(IP_RATE_RULES).sort()).toEqual(
-      [
-        'account/api-tokens',
-        'account/avatar',
-        'ai/jobs',
-        'ai/run',
-        'auth/register',
-        'blocks',
-        'follow',
-        'marketplace/create',
-        'projects/create',
-        'published/interact',
-        'published/report',
-      ].sort(),
+      ["account/api-tokens","account/avatar","ai/explain","ai/jobs","ai/run","ai/tide-diary","ai/world-step","analytics/agent-narrate","auth/login","auth/register","bible/q","blocks","follow","insight/analyze","insight/chat","insight/login","marketplace/create","projects/create","published/interact","published/report"].sort(),
     );
   });
 
@@ -35,5 +23,8 @@ describe('IP_RATE_RULES（IP 窗口闸唯一真值）', () => {
   it('e2e 的节奏按这两格算：projects/create 20 次/小时、auth/register 10 次/小时', () => {
     expect(IP_RATE_RULES['projects/create']).toEqual({ limit: 20, windowMs: 3_600_000 });
     expect(IP_RATE_RULES['auth/register']).toEqual({ limit: 10, windowMs: 3_600_000 });
+    // §STRESS-4 两道登录闸：单账号 10/15min、IP 总闸 30/5min。
+    expect(IP_RATE_RULES['auth/login']).toEqual({ limit: 10, windowMs: 900_000 });
+    expect(IP_RATE_RULES['insight/login']).toEqual({ limit: 30, windowMs: 300_000 });
   });
 });

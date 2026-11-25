@@ -541,7 +541,7 @@ people.
 
 Deriving the population has a limit listing does not have to admit: a module under `docs/evidence` that was
 never turned into a `verify:*` script stays invisible to the build. Amendments 516–519 closed that half:
-the census below gives every one of the **136** tracked modules a disposition, and the derived population is
+the census below gives every one of the **137** tracked modules a disposition, and the derived population is
 **120 running rows + 0 excluded by name** at this ref (the v645 exclusion is retired — the spring-cloud
 proof establishes its own scratch pgvector source container on the hosted plane — and the residue this
 sentence once carried is now zero). v532 triaged the
@@ -568,7 +568,7 @@ Every tracked module under `docs/evidence` now has a disposition, and the build 
 | ROW | **120** (120 run + 0 excluded) | a `verify:*` script whose whole command is one `node` call into `docs/evidence` — proof-set's own `PROOF_COMMAND`, imported, never retyped |
 | HELPER | **5** | import closure from every `verify:*` node target and every declared tool, through `sweep.relativeSpecs` (code position only): `agents/sweep.mjs`, `lib/syncproc.mjs`, `m9/wire-fields.mjs`, `ci/arms-receipt.mjs`, `m9/plane-bound-claims.mjs` (added 2026-11-10 — the import closure of the two repaired m9 proofs; committed in 9ab2371) |
 | SWEPT | **3** | the agents sweep's own population, read by CALLING `sweep.trackedProofs('HEAD')` — at this ref `cwd-axis` and `tree-axis`, the tree-motion witnesses, which stay there by measurement (their verdict is about whether the walked tree moved during the run), plus `agents/record-repair-proof.mjs`, which the sweep runs and no `verify:*` script claims |
-| TOOL | **8** | declared in the proof's `ROSTER` with a reason and a command a reader can re-run (two mutation probes, one plane-arms script, the isolated-build arms, the SVG generator, plus the three DS arms: `complexity-arms.mjs`, `single-map-ab.mjs` and `single-bucket-ab.mjs`) |
+| TOOL | **9** | declared in the proof's `ROSTER` with a reason and a command a reader can re-run (two mutation probes, one plane-arms script, the isolated-build arms, the SVG generator, the three DS arms: `complexity-arms.mjs`, `single-map-ab.mjs` and `single-bucket-ab.mjs`, plus `ci/merge-guard.mjs`, the read-only local guard added 2026-11-25) |
 | DEFERRED | **0** | none at this ref — the three Studio lane proofs v530 deferred are ROWS since v531 (the workflow pre-pulls `node:22-alpine`, their one blocker). The class and its refusals stay for the next proof a sandbox really blocks |
 
 Anything else is `UNCLASSIFIED` and exits 1 naming the file. Stale records are refused too: a roster entry the

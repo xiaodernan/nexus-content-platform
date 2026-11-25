@@ -67,7 +67,17 @@ check('record-encoding island roster',
   proof.includes('stress-gentle-dev-lowmem-2026-11-25.md'),
   'island roster lost amendments — S2b will refuse new render-bearing lines');
 
-// 6. world-bible bilingual parity (cheap, already proven but cheap to recheck)
+// 6. 两道登录闸必须在规则真值表里（否则管理员面板端不出撞库防护）
+const rateRules = read('apps/web/src/server/security/rateLimit.ts') || '';
+const insightRoute = read('apps/web/src/app/api/insight/login/route.ts') || '';
+const authRoute = read('apps/web/src/app/api/auth/login/route.ts') || '';
+check('login gates in rate table',
+  rateRules.includes("'auth/login':") && rateRules.includes("'insight/login':") &&
+  insightRoute.includes("IP_RATE_RULES['insight/login']") &&
+  authRoute.includes("IP_RATE_RULES['auth/login']"),
+  'login gates missing from IP_RATE_RULES or routes reverted to hard-coded numbers');
+
+// 7. world-bible bilingual parity (cheap, already proven but cheap to recheck)
 // (skipped here: verify:world-bible is the authority for that)
 
 if (failures.length) {
