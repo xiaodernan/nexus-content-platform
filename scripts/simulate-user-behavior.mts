@@ -13,7 +13,8 @@
  * - 只打 GET 公共路由（no /api/, no /studio, no /insight, no /admin）。
  *
  * 用法：tsx scripts/simulate-user-behavior.mts --sessions 24 --port 3199
- * 输出：docs/evidence/simulated-user-behavior-2026-11-16.{md,json}
+ * 输出到 docs/evidence/simulated-user-behavior-<今天 UTC 日期>.json（每天各留一份，
+ * 不再覆盖历史读数；要指定文件名用 --out）。
  */
 
 import { writeFileSync } from 'node:fs';
@@ -28,7 +29,9 @@ const BASE = `http://127.0.0.1:${PORT}`;
 const OUT_JSON = (() => {
   const idx = process.argv.indexOf('--out');
   const provided = idx >= 0 ? process.argv[idx + 1] : undefined;
-  return provided ? join(process.cwd(), provided) : join(process.cwd(), 'docs', 'evidence', 'simulated-user-behavior-2026-11-16.json');
+  return provided
+    ? join(process.cwd(), provided)
+    : join(process.cwd(), 'docs', 'evidence', `simulated-user-behavior-${new Date().toISOString().slice(0, 10)}.json`);
 })();
 
 // ── deterministic LCG（so the evidence is rerun-identical）
