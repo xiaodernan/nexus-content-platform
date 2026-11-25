@@ -643,7 +643,7 @@
   }
   .pf-avatar {
     flex-shrink: 0; width: 4rem; height: 4rem; border-radius: var(--nexus-radius-full);
-    object-fit: cover; background: var(--nexus-color-bg-2);
+    object-fit: contain; object-position: center; background: var(--nexus-color-bg-2);
     padding: 3px; /* 给渐变环留边；首字母态靠 pf-avatarInitial 的 inset 背景填回 */
     box-shadow: 0 0 0 1px var(--nexus-color-border-subtle), var(--nexus-shadow-md);
     background-image: linear-gradient(135deg, var(--nexus-color-brand), var(--nexus-color-accent-1));
@@ -2457,7 +2457,7 @@
   /* ── §FE-86 / ADR-0239 `AvatarEditor.tsx` `.ae-` 门面化——§60 头像上传 ──
    * "剥掉了哪些元数据段"必须显示——EXIF 的 GPS/机型不该裸奔；摘掉回到 null 首字母，不造默认图。 */
   .ae-root { display: flex; align-items: flex-start; gap: var(--nexus-space-3); }
-  .ae-img { height: 3rem; width: 3rem; border-radius: 9999px; border: 1px solid var(--nexus-color-border-subtle); object-fit: cover; }
+  .ae-img { height: 3rem; width: 3rem; border-radius: 9999px; border: 1px solid var(--nexus-color-border-subtle); object-fit: contain; object-position: center; background: var(--nexus-color-bg-2); }
   .ae-fallback { display: flex; height: 3rem; width: 3rem; align-items: center; justify-content: center; border-radius: 9999px; background: var(--nexus-color-bg-2); font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-fg-3); }
   .ae-col { display: flex; flex-direction: column; gap: var(--nexus-space-2); }
   .ae-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--nexus-space-2); }
@@ -3954,7 +3954,7 @@
 .ash-card { display: flex; height: 100%; flex-direction: column; gap: var(--nexus-space-3); border-radius: var(--nexus-radius-md); border: 1px solid var(--nexus-color-border-subtle); background: var(--nexus-color-bg-1); padding: var(--nexus-space-4); text-decoration: none; transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease; }
 .ash-card:hover { border-color: var(--nexus-color-brand); transform: translateY(-2px); box-shadow: 0 18px 48px rgb(91 108 255 / 0.22); }
 .ash-cardHead { display: flex; align-items: flex-start; gap: var(--nexus-space-3); }
-.ash-avatar { width: 3.5rem; height: 3.5rem; border-radius: var(--nexus-radius-full); border: 1px solid var(--nexus-color-border-strong); object-fit: cover; }
+.ash-avatar { width: 3.5rem; height: 3.5rem; border-radius: var(--nexus-radius-full); border: 1px solid var(--nexus-color-border-strong); object-fit: contain; object-position: center; background: var(--nexus-color-bg-2); }
 .ash-avatarFallback { display: flex; width: 3.5rem; height: 3.5rem; align-items: center; justify-content: center; border-radius: var(--nexus-radius-full); border: 1px solid rgb(91 108 255 / 0.4); background: linear-gradient(135deg, var(--nexus-color-brand) 0%, var(--nexus-color-accent-1) 50%, var(--nexus-color-accent-2) 100%); font-size: var(--nexus-font-size-16); font-weight: 700; color: var(--nexus-color-accent-fg); }
 .ash-cardName { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--nexus-font-size-14); font-weight: 600; color: var(--nexus-color-fg-1); }
 .ash-handle { margin-top: 2px; font-family: var(--nexus-font-mono); font-size: var(--nexus-font-size-11); color: var(--nexus-color-accent-2-ink); }
