@@ -27,6 +27,7 @@ function hashSeed(s: string): number {
 }
 
 const DAYS_PER_SEASON = 7; // 按天计的一个赛季长度；往后可跟随世界 tide 轮转。
+const MOODS = ['热烈', '稳固', '缓慢', '歌唱'] as const;
 
 /** 给定世界 id 和天偏移，返回该世界的赛季表（默认起点 0，可换）。 */
 export function buildWorldSeasons(world: WorldDocument, dayCount = 28): Season[] {
@@ -39,7 +40,7 @@ export function buildWorldSeasons(world: WorldDocument, dayCount = 28): Season[]
       name: `S${index + 1}`,
       index,
       startDayOffset: i * DAYS_PER_SEASON,
-      mood: ['热烈', '稳固', '缓慢', '歌唱'][index]!,
+      mood: MOODS[index]!,
       talks: index % 2 === 0,
     });
   }

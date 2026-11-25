@@ -37,6 +37,12 @@ import { mergeImportedWorld, parseWorldMarkdown, worldFileName, worldToMarkdown 
 import { formatWorldStats, worldStats } from '@/lib/worldStats';
 import { formatWorldCohesion, worldCohesion } from '@/lib/worldCohesion';
 import { buildEchoWalk, formatEchoStep } from '@/lib/worldEchoWalk';
+import { buildWorldInquiries } from '@/lib/worldInquiries';
+import { buildWorldWaypoints } from '@/lib/worldWaypoints';
+import { buildWorldSeasons } from '@/lib/worldSeasons';
+import { buildWorldTraditions } from '@/lib/worldTraditions';
+import { buildWorldAnnals } from '@/lib/worldAnnals';
+import { buildPlaythrough } from '@/lib/worldPrep';
 import { filterWorldNodes } from '@/lib/worldFilter';
 import { sortWorldNodes, type WorldSortMode } from '@/lib/worldSort';
 import { auditSuggestion, auditWorld, formatWorldAudit } from '@/lib/worldAudit';
@@ -104,6 +110,15 @@ const COPY = {
     fateKeep: '把这张卡写进世界',
     fateDone: (card: { title: string; body: string }) => `命运骰 · ${card.title}：${card.body}`,
     fateKept: '这张事件卡已写进世界的「故事」类；正文里标了 seed 与来源，不冒充模型新写的史实。',
+    lab: '世界实验',
+    labTitle: '不调模型、不写库：把世界已有条目投影成线索、远行路径、赛季、传统、编年与新手预演。同输入永远同结果。',
+    labEmpty: '先建一个世界再运行实验。',
+    labInquiries: (n: number) => `线索 ${n} 条`,
+    labWaypoints: (n: number) => `远行路径 ${n} 条`,
+    labSeasons: (n: number) => `赛季 ${n} 季`,
+    labTraditions: (n: number) => `传统 ${n} 项`,
+    labAnnals: (n: number) => `编年 ${n} 条`,
+    labPrep: (n: number) => `新手预演 ${n} 步`,
     aiChronicle: 'AI 续写编年',
     aiChronicleBusy: '续写中…',
     aiChronicleTitle: '真调用一次 provider，给编年册补一条故事：只从这个世界已有的纪元里挑一个，写一件具体发生过的事与它留下的痕迹。模型不许自造纪元或数字；新条目直接带纪元标签进编年页。（这四个 AI 按钮共用每小时 10 次额度，超了会告诉你要等多久。）',
@@ -234,6 +249,15 @@ const COPY = {
     fateKeep: 'Keep this card in the world',
     fateDone: (card: { title: string; body: string }) => `Fate · ${card.title}: ${card.body}`,
     fateKept: 'This event card is now a Story entry; its body names the seed and sources — it is not passed off as a freshly written fact.',
+    lab: 'World lab',
+    labTitle: 'No model call, no database write: project the world’s own entries into inquiries, waypoints, seasons, traditions, annals and a starter playthrough. Same input, same output.',
+    labEmpty: 'Create a world before running the lab.',
+    labInquiries: (n: number) => `${n} inquiries`,
+    labWaypoints: (n: number) => `${n} waypoints`,
+    labSeasons: (n: number) => `${n} seasons`,
+    labTraditions: (n: number) => `${n} traditions`,
+    labAnnals: (n: number) => `${n} annals`,
+    labPrep: (n: number) => `${n} starter steps`,
     aiChronicle: 'AI write chronicle',
     aiChronicleBusy: 'Writing…',
     aiChronicleTitle: 'One real provider call adds one story to the chronicle: it must pick an era that already exists in this world and write something that happened, what it cost, and what remains. No invented eras or figures; the new entry carries its era tag straight into the chronicle page. (These four AI buttons share a 10-per-hour quota; if you hit it the UI tells you how long to wait.)',
@@ -563,6 +587,24 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
   const [fateSeed, setFateSeed] = useState(1);
   const [fateNote, setFateNote] = useState('');
   const [fateCard, setFateCard] = useState<FateCard | null>(null);
+  const [labText, setLabText] = useState('');
+  const runWorldLab = () => {
+    const doc = worldStore.getSnapshot().world;
+    if (!doc) {
+      setLabText(c.labEmpty);
+      return;
+    }
+    const lines = [
+      c.labInquiries(buildWorldInquiries(doc, 2).length),
+      c.labWaypoints(buildWorldWaypoints(doc, 1).length),
+      c.labSeasons(buildWorldSeasons(doc).length),
+      c.labTraditions(buildWorldTraditions(doc).length),
+      c.labAnnals(buildWorldAnnals(doc).length),
+      c.labPrep(buildPlaythrough(doc).length),
+    ];
+    setLabText(lines.join('\n'));
+  };
+
   const rollFateCard = () => {
     const doc = worldStore.getSnapshot().world;
     const card = doc ? rollFate(doc.nodes, fateSeed) : null;
@@ -1098,6 +1140,15 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
             </button>
             <button
               type="button"
+              onClick={runWorldLab}
+              title={c.labTitle}
+              data-world-lab
+              className="wd-ghostBtn"
+            >
+              {c.lab}
+            </button>
+            <button
+              type="button"
               onClick={exportMarkdown}
               title={c.exportMdTitle}
               data-world-export-md
@@ -1226,6 +1277,9 @@ export function WorldPanel({ locale = 'zh' }: { locale?: Locale }) {
             ))}
             </ul>
           </>
+        ) : null}
+        {labText ? (
+          <p className="wd-body11Mt2" data-world-lab-output style={{ whiteSpace: 'pre-line' }}>{labText}</p>
         ) : null}
         {fateCard ? (
           <button
