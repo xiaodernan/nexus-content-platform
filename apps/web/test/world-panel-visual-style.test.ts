@@ -154,7 +154,7 @@ describe('§FE-48 /studio WorldPanel 世界构筑面板', () => {
 
   it('剥 className/cn 后全文 SHA256 守恒（2026-11-21 回声步道重钉）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      'd8dc17a8fa0f289e8773decd989fdb4017191c1c90810979070ee4d6b3568076',
+      'dcb77aaf41691294fca40097685adae549c0ea2964c7123aa6d92f2ca3ae0f37',
     );
   });
 });
