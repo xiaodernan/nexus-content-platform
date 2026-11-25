@@ -146,6 +146,15 @@ jobs:
     # red, the failure is real signal — the same class of failure this job exists to surface.
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      # CI 的 Postgres 发布在 55433、库名 nexus、用户 nexus。Java 打包默认指向本机
+      # 5433/nexus_dev，不显式覆盖会让 domain-service 连不上库，Hibernate 报
+      # "Unable to determine Dialect without JDBC metadata"（实测 topology 因此红）。
+      # step 级端口 env 仍可覆盖这些值。
+      NEXUS_DOMAIN_DB_URL: jdbc:postgresql://127.0.0.1:55433/nexus
+      NEXUS_DOMAIN_PG_PORT: 55433
+      DB_USERNAME: nexus
+      DB_PASSWORD: nexus_dev_only
     services:
       postgres:
         image: pgvector/pgvector:pg16
