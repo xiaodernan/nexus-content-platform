@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest';
  * 本片零新毛坯类：复用 §FE-87/91 的 `.adp-*`/`.pe-*`；唯一新增 `.pe-monoHint`（计数器）与 `.adp-btnSm:disabled`（禁用态补齐）。
  *
  * **零行为恒等门**（redact = EOL+空白归一 + className 任意形态归一 @）：
- * `440f9ddf1a36561d711b1f0756f7feb4ccd57996b3abbd5f536a7def756e51ca` 与 HEAD 字节一致。
+ * `faea8eb1e65ef032a109214f87aefd7caffd7f4ee5bb7efaaf1df7744033173a` 与 HEAD 字节一致。
  */
 const ROOT = process.cwd();
 const MAIN = join(ROOT, 'apps/web/src/components/ProjectDescriptionEditor.tsx');
@@ -79,9 +79,19 @@ describe('§FE-93 /components ProjectDescriptionEditor 项目简介（复用 .pe
     for (const token of used) expect(tokens, `tokens.css 没有声明 ${token}`).toContain(token);
   });
 
-  it('剥 className 后全文 SHA256 守恒（零行为：440f9ddf1a36561d711b1f0756f7feb4ccd57996b3abbd5f536a7def756e51ca）', () => {
+  it('四个操作按钮都有教学 title——做什么/后果，中英各一句', () => {
+    for (const hook of ['edit', 'save', 'clear', 'cancel']) {
+      expect(code, `${hook} 按钮缺 data 钩子`).toContain(`data-project-desc-${hook}=`);
+      expect(code, `${hook} 按钮缺教学 title`).toMatch(new RegExp(`title=\\{c\\.${hook}Title\\}`));
+    }
+    for (const key of ['editTitle', 'saveTitle', 'clearTitle', 'cancelTitle']) {
+      expect(code, `zh ${key} 缺`).toContain(`${key}: '`);
+    }
+  });
+
+  it('剥 className 后全文 SHA256 守恒（零行为：faea8eb1e65ef032a109214f87aefd7caffd7f4ee5bb7efaaf1df7744033173a）', () => {
     expect(createHash('sha256').update(redactClasses(main)).digest('hex')).toBe(
-      '440f9ddf1a36561d711b1f0756f7feb4ccd57996b3abbd5f536a7def756e51ca',
+      'faea8eb1e65ef032a109214f87aefd7caffd7f4ee5bb7efaaf1df7744033173a',
     );
   });
 });

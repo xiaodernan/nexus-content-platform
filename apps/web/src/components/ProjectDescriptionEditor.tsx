@@ -15,6 +15,10 @@ const COPY: Record<Locale, {
   saving: string;
   clear: string;
   cancel: string;
+  editTitle: string;
+  saveTitle: string;
+  clearTitle: string;
+  cancelTitle: string;
 }> = {
   zh: {
     saveFailed: (reason) => `没保存：${reason}`,
@@ -26,6 +30,10 @@ const COPY: Record<Locale, {
     saving: '保存中…',
     clear: '清空',
     cancel: '取消',
+    editTitle: '展开简介输入框：一句话说明项目是什么，会作为公开页的搜索描述。',
+    saveTitle: '保存简介到最后一次发布的版本；已有的公开页要重新发布才会更新。',
+    clearTitle: '清空简介：立即保存空值，公开页会显示「没有简介」。',
+    cancelTitle: '放弃这次改动，恢复成展开前的简介。',
   },
   en: {
     saveFailed: (reason) => `Not saved: ${reason}`,
@@ -37,6 +45,10 @@ const COPY: Record<Locale, {
     saving: 'Saving…',
     clear: 'Clear',
     cancel: 'Cancel',
+    editTitle: 'Open the description field: one line about the project, used as the public page’s search description.',
+    saveTitle: 'Save the description to the latest release; an already-published page needs a new release to show it.',
+    clearTitle: 'Clear the description and save the empty value immediately; the public page will say “No description”.',
+    cancelTitle: 'Discard this edit and restore the description from before you opened the field.',
   },
 };
 
@@ -101,6 +113,7 @@ export function ProjectDescriptionEditor({
             setOpen(true);
           }}
           className="adp-btnSm"
+          title={c.editTitle}
           data-project-desc-edit={projectId}
         >
           {initialDescription ? c.edit : c.write}
@@ -126,6 +139,7 @@ export function ProjectDescriptionEditor({
           disabled={busy}
           onClick={() => void save(value)}
           className="pe-saveBtn"
+          title={c.saveTitle}
           data-project-desc-save={projectId}
         >
           {busy ? c.saving : c.save}
@@ -135,6 +149,7 @@ export function ProjectDescriptionEditor({
           disabled={busy}
           onClick={() => void save('')}
           className="adp-btnSm"
+          title={c.clearTitle}
           data-project-desc-clear={projectId}
         >
           {c.clear}
@@ -148,6 +163,7 @@ export function ProjectDescriptionEditor({
             setOpen(false);
           }}
           className="adp-cancelBtn"
+          title={c.cancelTitle}
           data-project-desc-cancel={projectId}
         >
           {c.cancel}
